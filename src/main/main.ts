@@ -9,7 +9,8 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
+import fs from 'fs/promises';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -29,6 +30,39 @@ ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
+});
+
+ipcMain.handle('dialog:openDirectory', async () => {
+  if (!mainWindow) return null;
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+  });
+  if (canceled) {
+    return null;
+  }
+  return filePaths[0];
+});
+
+ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
+  try {
+    const dirents = await fs.readdir(dirPath, { withFileTypes: true });
+    return dirents.map(dirent => ({
+      name: dirent.name,
+      isDirectory: dirent.isDirectory(),
+      path: path.join(dirPath, dirent.name)
+    }));
+  } catch (error) {
+    console.error('Error reading directory:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('fs:readFile', async (_, filePath: string) => {
+  return await fs.readFile(filePath, 'utf-8');
+});
+
+ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
+  return await fs.writeFile(filePath, content, 'utf-8');
 });
 
 if (process.env.NODE_ENV === 'production') {
