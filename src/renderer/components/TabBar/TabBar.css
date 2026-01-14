@@ -1,0 +1,89 @@
+.tab-bar {
+  display: flex;
+  background-color: #1e1e1e; /* VS Code-like dark background */
+  height: 35px;
+  overflow-x: auto;
+  border-bottom: 1px solid #2b2b2b;
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none; /* Firefox */
+}
+
+.tab-bar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  min-width: 120px;
+  max-width: 200px;
+  height: 100%;
+  background-color: #252526;
+  color: #969696;
+  border-right: 1px solid #1e1e1e;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.1s ease, color 0.1s ease;
+  position: relative;
+  font-size: 13px;
+}
+
+.tab-item:hover {
+  background-color: #2a2d2e;
+  color: #cccccc;
+}
+
+.tab-item.active {
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border-top: 2px solid #007acc; /* VS Code blue accent */
+}
+
+.tab-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 6px;
+}
+
+.tab-dirty-indicator {
+  width: 8px;
+  height: 8px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  margin-right: 6px;
+  opacity: 0.8;
+}
+
+.tab-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: inherit;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s, background-color 0.1s;
+  padding: 0;
+}
+
+.tab-item:hover .tab-close-btn {
+  opacity: 1;
+}
+
+.tab-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* Ensure close button is visible on active tab even without hover if preferred,
+   but VS Code only shows on hover mostly. */
+.tab-item.active .tab-close-btn {
+  opacity: 1;
+}
