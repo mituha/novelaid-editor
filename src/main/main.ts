@@ -15,6 +15,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import { loadProject } from './project';
 
 class AppUpdater {
   constructor() {
@@ -63,6 +64,10 @@ ipcMain.handle('fs:readFile', async (_, filePath: string) => {
 
 ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
   return await fs.writeFile(filePath, content, 'utf-8');
+});
+
+ipcMain.handle('project:load', async (_, projectPath: string) => {
+  return await loadProject(projectPath);
 });
 
 if (process.env.NODE_ENV === 'production') {
