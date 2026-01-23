@@ -15,7 +15,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import { loadProject } from './project';
+import { loadProject, saveProject } from './project';
 
 class AppUpdater {
   constructor() {
@@ -68,6 +68,10 @@ ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
 
 ipcMain.handle('project:load', async (_, projectPath: string) => {
   return await loadProject(projectPath);
+});
+
+ipcMain.handle('project:save-config', async (_, projectPath: string, config: any) => {
+  return await saveProject(projectPath, config);
 });
 
 if (process.env.NODE_ENV === 'production') {

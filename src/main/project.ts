@@ -98,3 +98,23 @@ async function loadPlugins(novelAgentPath: string): Promise<PluginManifest[]> {
 
   return manifests;
 }
+
+/**
+ * プロジェクト設定を保存します。
+ * @param projectPath プロジェクトのルートパス
+ * @param config 設定オブジェクト
+ */
+export async function saveProject(projectPath: string, config: ProjectConfig): Promise<void> {
+  const novelAgentPath = path.join(projectPath, NOVELAGENT_DIR);
+  // .novelagentディレクトリがない場合は作成する
+  try {
+    await fs.mkdir(novelAgentPath, { recursive: true });
+  } catch (err) {
+    if ((err as any).code !== 'EEXIST') {
+      throw err;
+    }
+  }
+
+  const configPath = path.join(novelAgentPath, CONFIG_FILE);
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+}

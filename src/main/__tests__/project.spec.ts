@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
-import { loadProject } from '../project';
+import { loadProject, saveProject } from '../project';
 
 // fsモジュールをモックする
 jest.mock('fs/promises');
@@ -66,5 +66,26 @@ describe('project load logic', () => {
     expect(result).not.toBeNull();
     expect(result?.config).toEqual({});
     expect(result?.plugins).toEqual([]);
+  });
+});
+
+describe('project save logic', () => {
+  const projectPath = '/test-project';
+  const novelAgentPath = path.join(projectPath, '.novelagent');
+  const configPath = path.join(novelAgentPath, 'config.json');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should save config to config.json', async () => {
+    (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
+    (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
+
+    const config = { theme: 'light' };
+    await saveProject(projectPath, config);
+
+    expect(fs.mkdir).toHaveBeenCalledWith(novelAgentPath, { recursive: true });
+    expect(fs.writeFile).toHaveBeenCalledWith(configPath, JSON.stringify(config, null, 2), 'utf-8');
   });
 });

@@ -1,13 +1,26 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { FileExplorer } from '../components/Sidebar/FileExplorer';
 import { CodeEditor } from '../components/Editor/CodeEditor';
 import { TabBar, Tab } from '../components/TabBar/TabBar';
+import { SettingsModal } from '../components/Settings/SettingsModal';
+import { useSettings } from '../contexts/SettingsContext';
+import { EditorSettingsTab } from '../components/Settings/Tabs/EditorSettingsTab';
+import { Settings as SettingsIcon } from 'lucide-react';
 import './MainLayout.css';
 
 export const MainLayout = () => {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabPath, setActiveTabPath] = useState<string | null>(null);
   const [tabContents, setTabContents] = useState<Record<string, string>>({});
+  const { openSettings, registerSettingTab, loadProjectSettings } = useSettings();
+
+  useEffect(() => {
+    registerSettingTab({
+      id: 'editor',
+      name: 'Editor',
+      render: () => <EditorSettingsTab />
+    });
+  }, [registerSettingTab]);
 
   const handleFileSelect = useCallback((path: string, content: string) => {
     setTabs((prev) => {
@@ -101,9 +114,20 @@ export const MainLayout = () => {
 
   const activeContent = activeTabPath ? tabContents[activeTabPath] : '';
 
+
+
   return (
     <div className="main-layout">
-      <FileExplorer onFileSelect={handleFileSelect} />
+      <div className="sidebar-container" style={{ display: 'flex', flexDirection: 'column', width: '250px', backgroundColor: '#252526', borderRight: '1px solid #333' }}>
+         <div style={{ flex: 1, overflow: 'hidden' }}>
+            <FileExplorer onFileSelect={handleFileSelect} onProjectOpened={loadProjectSettings} />
+         </div>
+         <div className="sidebar-footer" style={{ padding: '10px', borderTop: '1px solid #333', display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={openSettings} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }} title="Settings">
+                <SettingsIcon size={20} />
+            </button>
+         </div>
+      </div>
       <div className="editor-area">
         <TabBar
             tabs={tabs}
@@ -130,6 +154,7 @@ export const MainLayout = () => {
             </div>
         )}
       </div>
+      <SettingsModal />
     </div>
   );
 };

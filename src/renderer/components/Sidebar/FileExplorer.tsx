@@ -9,6 +9,7 @@ interface FileNode {
 
 interface FileExplorerProps {
   onFileSelect: (path: string, content: string) => void;
+  onProjectOpened?: (path: string) => void;
 }
 
 const FileTreeItem = ({ file, onFileSelect, level = 0 }: { file: FileNode; onFileSelect: (path: string, content: string) => void; level?: number }) => {
@@ -62,19 +63,25 @@ const FileTreeItem = ({ file, onFileSelect, level = 0 }: { file: FileNode; onFil
   );
 };
 
-export const FileExplorer = ({ onFileSelect }: FileExplorerProps) => {
+export const FileExplorer = ({ onFileSelect, onProjectOpened }: FileExplorerProps) => {
   const [rootFiles, setRootFiles] = useState<FileNode[]>([]);
 
   const handleOpenFolder = async () => {
     try {
       const path = await window.electron.ipcRenderer.invoke('dialog:openDirectory');
       if (path) {
+        if (onFileSelect && (onProjectOpened as any)) { // Simply checking if exists? onProjectOpened is not in destructuring yet.
+           // wait, i need to destructure it in component args.
+        }
         const fileList = await window.electron.ipcRenderer.invoke('fs:readDirectory', path);
         const sorted = (fileList as FileNode[]).sort((a, b) => {
             if (a.isDirectory === b.isDirectory) return a.name.localeCompare(b.name);
             return a.isDirectory ? -1 : 1;
         });
         setRootFiles(sorted);
+        if (onProjectOpened) {
+            onProjectOpened(path);
+        }
       }
     } catch (error) {
       console.error(error);
