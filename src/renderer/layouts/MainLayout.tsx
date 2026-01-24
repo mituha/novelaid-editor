@@ -6,6 +6,7 @@ import { SettingsModal } from '../components/Settings/SettingsModal';
 import { useSettings } from '../contexts/SettingsContext';
 import { EditorSettingsTab } from '../components/Settings/Tabs/EditorSettingsTab';
 import { Settings as SettingsIcon } from 'lucide-react';
+import { RightPane } from '../components/RightPane/RightPane';
 import './MainLayout.css';
 
 export const MainLayout = () => {
@@ -154,6 +155,7 @@ export const MainLayout = () => {
             </div>
         )}
       </div>
+      <RightPane />
       <SettingsModal />
     </div>
   );
