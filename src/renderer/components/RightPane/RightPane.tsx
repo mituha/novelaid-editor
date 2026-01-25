@@ -7,10 +7,14 @@ interface Message {
   content: string;
 }
 
-export const RightPane = () => {
+export function RightPane() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'assistant', content: 'Hello! I am your AI assistant. How can I help you today?' }
+    {
+      id: '1',
+      role: 'assistant',
+      content: 'Hello! I am your AI assistant. How can I help you today?',
+    },
   ]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -30,29 +34,30 @@ export const RightPane = () => {
     const newMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input
+      content: input,
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
     setInput('');
 
     // Mock response
     setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'I received your message. logic is not implemented yet.'
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'I received your message. logic is not implemented yet.',
+        },
+      ]);
     }, 500);
   };
 
   return (
     <div className="right-pane">
-      <div className="right-pane-header">
-        AI Agent
-      </div>
+      <div className="right-pane-header">AI Agent</div>
       <div className="right-pane-content">
-        {messages.map(msg => (
+        {messages.map((msg) => (
           <div key={msg.id} className={`chat-message ${msg.role}`}>
             {msg.content}
           </div>
@@ -68,4 +73,4 @@ export const RightPane = () => {
       </div>
     </div>
   );
-};
+}

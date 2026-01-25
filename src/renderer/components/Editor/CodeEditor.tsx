@@ -7,7 +7,7 @@ interface CodeEditorProps {
   onChange: (value: string | undefined) => void;
 }
 
-export const CodeEditor = ({ value, onChange }: CodeEditorProps) => {
+export function CodeEditor({ value, onChange }: CodeEditorProps) {
   return (
     <div className="code-editor-wrapper">
       <Editor
@@ -29,4 +29,4 @@ export const CodeEditor = ({ value, onChange }: CodeEditorProps) => {
       />
     </div>
   );
-};
+}

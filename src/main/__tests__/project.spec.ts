@@ -33,7 +33,14 @@ describe('project load logic', () => {
         return Promise.resolve(JSON.stringify(mockConfig));
       }
       if (filePath.endsWith('manifest.json')) {
-         return Promise.resolve(JSON.stringify({ id: 'test-plugin', name: 'Test Plugin', version: '1.0.0', main: 'index.js' }));
+        return Promise.resolve(
+          JSON.stringify({
+            id: 'test-plugin',
+            name: 'Test Plugin',
+            version: '1.0.0',
+            main: 'index.js',
+          }),
+        );
       }
       return Promise.reject(new Error('ENOENT'));
     });
@@ -42,7 +49,7 @@ describe('project load logic', () => {
     (fs.readdir as jest.Mock).mockImplementation((dirPath, options) => {
       if (dirPath === pluginsPath) {
         return Promise.resolve([
-          { name: 'test-plugin', isDirectory: () => true } as any
+          { name: 'test-plugin', isDirectory: () => true } as any,
         ]);
       }
       return Promise.resolve([]);
@@ -86,6 +93,10 @@ describe('project save logic', () => {
     await saveProject(projectPath, config);
 
     expect(fs.mkdir).toHaveBeenCalledWith(novelAgentPath, { recursive: true });
-    expect(fs.writeFile).toHaveBeenCalledWith(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    expect(fs.writeFile).toHaveBeenCalledWith(
+      configPath,
+      JSON.stringify(config, null, 2),
+      'utf-8',
+    );
   });
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSettings } from '../../../contexts/SettingsContext';
 
-export const EditorSettingsTab = () => {
+export function EditorSettingsTab() {
   const { settings, updateSettings } = useSettings();
   const editorConfig = settings.editor || {};
 
@@ -9,8 +9,8 @@ export const EditorSettingsTab = () => {
     updateSettings({
       editor: {
         ...editorConfig,
-        [key]: value
-      }
+        [key]: value,
+      },
     });
   };
 
@@ -54,4 +54,4 @@ export const EditorSettingsTab = () => {
       </div>
     </div>
   );
-};
+}

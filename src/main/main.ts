@@ -47,10 +47,10 @@ ipcMain.handle('dialog:openDirectory', async () => {
 ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
   try {
     const dirents = await fs.readdir(dirPath, { withFileTypes: true });
-    return dirents.map(dirent => ({
+    return dirents.map((dirent) => ({
       name: dirent.name,
       isDirectory: dirent.isDirectory(),
-      path: path.join(dirPath, dirent.name)
+      path: path.join(dirPath, dirent.name),
     }));
   } catch (error) {
     console.error('Error reading directory:', error);
@@ -70,9 +70,12 @@ ipcMain.handle('project:load', async (_, projectPath: string) => {
   return await loadProject(projectPath);
 });
 
-ipcMain.handle('project:save-config', async (_, projectPath: string, config: any) => {
-  return await saveProject(projectPath, config);
-});
+ipcMain.handle(
+  'project:save-config',
+  async (_, projectPath: string, config: any) => {
+    return await saveProject(projectPath, config);
+  },
+);
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');

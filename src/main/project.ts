@@ -34,7 +34,9 @@ const MANIFEST_FILE = 'manifest.json';
  * プロジェクトフォルダから設定とプラグイン情報を読み込みます。
  * @param projectPath プロジェクトのルートパス
  */
-export async function loadProject(projectPath: string): Promise<LoadedProject | null> {
+export async function loadProject(
+  projectPath: string,
+): Promise<LoadedProject | null> {
   const novelAgentPath = path.join(projectPath, NOVELAGENT_DIR);
 
   try {
@@ -104,7 +106,10 @@ async function loadPlugins(novelAgentPath: string): Promise<PluginManifest[]> {
  * @param projectPath プロジェクトのルートパス
  * @param config 設定オブジェクト
  */
-export async function saveProject(projectPath: string, config: ProjectConfig): Promise<void> {
+export async function saveProject(
+  projectPath: string,
+  config: ProjectConfig,
+): Promise<void> {
   const novelAgentPath = path.join(projectPath, NOVELAGENT_DIR);
   // .novelagentディレクトリがない場合は作成する
   try {
