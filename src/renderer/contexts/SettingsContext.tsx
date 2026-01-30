@@ -15,6 +15,17 @@ export interface ProjectConfig {
     wordWrap?: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
     [key: string]: any;
   };
+  ai?: {
+    provider?: 'lmstudio' | 'gemini';
+    lmstudio?: {
+       model?: string;
+       baseUrl?: string;
+    };
+    gemini?: {
+       apiKey?: string;
+       model?: string;
+    }
+  };
   [key: string]: any;
 }
 

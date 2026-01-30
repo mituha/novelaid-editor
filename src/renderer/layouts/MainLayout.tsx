@@ -6,6 +6,7 @@ import { TabBar, Tab } from '../components/TabBar/TabBar';
 import { SettingsModal } from '../components/Settings/SettingsModal';
 import { useSettings } from '../contexts/SettingsContext';
 import { EditorSettingsTab } from '../components/Settings/Tabs/EditorSettingsTab';
+import { AISettingsTab } from '../components/Settings/Tabs/AISettingsTab';
 import { RightPane } from '../components/RightPane/RightPane';
 import { Resizer } from '../components/Common/Resizer';
 import './MainLayout.css';
@@ -44,6 +45,11 @@ export function MainLayout() {
       id: 'editor',
       name: 'Editor',
       render: () => <EditorSettingsTab />,
+    });
+    registerSettingTab({
+      id: 'ai',
+      name: 'AI',
+      render: () => <AISettingsTab />,
     });
   }, [registerSettingTab]);
 

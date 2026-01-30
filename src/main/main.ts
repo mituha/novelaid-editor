@@ -16,6 +16,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { loadProject, saveProject } from './project';
+import { ProviderFactory } from './ai/ProviderFactory';
 
 class AppUpdater {
   constructor() {
@@ -76,6 +77,57 @@ ipcMain.handle(
     return await saveProject(projectPath, config);
   },
 );
+
+ipcMain.handle('ai:generate', async (_, prompt: string, config: any) => {
+  try {
+    // Map ProjectConfig.ai structure to ProviderFactory.ProviderConfig
+    const providerType = config.provider || 'lmstudio';
+    let factoryConfig: any = {
+        type: providerType,
+        modelName: 'local-model' // Default
+    };
+
+    if (providerType === 'lmstudio') {
+        factoryConfig.modelName = config.lmstudio?.model || 'local-model';
+        factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'http://127.0.0.1:1234';
+    } else if (providerType === 'gemini') {
+        factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
+        factoryConfig.apiKey = config.gemini?.apiKey;
+    }
+
+    const provider = ProviderFactory.createProvider(factoryConfig);
+    return await provider.generateContent(prompt);
+  } catch (error) {
+    console.error('AI Generation Error:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('ai:stream', async (_, prompt: string, config: any) => {
+    // Streaming over simple IPC handle is tricky because handle expects a Promise that resolves once.
+    // Usually we use event.reply for streaming or specific stream IPC.
+    // For now, I will implement it but the renderer needs to listen to a channel.
+    // However, the interface asks for AsyncGenerator.
+    // A common pattern for streaming in Electron is:
+    // Renderer calls 'ai:stream-start' -> Main starts -> Main sends 'ai:stream-data' -> Main sends 'ai:stream-end'.
+
+    // Changing approach: Return a unique ID (or just start) and assume renderer listens to a specific channel?
+    // Or, keep it simple for now: 'ai:generate' is enough for basic usage.
+    // If the user wants streaming, I'll add specific logic.
+    // But the interface has streamContent.
+
+    try {
+        const provider = ProviderFactory.createProvider(config);
+        // We can't return an async generator over IPC.
+        // We need to consume it and send events.
+        // But `handle` is request-response.
+        // I will throw error for now as "Not Implemented for IPC" or leave it out until requested.
+        throw new Error("Streaming not yet implemented over IPC");
+    } catch (error) {
+         console.error('AI Stream Error:', error);
+        throw error;
+    }
+});
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');

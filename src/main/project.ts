@@ -5,7 +5,20 @@ export interface ProjectConfig {
   theme?: string;
   editor?: {
     fontSize?: number;
+    showLineNumbers?: boolean;
+    wordWrap?: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
     [key: string]: any;
+  };
+  ai?: {
+    provider?: 'lmstudio' | 'gemini';
+    lmstudio?: {
+       model?: string;
+       baseUrl?: string;
+    };
+    gemini?: {
+       apiKey?: string;
+       model?: string;
+    }
   };
   enabledPlugins?: string[];
   [key: string]: any;
