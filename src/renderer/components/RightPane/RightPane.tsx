@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useSettings } from '../../contexts/SettingsContext';
 import './RightPane.css';
 
@@ -125,7 +127,9 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
       <div className="right-pane-content">
         {messages.map((msg) => (
           <div key={msg.id} className={`chat-message ${msg.role}`}>
-            {msg.displayContent || msg.content}
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {msg.displayContent || msg.content}
+            </ReactMarkdown>
           </div>
         ))}
         <div ref={messagesEndRef} />
