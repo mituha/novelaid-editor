@@ -1,7 +1,7 @@
 .right-pane {
   display: flex;
   flex-direction: column;
-  width: 300px;
+  width: 100%;
   background-color: #252526;
   border-left: 1px solid #333;
   height: 100%;
