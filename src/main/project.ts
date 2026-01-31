@@ -10,7 +10,7 @@ export interface ProjectConfig {
     [key: string]: any;
   };
   ai?: {
-    provider?: 'lmstudio' | 'gemini';
+    provider?: 'lmstudio' | 'gemini' | 'openai';
     lmstudio?: {
        model?: string;
        baseUrl?: string;
@@ -18,7 +18,12 @@ export interface ProjectConfig {
     gemini?: {
        apiKey?: string;
        model?: string;
-    }
+    };
+    openai?: {
+        apiKey?: string;
+        baseUrl?: string;
+        model?: string;
+    };
   };
   enabledPlugins?: string[];
   [key: string]: any;

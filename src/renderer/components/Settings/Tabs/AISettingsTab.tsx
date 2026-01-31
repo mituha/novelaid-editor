@@ -11,7 +11,7 @@ export function AISettingsTab() {
     updateSettings({
       ai: {
         ...aiConfig,
-        provider: e.target.value as 'lmstudio' | 'gemini',
+        provider: e.target.value as 'lmstudio' | 'gemini' | 'openai',
       },
     });
     setAvailableModels([]); // Reset models on provider change
@@ -35,6 +35,18 @@ export function AISettingsTab() {
         ...aiConfig,
         gemini: {
           ...aiConfig.gemini,
+          [field]: value,
+        },
+      },
+    });
+  };
+
+  const handleOpenAIChange = (field: string, value: string) => {
+    updateSettings({
+      ai: {
+        ...aiConfig,
+        openai: {
+          ...aiConfig.openai,
           [field]: value,
         },
       },
@@ -122,6 +134,7 @@ export function AISettingsTab() {
         >
           <option value="lmstudio">LMStudio (Local)</option>
           <option value="gemini">Google GenAI (Gemini)</option>
+          <option value="openai">OpenAI Compatible (Generic)</option>
         </select>
         <p className="settings-description">
           Select the AI backend to use for generation.
@@ -164,6 +177,36 @@ export function AISettingsTab() {
            {renderModelSelection(
               aiConfig.gemini?.model || 'gemini-1.5-flash',
               (val) => handleGeminiChange('model', val)
+          )}
+        </div>
+      )}
+
+      {aiConfig.provider === 'openai' && (
+        <div className="settings-subgroup">
+          <h4>OpenAI Compatible Settings</h4>
+          <div className="settings-field">
+             <label>Base URL</label>
+             <input
+              type="text"
+              value={aiConfig.openai?.baseUrl || ''}
+              onChange={(e) => handleOpenAIChange('baseUrl', e.target.value)}
+              placeholder="http://localhost:1234/v1"
+              className="settings-input"
+             />
+          </div>
+          <div className="settings-field">
+            <label>API Key (Optional for local)</label>
+            <input
+              type="password"
+              value={aiConfig.openai?.apiKey || ''}
+              onChange={(e) => handleOpenAIChange('apiKey', e.target.value)}
+              placeholder="sk-..."
+              className="settings-input"
+            />
+          </div>
+           {renderModelSelection(
+              aiConfig.openai?.model || 'gpt-3.5-turbo',
+              (val) => handleOpenAIChange('model', val)
           )}
         </div>
       )}

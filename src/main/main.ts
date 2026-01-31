@@ -87,12 +87,16 @@ ipcMain.handle('ai:generate', async (_, prompt: string, config: any) => {
         modelName: 'local-model' // Default
     };
 
-        if (providerType === 'lmstudio') {
-            factoryConfig.modelName = config.lmstudio?.model || 'local-model';
-            factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
-        } else if (providerType === 'gemini') {
+    if (providerType === 'lmstudio') {
+        factoryConfig.modelName = config.lmstudio?.model || 'local-model';
+        factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
+    } else if (providerType === 'gemini') {
         factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
         factoryConfig.apiKey = config.gemini?.apiKey;
+    } else if (providerType === 'openai') {
+        factoryConfig.modelName = config.openai?.model || 'gpt-3.5-turbo';
+        factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';
+        factoryConfig.apiKey = config.openai?.apiKey;
     }
 
     const provider = ProviderFactory.createProvider(factoryConfig);
@@ -142,6 +146,9 @@ ipcMain.handle('ai:listModels', async (_, config: any) => {
         factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
     } else if (providerType === 'gemini') {
         factoryConfig.apiKey = config.gemini?.apiKey;
+    } else if (providerType === 'openai') {
+        factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';
+        factoryConfig.apiKey = config.openai?.apiKey;
     }
 
     const provider = ProviderFactory.createProvider(factoryConfig);
@@ -167,6 +174,10 @@ ipcMain.handle('ai:chat', async (_, messages: any[], config: any) => {
         } else if (providerType === 'gemini') {
             factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
             factoryConfig.apiKey = config.gemini?.apiKey;
+        } else if (providerType === 'openai') {
+            factoryConfig.modelName = config.openai?.model || 'gpt-3.5-turbo';
+            factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';
+            factoryConfig.apiKey = config.openai?.apiKey;
         }
 
         const provider = ProviderFactory.createProvider(factoryConfig);
@@ -205,6 +216,10 @@ ipcMain.on('ai:streamChat', async (event, messages: any[], config: any) => {
         } else if (providerType === 'gemini') {
             factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
             factoryConfig.apiKey = config.gemini?.apiKey;
+        } else if (providerType === 'openai') {
+            factoryConfig.modelName = config.openai?.model || 'gpt-3.5-turbo';
+            factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';
+            factoryConfig.apiKey = config.openai?.apiKey;
         }
 
         const provider = ProviderFactory.createProvider(factoryConfig);
