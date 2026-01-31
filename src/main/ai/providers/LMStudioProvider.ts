@@ -44,7 +44,7 @@ export class LMStudioProvider extends BaseProvider {
     try {
       const model = await this.client.llm.model(this.modelName);
 
-      const prediction = await model.respond(messages, {
+      const prediction = model.respond(messages, {
         temperature: options?.temperature,
         maxTokens: options?.maxTokens,
       });
