@@ -6,6 +6,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  displayContent?: string;
 }
 
 interface RightPaneProps {
@@ -59,18 +60,8 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input, // We show original input in UI, but send modified content?
-                      // Usually better to show what was sent or just keep hidden context.
-                      // Let's show the context in the UI for transparency, or keep it hidden?
-                      // Strategy: Show original input, but send constructed prompt.
-                      // HOWEVER, `messages` state doubles as display and history.
-                      // So we must add the modified content to history if we want the AI to "remember" it in context window.
-                      // But for UI it looks messy.
-                      // Compromise: Add a system message or just modifying the user message content.
-                      // Because `chat` in backend takes `messages`, we should store the *actual* prompt in `messages`.
-                      // UI can display a truncated version if needed, but for now let's just use the full content so user knows what's sent.
-                      // Re-decision: Let's prepend context to the message content pushed to state.
-      content: finalContent
+      content: finalContent, // This is the content sent to the AI
+      displayContent: input // This is the content shown in the UI for user messages
     };
 
     const newMessages = [...messages, userMessage];
@@ -134,7 +125,7 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
       <div className="right-pane-content">
         {messages.map((msg) => (
           <div key={msg.id} className={`chat-message ${msg.role}`}>
-            {msg.content}
+            {msg.displayContent || msg.content}
           </div>
         ))}
         <div ref={messagesEndRef} />
