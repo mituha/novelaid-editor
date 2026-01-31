@@ -8,10 +8,16 @@ interface Message {
   content: string;
 }
 
-export function RightPane() {
+interface RightPaneProps {
+  activeContent?: string;
+  activePath?: string | null;
+}
+
+export function RightPane({ activeContent, activePath }: RightPaneProps) {
   const { settings } = useSettings();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [includeContext, setIncludeContext] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -43,10 +49,28 @@ export function RightPane() {
   const handleSend = () => {
     if (!input.trim() || isStreaming) return;
 
+    let finalContent = input;
+
+    // Attach context if enabled and available
+    if (includeContext && activeContent && activePath) {
+        finalContent = `Context (File: ${activePath}):\n\`\`\`\n${activeContent}\n\`\`\`\n\nUser: ${input}`;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: input, // We show original input in UI, but send modified content?
+                      // Usually better to show what was sent or just keep hidden context.
+                      // Let's show the context in the UI for transparency, or keep it hidden?
+                      // Strategy: Show original input, but send constructed prompt.
+                      // HOWEVER, `messages` state doubles as display and history.
+                      // So we must add the modified content to history if we want the AI to "remember" it in context window.
+                      // But for UI it looks messy.
+                      // Compromise: Add a system message or just modifying the user message content.
+                      // Because `chat` in backend takes `messages`, we should store the *actual* prompt in `messages`.
+                      // UI can display a truncated version if needed, but for now let's just use the full content so user knows what's sent.
+                      // Re-decision: Let's prepend context to the message content pushed to state.
+      content: finalContent
     };
 
     const newMessages = [...messages, userMessage];
@@ -65,10 +89,6 @@ export function RightPane() {
 
     // Setup listeners
     // We strictly use the channels defined in preload
-    // 'ai:streamChat:data'
-    // 'ai:streamChat:end'
-    // 'ai:streamChat:error'
-
     const removeDataListener = window.electron.ipcRenderer.on('ai:streamChat:data', (chunk) => {
         setMessages(prev => prev.map(msg =>
             msg.id === assistantMsgId
@@ -100,7 +120,6 @@ export function RightPane() {
     };
 
     // Send request
-    // Map messages to ChatMessage format expected by backend
     const apiMessages = newMessages.map(m => ({
         role: m.role,
         content: m.content
@@ -128,6 +147,16 @@ export function RightPane() {
           placeholder={isStreaming ? "AI is typing..." : "Ask AI..."}
           disabled={isStreaming}
         />
+        <div className="chat-options" style={{ marginTop: '5px' }}>
+             <label style={{ fontSize: '12px', color: '#ccc', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                 <input
+                     type="checkbox"
+                     checked={includeContext}
+                     onChange={(e) => setIncludeContext(e.target.checked)}
+                 />
+                 Include Editor Context
+             </label>
+        </div>
       </div>
     </div>
   );

@@ -44,16 +44,19 @@ export class LMStudioProvider extends BaseProvider {
     try {
       const model = await this.client.llm.model(this.modelName);
 
-      const predictionStream = await model.respond(messages, {
+      const prediction = await model.respond(messages, {
         temperature: options?.temperature,
         maxTokens: options?.maxTokens,
       });
 
-      for await (const chunk of predictionStream) {
+      // The SDK might return an object that contains the stream, or is itself async iterable.
+      // Based on error "predictionStream is not async iterable", and checking docs/examples pattern:
+      // If it's a standard iterator:
+      for await (const chunk of prediction) {
         yield chunk.content;
       }
     } catch (error) {
-      console.error('LMStudio streamChat error:', error);
+      console.error('LMStudio stream error:', error);
       throw error;
     }
   }

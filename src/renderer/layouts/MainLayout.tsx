@@ -230,7 +230,10 @@ export function MainLayout() {
             overflow: 'hidden',
           }}
         >
-          <RightPane />
+          <RightPane
+            activeContent={activeContent}
+            activePath={activeTabPath}
+          />
         </div>
       )}
 
