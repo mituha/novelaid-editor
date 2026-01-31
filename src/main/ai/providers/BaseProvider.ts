@@ -6,4 +6,6 @@ export abstract class BaseProvider implements AIProvider {
   abstract generateContent(prompt: string, options?: GenerateOptions): Promise<string>;
 
   abstract streamContent(prompt: string, options?: GenerateOptions): AsyncGenerator<string>;
+
+  abstract listModels(): Promise<string[]>;
 }

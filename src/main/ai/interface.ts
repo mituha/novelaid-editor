@@ -26,4 +26,10 @@ export interface AIProvider {
    * @returns An async generator yielding chunks of generated text.
    */
   streamContent(prompt: string, options?: GenerateOptions): AsyncGenerator<string>;
+
+  /**
+   * Lists available models for this provider.
+   * @returns A promise resolving to a list of model names.
+   */
+  listModels(): Promise<string[]>;
 }

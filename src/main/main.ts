@@ -129,6 +129,30 @@ ipcMain.handle('ai:stream', async (_, prompt: string, config: any) => {
     }
 });
 
+ipcMain.handle('ai:listModels', async (_, config: any) => {
+  try {
+    // Need to reconstruct config slightly as we did for generate
+    const providerType = config.provider || 'lmstudio';
+    let factoryConfig: any = {
+        type: providerType,
+        modelName: 'dummy' // Not used for listing but required by factory/constructor
+    };
+
+    if (providerType === 'lmstudio') {
+        factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'http://127.0.0.1:1234';
+    } else if (providerType === 'gemini') {
+        factoryConfig.apiKey = config.gemini?.apiKey;
+    }
+
+    const provider = ProviderFactory.createProvider(factoryConfig);
+    return await provider.listModels();
+  } catch (error) {
+    console.error('AI List Models Error:', error);
+    // Return empty list on error
+    return [];
+  }
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();

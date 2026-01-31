@@ -4,6 +4,8 @@ import { useSettings } from '../../../contexts/SettingsContext';
 export function AISettingsTab() {
   const { settings, updateSettings } = useSettings();
   const aiConfig = settings.ai || {};
+  const [availableModels, setAvailableModels] = React.useState<string[]>([]);
+  const [isFetching, setIsFetching] = React.useState(false);
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     updateSettings({
@@ -12,6 +14,7 @@ export function AISettingsTab() {
         provider: e.target.value as 'lmstudio' | 'gemini',
       },
     });
+    setAvailableModels([]); // Reset models on provider change
   };
 
   const handleLMStudioChange = (field: string, value: string) => {
@@ -36,6 +39,76 @@ export function AISettingsTab() {
         },
       },
     });
+  };
+
+  const fetchModels = async () => {
+    setIsFetching(true);
+    try {
+      // Pass the current AI config to the main process
+      // We need to ensure we pass the *latest* settings.
+      // aiConfig comes from context, so it should be relatively fresh.
+      const models = await window.electron.ipcRenderer.invoke('ai:listModels', settings.ai || {});
+      setAvailableModels(models);
+    } catch (error) {
+      console.error('Failed to fetch models:', error);
+      alert('Failed to fetch models. Check console for details.');
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const renderModelSelection = (
+    currentModel: string,
+    onChange: (val: string) => void
+  ) => {
+    return (
+      <div className="settings-field">
+        <label>Model</label>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <input
+              type="text"
+              value={currentModel}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Enter model identifier or select from list"
+              className="settings-input"
+              style={{ width: '100%' }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={fetchModels}
+            disabled={isFetching}
+            className="settings-button"
+            style={{ padding: '8px 12px', height: '38px', marginBottom: '2px' }}
+          >
+            {isFetching ? 'Fetching...' : 'Fetch Models'}
+          </button>
+        </div>
+
+        {availableModels.length > 0 && (
+          <div style={{ marginTop: '5px' }}>
+            <select
+                className="settings-select"
+                onChange={(e) => {
+                    if (e.target.value) {
+                         onChange(e.target.value);
+                    }
+                }}
+                value="" // Always show placeholder so user can re-select same item if they changed text
+            >
+                <option value="" disabled>Select a fetched model...</option>
+                {availableModels.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                ))}
+            </select>
+          </div>
+        )}
+        <p className="settings-description">
+             Manually enter the model ID or fetch available models from the provider.
+        </p>
+      </div>
+    );
   };
 
   return (
@@ -68,19 +141,10 @@ export function AISettingsTab() {
               className="settings-input"
             />
           </div>
-          <div className="settings-field">
-            <label>Model Identifier (Optional)</label>
-            <input
-              type="text"
-              value={aiConfig.lmstudio?.model || ''}
-              onChange={(e) => handleLMStudioChange('model', e.target.value)}
-              placeholder="e.g. local-model"
-              className="settings-input"
-            />
-            <p className="settings-description">
-              Leave empty to use the currently loaded model in LMStudio.
-            </p>
-          </div>
+          {renderModelSelection(
+              aiConfig.lmstudio?.model || '',
+              (val) => handleLMStudioChange('model', val)
+          )}
         </div>
       )}
 
@@ -97,16 +161,10 @@ export function AISettingsTab() {
               className="settings-input"
             />
           </div>
-          <div className="settings-field">
-            <label>Model Name</label>
-            <input
-              type="text"
-              value={aiConfig.gemini?.model || 'gemini-1.5-flash'}
-              onChange={(e) => handleGeminiChange('model', e.target.value)}
-              placeholder="e.g. gemini-1.5-flash"
-              className="settings-input"
-            />
-          </div>
+           {renderModelSelection(
+              aiConfig.gemini?.model || 'gemini-1.5-flash',
+              (val) => handleGeminiChange('model', val)
+          )}
         </div>
       )}
     </div>

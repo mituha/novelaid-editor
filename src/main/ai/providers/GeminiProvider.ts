@@ -56,4 +56,17 @@ export class GeminiProvider extends BaseProvider {
       throw error;
     }
   }
+
+
+  async listModels(): Promise<string[]> {
+      // Currently hardcoded standard models.
+      // Dynamic listing requires a different API call structure not directly exposed on the generativeModel instance easily
+      // or requires extra permissions/setup. keeping it simple for now.
+      return [
+        'gemini-2.0-flash-exp',
+        'gemini-1.5-flash',
+        'gemini-1.5-pro',
+        'gemini-1.0-pro'
+      ];
+  }
 }

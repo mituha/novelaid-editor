@@ -9,7 +9,10 @@ export type Channels =
   | 'fs:readFile'
   | 'fs:writeFile'
   | 'project:load'
-  | 'project:save-config';
+  | 'project:save-config'
+  | 'ai:generate'
+  | 'ai:stream'
+  | 'ai:listModels';
 
 const electronHandler = {
   ipcRenderer: {

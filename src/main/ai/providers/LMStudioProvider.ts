@@ -55,4 +55,22 @@ export class LMStudioProvider extends BaseProvider {
       throw error;
     }
   }
+
+
+  async listModels(): Promise<string[]> {
+    try {
+      // Try to list downloaded models first (more relevant usually)
+      if ((this.client as any).system?.listDownloadedModels) {
+        const models = await (this.client as any).system.listDownloadedModels();
+        return models.map((m: any) => m.path || m.id || m);
+      }
+
+      // Fallback to loaded models
+      const models = await this.client.llm.listLoaded();
+      return models.map((m: any) => m.identifier);
+    } catch (error) {
+      console.warn('LMStudio listModels failed:', error);
+      return [];
+    }
+  }
 }
