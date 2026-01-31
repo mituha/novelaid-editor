@@ -12,7 +12,12 @@ export type Channels =
   | 'project:save-config'
   | 'ai:generate'
   | 'ai:stream'
-  | 'ai:listModels';
+  | 'ai:listModels'
+  | 'ai:chat'
+  | 'ai:streamChat' // Request channel for streaming
+  | 'ai:streamChat:data' // Response channel for data
+  | 'ai:streamChat:end' // Response channel for end
+  | 'ai:streamChat:error'; // Response channel for error
 
 const electronHandler = {
   ipcRenderer: {

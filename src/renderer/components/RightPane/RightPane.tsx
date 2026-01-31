@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSettings } from '../../contexts/SettingsContext';
 import './RightPane.css';
 
 interface Message {
@@ -8,7 +9,9 @@ interface Message {
 }
 
 export function RightPane() {
+  const { settings } = useSettings();
   const [input, setInput] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -16,6 +19,15 @@ export function RightPane() {
       content: 'Hello! I am your AI assistant. How can I help you today?',
     },
   ]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -29,28 +41,72 @@ export function RightPane() {
   };
 
   const handleSend = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isStreaming) return;
 
-    const newMessage: Message = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: input,
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
+    setIsStreaming(true);
 
-    // Mock response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: 'I received your message. logic is not implemented yet.',
-        },
-      ]);
-    }, 500);
+    // Prepare for assistant response
+    const assistantMsgId = (Date.now() + 1).toString();
+    const assistantMessage: Message = {
+        id: assistantMsgId,
+        role: 'assistant',
+        content: ''
+    };
+    setMessages(prev => [...prev, assistantMessage]);
+
+    // Setup listeners
+    // We strictly use the channels defined in preload
+    // 'ai:streamChat:data'
+    // 'ai:streamChat:end'
+    // 'ai:streamChat:error'
+
+    const removeDataListener = window.electron.ipcRenderer.on('ai:streamChat:data', (chunk) => {
+        setMessages(prev => prev.map(msg =>
+            msg.id === assistantMsgId
+                ? { ...msg, content: msg.content + (typeof chunk === 'string' ? chunk : '') }
+                : msg
+        ));
+    });
+
+    const removeEndListener = window.electron.ipcRenderer.on('ai:streamChat:end', () => {
+        setIsStreaming(false);
+        cleanup();
+    });
+
+    const removeErrorListener = window.electron.ipcRenderer.on('ai:streamChat:error', (error) => {
+        console.error('Stream error:', error);
+        setMessages(prev => prev.map(msg =>
+            msg.id === assistantMsgId
+                ? { ...msg, content: msg.content + `\n[Error: ${error}]` }
+                : msg
+        ));
+        setIsStreaming(false);
+        cleanup();
+    });
+
+    const cleanup = () => {
+        removeDataListener();
+        removeEndListener();
+        removeErrorListener();
+    };
+
+    // Send request
+    // Map messages to ChatMessage format expected by backend
+    const apiMessages = newMessages.map(m => ({
+        role: m.role,
+        content: m.content
+    }));
+
+    window.electron.ipcRenderer.sendMessage('ai:streamChat', apiMessages, settings.ai || {});
   };
 
   return (
@@ -62,13 +118,15 @@ export function RightPane() {
             {msg.content}
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
       <div className="right-pane-input-area">
         <textarea
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Ask AI..."
+          placeholder={isStreaming ? "AI is typing..." : "Ask AI..."}
+          disabled={isStreaming}
         />
       </div>
     </div>

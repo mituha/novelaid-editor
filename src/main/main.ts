@@ -87,10 +87,10 @@ ipcMain.handle('ai:generate', async (_, prompt: string, config: any) => {
         modelName: 'local-model' // Default
     };
 
-    if (providerType === 'lmstudio') {
-        factoryConfig.modelName = config.lmstudio?.model || 'local-model';
-        factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'http://127.0.0.1:1234';
-    } else if (providerType === 'gemini') {
+        if (providerType === 'lmstudio') {
+            factoryConfig.modelName = config.lmstudio?.model || 'local-model';
+            factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
+        } else if (providerType === 'gemini') {
         factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
         factoryConfig.apiKey = config.gemini?.apiKey;
     }
@@ -139,7 +139,7 @@ ipcMain.handle('ai:listModels', async (_, config: any) => {
     };
 
     if (providerType === 'lmstudio') {
-        factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'http://127.0.0.1:1234';
+        factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
     } else if (providerType === 'gemini') {
         factoryConfig.apiKey = config.gemini?.apiKey;
     }
@@ -151,6 +151,74 @@ ipcMain.handle('ai:listModels', async (_, config: any) => {
     // Return empty list on error
     return [];
   }
+});
+
+ipcMain.handle('ai:chat', async (_, messages: any[], config: any) => {
+    try {
+        const providerType = config.provider || 'lmstudio';
+        let factoryConfig: any = {
+            type: providerType,
+            modelName: 'local-model'
+        };
+
+        if (providerType === 'lmstudio') {
+            factoryConfig.modelName = config.lmstudio?.model || 'local-model';
+            factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
+        } else if (providerType === 'gemini') {
+            factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
+            factoryConfig.apiKey = config.gemini?.apiKey;
+        }
+
+        const provider = ProviderFactory.createProvider(factoryConfig);
+        return await provider.chat(messages);
+    } catch (error) {
+        console.error('AI Chat Error:', error);
+        throw error;
+    }
+});
+
+// Since we cannot directly stream over ipcMain.handle from a generator easily without protocol or push,
+// we usually use webContents.send for streaming, OR we can just return the full text for now if streaming is too complex for this step.
+// However, the previous `ai:stream` handler (if it existed) would have used reply.
+// Let's implement a specific listener for streaming.
+// NOTE: ipcMain.handle is for request-response.
+// For streaming, we usually use ipcMain.on('ai:streamChat-start', ...) and send back 'ai:streamChat-data'.
+// BUT, preload.ts defines `invoke`. `invoke` expects a promise result.
+// If we want to stream, we might need a different pattern or use the existing `ai:stream` channel if it was set up for stream.
+// Wait, I haven't implemented `ai:stream` handler logic fully either, just `ai:generate`.
+// Let's stick to `ai:chat` (non-streaming) for the MVP of chat UI, or implement a simple streaming mechanism.
+// Given strict TS/Electron constraints and time, I will add `ai:chat` first.
+// If I want to support streaming, I should add `ai:streamChat` using `on` pattern in preload (which I have `on` and `sendMessage`).
+// Let's add `on` handler for streaming.
+
+ipcMain.on('ai:streamChat', async (event, messages: any[], config: any) => {
+    try {
+        const providerType = config.provider || 'lmstudio';
+        let factoryConfig: any = {
+            type: providerType,
+            modelName: 'local-model'
+        };
+
+        if (providerType === 'lmstudio') {
+            factoryConfig.modelName = config.lmstudio?.model || 'local-model';
+            factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
+        } else if (providerType === 'gemini') {
+            factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
+            factoryConfig.apiKey = config.gemini?.apiKey;
+        }
+
+        const provider = ProviderFactory.createProvider(factoryConfig);
+        const stream = provider.streamChat(messages);
+
+        for await (const chunk of stream) {
+            event.reply('ai:streamChat:data', chunk);
+        }
+        event.reply('ai:streamChat:end');
+
+    } catch (error) {
+        console.error('AI Stream Chat Error:', error);
+        event.reply('ai:streamChat:error', error instanceof Error ? error.message : String(error));
+    }
 });
 
 if (process.env.NODE_ENV === 'production') {
