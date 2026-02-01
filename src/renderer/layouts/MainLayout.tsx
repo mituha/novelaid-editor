@@ -13,8 +13,9 @@ import { StatusBar } from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
 import './MainLayout.css';
 
-export function MainLayout() {
-  const [tabs, setTabs] = useState<Tab[]>([]);
+export default function MainLayout() {
+  const [leftTabs, setLeftTabs] = useState<Tab[]>([]);
+  const [rightTabs, setRightTabs] = useState<Tab[]>([]);
   const [leftActivePath, setLeftActivePath] = useState<string | null>(null);
   const [rightActivePath, setRightActivePath] = useState<string | null>(null);
   const [activeSide, setActiveSide] = useState<'left' | 'right'>('left');
@@ -69,6 +70,9 @@ export function MainLayout() {
 
   const handleFileSelect = useCallback(
     (path: string, content: string) => {
+      const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
+      const setActivePath = activeSide === 'left' ? setLeftActivePath : setRightActivePath;
+
       setTabs((prev) => {
         if (prev.find((tab) => tab.path === path)) {
           return prev;
@@ -80,17 +84,14 @@ export function MainLayout() {
         return { ...prev, [path]: content };
       });
 
-      if (activeSide === 'left') {
-        setLeftActivePath(path);
-      } else {
-        setRightActivePath(path);
-      }
+      setActivePath(path);
     },
     [activeSide],
   );
 
-  const handleTabClick = (path: string) => {
-    if (activeSide === 'left') {
+  const handleTabClick = (side: 'left' | 'right') => (path: string) => {
+    setActiveSide(side);
+    if (side === 'left') {
       setLeftActivePath(path);
     } else {
       setRightActivePath(path);
@@ -107,40 +108,29 @@ export function MainLayout() {
     });
   };
 
-  const handleTabClose = (path: string) => {
+  const handleTabClose = (side: 'left' | 'right') => (path: string) => {
+    const setTabs = side === 'left' ? setLeftTabs : setRightTabs;
+    const activePath = side === 'left' ? leftActivePath : rightActivePath;
+    const setActivePath = side === 'left' ? setLeftActivePath : setRightActivePath;
+
     setTabs((prev) => {
       const newTabs = prev.filter((tab) => tab.path !== path);
 
-      // Handle left active path
-      if (leftActivePath === path) {
+      if (activePath === path) {
         const closedTabIndex = prev.findIndex((tab) => tab.path === path);
         if (newTabs.length > 0) {
           const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
-          setLeftActivePath(newTabs[nextIndex].path);
+          setActivePath(newTabs[nextIndex].path);
         } else {
-          setLeftActivePath(null);
-        }
-      }
-
-      // Handle right active path
-      if (rightActivePath === path) {
-        const closedTabIndex = prev.findIndex((tab) => tab.path === path);
-        if (newTabs.length > 0) {
-          const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
-          setRightActivePath(newTabs[nextIndex].path);
-        } else {
-          setRightActivePath(null);
+          setActivePath(null);
         }
       }
 
       return newTabs;
     });
-    // Optional: cleanup content memory if closed
-    setTabContents((prev) => {
-      const newContents = { ...prev };
-      delete newContents[path];
-      return newContents;
-    });
+
+    // Optional: cleanup content memory if closed in BOTH sides
+    // (A bit complex, maybe skip for now or check if it exists in the other side)
   };
 
   const handleContentChange = (path: string | null) => (value: string | undefined) => {
@@ -149,8 +139,11 @@ export function MainLayout() {
         ...prev,
         [path]: value || '',
       }));
-      // Mark as dirty
-      setTabs((prev) =>
+      // Mark as dirty in both lists
+      setLeftTabs((prev) =>
+        prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
+      );
+      setRightTabs((prev) =>
         prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
       );
     }
@@ -168,14 +161,19 @@ export function MainLayout() {
               activeTabPath,
               content,
             );
-            console.log('Saved:', activeTabPath);
-            setTabs((prev) =>
+            // console.log('Saved:', activeTabPath);
+            setLeftTabs((prev) =>
+              prev.map((tab) =>
+                tab.path === activeTabPath ? { ...tab, isDirty: false } : tab,
+              ),
+            );
+            setRightTabs((prev) =>
               prev.map((tab) =>
                 tab.path === activeTabPath ? { ...tab, isDirty: false } : tab,
               ),
             );
           } catch (error) {
-            console.error('Save failed:', error);
+            // console.error('Save failed:', error);
           }
         }
       }
@@ -237,29 +235,19 @@ export function MainLayout() {
         {isLeftPaneVisible && <Resizer onResize={handleLeftResize} />}
 
         <div className="editor-area">
-          <TabBar
-            tabs={tabs}
-            activeTabPath={activeTabPath}
-            onTabClick={handleTabClick}
-            onTabClose={handleTabClose}
-            onToggleLeftPane={toggleLeftPane}
-            onToggleRightPane={toggleRightPane}
-            onToggleSplit={handleToggleSplit}
-            isLeftPaneVisible={isLeftPaneVisible}
-            isRightPaneVisible={isRightPaneVisible}
-            isSplit={isSplit}
-          />
           <div
             className="editors-container"
             style={{
               display: 'flex',
               flex: 1,
+              width: '100%',
+              height: '100%',
               overflow: 'hidden',
               position: 'relative',
             }}
           >
             <div
-              className={`editor-pane ${activeSide === 'left' ? 'active' : ''}`}
+              className={`editor-group ${activeSide === 'left' ? 'active' : ''}`}
               style={{
                 flex: isSplit ? `${editorSplitRatio} 1 0%` : '1 1 0%',
                 display: 'flex',
@@ -268,26 +256,41 @@ export function MainLayout() {
               }}
               onFocus={() => setActiveSide('left')}
               onClick={() => setActiveSide('left')}
+              role="region"
+              aria-label="Left Editor Group"
+              tabIndex={0}
             >
-              {leftActivePath ? (
-                <CodeEditor
-                  key={`left-${leftActivePath}`}
-                  value={leftContent}
-                  onChange={handleContentChange(leftActivePath)}
-                  onFocus={() => setActiveSide('left')}
-                />
-              ) : (
-                <div className="empty-editor-state">
-                  <p>Select a file to edit (Left)</p>
-                </div>
-              )}
+              <TabBar
+                tabs={leftTabs}
+                activeTabPath={leftActivePath}
+                onTabClick={handleTabClick('left')}
+                onTabClose={handleTabClose('left')}
+                onToggleLeftPane={toggleLeftPane}
+                isLeftPaneVisible={isLeftPaneVisible}
+                onToggleSplit={handleToggleSplit}
+                isSplit={isSplit}
+              />
+              <div className="editor-pane">
+                {leftActivePath ? (
+                  <CodeEditor
+                    key={`left-${leftActivePath}`}
+                    value={leftContent}
+                    onChange={handleContentChange(leftActivePath)}
+                    onFocus={() => setActiveSide('left')}
+                  />
+                ) : (
+                  <div className="empty-editor-state">
+                    <p>Select a file to edit (Left)</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {isSplit && (
               <>
                 <Resizer onResize={handleEditorSplitResize} />
                 <div
-                  className={`editor-pane ${activeSide === 'right' ? 'active' : ''}`}
+                  className={`editor-group ${activeSide === 'right' ? 'active' : ''}`}
                   style={{
                     flex: `${1 - editorSplitRatio} 1 0%`,
                     display: 'flex',
@@ -296,19 +299,32 @@ export function MainLayout() {
                   }}
                   onFocus={() => setActiveSide('right')}
                   onClick={() => setActiveSide('right')}
+                  role="region"
+                  aria-label="Right Editor Group"
+                  tabIndex={0}
                 >
-                  {rightActivePath ? (
-                    <CodeEditor
-                      key={`right-${rightActivePath}`}
-                      value={rightContent}
-                      onChange={handleContentChange(rightActivePath)}
-                      onFocus={() => setActiveSide('right')}
-                    />
-                  ) : (
-                    <div className="empty-editor-state">
-                      <p>Select a file to edit (Right)</p>
-                    </div>
-                  )}
+                  <TabBar
+                    tabs={rightTabs}
+                    activeTabPath={rightActivePath}
+                    onTabClick={handleTabClick('right')}
+                    onTabClose={handleTabClose('right')}
+                    onToggleRightPane={toggleRightPane}
+                    isRightPaneVisible={isRightPaneVisible}
+                  />
+                  <div className="editor-pane">
+                    {rightActivePath ? (
+                      <CodeEditor
+                        key={`right-${rightActivePath}`}
+                        value={rightContent}
+                        onChange={handleContentChange(rightActivePath)}
+                        onFocus={() => setActiveSide('right')}
+                      />
+                    ) : (
+                      <div className="empty-editor-state">
+                        <p>Select a file to edit (Right)</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}

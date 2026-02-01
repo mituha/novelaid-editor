@@ -38,6 +38,13 @@ export function TabBar({
     onTabClose(path);
   };
 
+  const handleKeyDown = (path: string) => (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onTabClick(path);
+    }
+  };
+
   return (
     <div className="tab-bar">
       {onToggleLeftPane && (
@@ -57,7 +64,11 @@ export function TabBar({
             key={tab.path}
             className={`tab-item ${tab.path === activeTabPath ? 'active' : ''}`}
             onClick={() => onTabClick(tab.path)}
+            onKeyDown={handleKeyDown(tab.path)}
             title={tab.path}
+            role="tab"
+            aria-selected={tab.path === activeTabPath}
+            tabIndex={0}
           >
             <span className="tab-name">{tab.name}</span>
             {tab.isDirty && <span className="tab-dirty-indicator" />}
@@ -79,13 +90,13 @@ export function TabBar({
           className={`pane-toggle-btn ${isSplit ? 'active' : ''}`}
           onClick={onToggleSplit}
           title={isSplit ? 'Unsplit Editor' : 'Split Editor'}
-          style={{ marginLeft: '10px' }}
+          style={{ marginLeft: '8px' }}
         >
           <Columns size={16} />
         </button>
       )}
 
-      {onToggleRightPane && (
+      {!isSplit && onToggleRightPane && (
         <button
           type="button"
           className={`pane-toggle-btn ${!isRightPaneVisible ? 'inactive' : ''}`}
