@@ -133,6 +133,25 @@ export default function MainLayout() {
     setActivePath(previewPath);
   };
 
+  // Auto-unsplit when one side becomes empty
+  useEffect(() => {
+    if (isSplit) {
+      if (leftTabs.length === 0 && rightTabs.length > 0) {
+        // Move right tabs to left if left is empty
+        setLeftTabs(rightTabs);
+        setLeftActivePath(rightActivePath);
+        setRightTabs([]);
+        setRightActivePath(null);
+        setIsSplit(false);
+        setActiveSide('left');
+      } else if (rightTabs.length === 0) {
+        // Just unsplit if right is empty
+        setIsSplit(false);
+        setActiveSide('left');
+      }
+    }
+  }, [isSplit, leftTabs, rightTabs, rightActivePath]);
+
   const handleTabClose = (side: 'left' | 'right') => (path: string) => {
     const setTabs = side === 'left' ? setLeftTabs : setRightTabs;
     const activePath = side === 'left' ? leftActivePath : rightActivePath;
