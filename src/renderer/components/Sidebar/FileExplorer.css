@@ -13,24 +13,45 @@
 }
 
 .explorer-header {
-    padding: 15px;
-    font-weight: 600;
-    border-bottom: 1px solid #2d2d2d;
-    background-color: #1e1e1e;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  padding: 8px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .open-btn {
-    background-color: #007acc;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s;
+  width: 100%;
+  padding: 6px;
+  background-color: #007acc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.explorer-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 4px;
+  background-color: #333;
+  color: #ccc;
+  border: 1px solid #444;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn:hover {
+  background-color: #444;
+  color: white;
 }
 
 .open-btn:hover {
@@ -54,7 +75,44 @@
 }
 
 .file-item:hover {
-    background-color: #2a2d2e;
+  background-color: #37373d;
+}
+
+.file-item .actions {
+  display: none;
+  margin-left: auto;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.file-item:hover .actions {
+  display: flex;
+}
+
+.inline-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+}
+
+.inline-btn:hover {
+  color: #ccc;
+}
+
+.rename-input {
+  background-color: #3c3c3c;
+  color: #cccccc;
+  border: 1px solid #007acc;
+  outline: none;
+  padding: 0 4px;
+  width: 100%;
+  font-size: inherit;
+  font-family: inherit;
 }
 
 .file-item.directory {

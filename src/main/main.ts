@@ -45,6 +45,18 @@ ipcMain.handle('dialog:openDirectory', async () => {
   return filePaths[0];
 });
 
+ipcMain.handle('dialog:confirm', async (_, message: string) => {
+  if (!mainWindow) return false;
+  const { response } = await dialog.showMessageBox(mainWindow, {
+    type: 'question',
+    buttons: ['Yes', 'No'],
+    defaultId: 1,
+    title: 'Confirm',
+    message,
+  });
+  return response === 0;
+});
+
 ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
   try {
     const dirents = await fs.readdir(dirPath, { withFileTypes: true });
@@ -65,6 +77,46 @@ ipcMain.handle('fs:readFile', async (_, filePath: string) => {
 
 ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
   return await fs.writeFile(filePath, content, 'utf-8');
+});
+
+ipcMain.handle('fs:createFile', async (_, filePath: string) => {
+  try {
+    await fs.writeFile(filePath, '', 'utf-8');
+    return true;
+  } catch (error) {
+    console.error('Error creating file:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('fs:createDirectory', async (_, dirPath: string) => {
+  try {
+    await fs.mkdir(dirPath, { recursive: true });
+    return true;
+  } catch (error) {
+    console.error('Error creating directory:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
+  try {
+    await fs.rename(oldPath, newPath);
+    return true;
+  } catch (error) {
+    console.error('Error renaming:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('fs:delete', async (_, targetPath: string) => {
+  try {
+    await fs.rm(targetPath, { recursive: true, force: true });
+    return true;
+  } catch (error) {
+    console.error('Error deleting:', error);
+    throw error;
+  }
 });
 
 ipcMain.handle('project:load', async (_, projectPath: string) => {
