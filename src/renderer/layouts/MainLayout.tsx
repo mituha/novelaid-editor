@@ -11,6 +11,7 @@ import { RightPane } from '../components/RightPane/RightPane';
 import { Resizer } from '../components/Common/Resizer';
 import { StatusBar } from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
+import NovelPreview from '../components/Preview/NovelPreview';
 import './MainLayout.css';
 
 export default function MainLayout() {
@@ -108,6 +109,21 @@ export default function MainLayout() {
     });
   };
 
+  const handleOpenPreview = (path: string) => {
+    const previewPath = `preview://${path}`;
+    const previewName = `Preview: ${path.split('\\').pop() || 'Untitled'}`;
+    const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
+    const setActivePath = activeSide === 'left' ? setLeftActivePath : setRightActivePath;
+
+    setTabs((prev) => {
+      if (prev.find((tab) => tab.path === previewPath)) {
+        return prev;
+      }
+      return [...prev, { path: previewPath, name: previewName }];
+    });
+    setActivePath(previewPath);
+  };
+
   const handleTabClose = (side: 'left' | 'right') => (path: string) => {
     const setTabs = side === 'left' ? setLeftTabs : setRightTabs;
     const activePath = side === 'left' ? leftActivePath : rightActivePath;
@@ -183,9 +199,34 @@ export default function MainLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeTabPath, tabContents]);
 
-  const leftContent = leftActivePath ? tabContents[leftActivePath] : '';
-  const rightContent = rightActivePath ? tabContents[rightActivePath] : '';
   const activeContent = activeTabPath ? tabContents[activeTabPath] : '';
+
+  const renderEditorOrPreview = (side: 'left' | 'right') => {
+    const activePath = side === 'left' ? leftActivePath : rightActivePath;
+    const content = activePath ? tabContents[activePath] : '';
+
+    if (!activePath) {
+      return (
+        <div className="empty-editor-state">
+          <p>Select a file to edit ({side === 'left' ? 'Left' : 'Right'})</p>
+        </div>
+      );
+    }
+
+    if (activePath.startsWith('preview://')) {
+      const originalPath = activePath.replace('preview://', '');
+      return <NovelPreview content={tabContents[originalPath] || ''} />;
+    }
+
+    return (
+      <CodeEditor
+        key={`${side}-${activePath}`}
+        value={content}
+        onChange={handleContentChange(activePath)}
+        onFocus={() => setActiveSide(side)}
+      />
+    );
+  };
 
   return (
     <div className="layout-wrapper">
@@ -269,21 +310,9 @@ export default function MainLayout() {
                 isLeftPaneVisible={isLeftPaneVisible}
                 onToggleSplit={handleToggleSplit}
                 isSplit={isSplit}
+                onOpenPreview={handleOpenPreview}
               />
-              <div className="editor-pane">
-                {leftActivePath ? (
-                  <CodeEditor
-                    key={`left-${leftActivePath}`}
-                    value={leftContent}
-                    onChange={handleContentChange(leftActivePath)}
-                    onFocus={() => setActiveSide('left')}
-                  />
-                ) : (
-                  <div className="empty-editor-state">
-                    <p>Select a file to edit (Left)</p>
-                  </div>
-                )}
-              </div>
+              <div className="editor-pane">{renderEditorOrPreview('left')}</div>
             </div>
 
             {isSplit && (
@@ -310,21 +339,11 @@ export default function MainLayout() {
                     onTabClose={handleTabClose('right')}
                     onToggleRightPane={toggleRightPane}
                     isRightPaneVisible={isRightPaneVisible}
+                    onOpenPreview={handleOpenPreview}
                   />
-                  <div className="editor-pane">
-                    {rightActivePath ? (
-                      <CodeEditor
-                        key={`right-${rightActivePath}`}
-                        value={rightContent}
-                        onChange={handleContentChange(rightActivePath)}
-                        onFocus={() => setActiveSide('right')}
-                      />
-                    ) : (
-                      <div className="empty-editor-state">
-                        <p>Select a file to edit (Right)</p>
-                      </div>
-                    )}
-                  </div>
+              <div className="editor-pane">
+                {renderEditorOrPreview('right')}
+              </div>
                 </div>
               </>
             )}

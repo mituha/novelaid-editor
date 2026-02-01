@@ -1,5 +1,5 @@
 import React, { MouseEvent } from 'react';
-import { X, PanelLeft, PanelRight, Columns } from 'lucide-react';
+import { X, PanelLeft, PanelRight, Columns, Eye } from 'lucide-react';
 import './TabBar.css';
 
 export interface Tab {
@@ -16,6 +16,7 @@ interface TabBarProps {
   onToggleLeftPane?: () => void;
   onToggleRightPane?: () => void;
   onToggleSplit?: () => void;
+  onOpenPreview?: (path: string) => void;
   isLeftPaneVisible?: boolean;
   isRightPaneVisible?: boolean;
   isSplit?: boolean;
@@ -29,6 +30,7 @@ export function TabBar({
   onToggleLeftPane,
   onToggleRightPane,
   onToggleSplit,
+  onOpenPreview,
   isLeftPaneVisible = true,
   isRightPaneVisible = true,
   isSplit = false,
@@ -95,6 +97,20 @@ export function TabBar({
           <Columns size={16} />
         </button>
       )}
+
+      {onOpenPreview &&
+        activeTabPath &&
+        !activeTabPath.startsWith('preview://') && (
+          <button
+            type="button"
+            className="pane-toggle-btn"
+            onClick={() => onOpenPreview(activeTabPath)}
+            title="Open Preview"
+            style={{ marginLeft: '8px' }}
+          >
+            <Eye size={16} />
+          </button>
+        )}
 
       {!isSplit && onToggleRightPane && (
         <button
