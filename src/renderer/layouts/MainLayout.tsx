@@ -10,6 +10,7 @@ import { AISettingsTab } from '../components/Settings/Tabs/AISettingsTab';
 import { RightPane } from '../components/RightPane/RightPane';
 import { Resizer } from '../components/Common/Resizer';
 import { StatusBar } from '../components/Common/StatusBar';
+import { CharCounter } from '../utils/CharCounter';
 import './MainLayout.css';
 
 export function MainLayout() {
@@ -240,7 +241,7 @@ export function MainLayout() {
         )}
       </div>
       <StatusBar
-        charCount={activeContent.length}
+        metrics={CharCounter.getMetrics(activeContent, activeTabPath)}
         activePath={activeTabPath}
       />
       <SettingsModal />

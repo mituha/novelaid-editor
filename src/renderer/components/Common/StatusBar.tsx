@@ -1,12 +1,13 @@
 import React from 'react';
 import './StatusBar.css';
+import { CountMetric } from '../../utils/CharCounter';
 
 interface StatusBarProps {
-  charCount: number;
+  metrics: CountMetric[];
   activePath: string | null;
 }
 
-export function StatusBar({ charCount, activePath }: StatusBarProps) {
+export function StatusBar({ metrics, activePath }: StatusBarProps) {
   const fileName = activePath ? activePath.split('\\').pop() : 'No file open';
 
   return (
@@ -15,7 +16,11 @@ export function StatusBar({ charCount, activePath }: StatusBarProps) {
         <span>{fileName}</span>
       </div>
       <div className="status-item right-info">
-        <span className="char-count">文字数: {charCount.toLocaleString()}</span>
+        {metrics.map((metric) => (
+          <span key={metric.label} className="metric-item">
+            {metric.label}: {metric.value.toLocaleString()}
+          </span>
+        ))}
       </div>
     </div>
   );
