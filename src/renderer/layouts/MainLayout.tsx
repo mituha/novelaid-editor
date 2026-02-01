@@ -346,6 +346,8 @@ export default function MainLayout() {
                 onTabClose={handleTabClose('left')}
                 onToggleLeftPane={toggleLeftPane}
                 isLeftPaneVisible={isLeftPaneVisible}
+                onToggleRightPane={!isSplit ? toggleRightPane : undefined}
+                isRightPaneVisible={isRightPaneVisible}
                 onToggleSplit={handleToggleSplit}
                 isSplit={isSplit}
                 onOpenPreview={handleOpenPreview}

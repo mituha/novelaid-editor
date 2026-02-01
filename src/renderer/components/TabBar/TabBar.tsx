@@ -112,7 +112,7 @@ export function TabBar({
           </button>
         )}
 
-      {!isSplit && onToggleRightPane && (
+      {onToggleRightPane && (
         <button
           type="button"
           className={`pane-toggle-btn ${!isRightPaneVisible ? 'inactive' : ''}`}
