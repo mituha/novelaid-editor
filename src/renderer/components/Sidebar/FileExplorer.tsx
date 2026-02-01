@@ -28,6 +28,10 @@ function FileTreeItem({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(file.name);
+  const [creatingChildType, setCreatingChildType] = useState<
+    'file' | 'folder' | null
+  >(null);
+  const [newChildName, setNewChildName] = useState('');
 
   const loadDirectory = useCallback(async () => {
     try {
@@ -100,6 +104,31 @@ function FileTreeItem({
     }
   };
 
+  const handleCreateChild = async (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && newChildName) {
+      try {
+        const fullPath = `${file.path}\\${newChildName}`;
+        if (creatingChildType === 'file') {
+          await window.electron.ipcRenderer.invoke('fs:createFile', fullPath);
+        } else {
+          await window.electron.ipcRenderer.invoke(
+            'fs:createDirectory',
+            fullPath,
+          );
+        }
+        setCreatingChildType(null);
+        setNewChildName('');
+        await loadDirectory();
+        if (!isOpen) setIsOpen(true);
+      } catch (err) {
+        console.error(err);
+      }
+    } else if (e.key === 'Escape') {
+      setCreatingChildType(null);
+      setNewChildName('');
+    }
+  };
+
   return (
     <div>
       <div
@@ -127,7 +156,34 @@ function FileTreeItem({
           <span className="name">{file.name}</span>
         )}
         <div className="actions">
+          {file.isDirectory && (
+            <>
+              <button
+                type="button"
+                className="inline-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCreatingChildType('file');
+                }}
+                title="New File"
+              >
+                📄+
+              </button>
+              <button
+                type="button"
+                className="inline-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCreatingChildType('folder');
+                }}
+                title="New Folder"
+              >
+                📁+
+              </button>
+            </>
+          )}
           <button
+            type="button"
             className="inline-btn"
             onClick={(e) => {
               e.stopPropagation();
@@ -137,21 +193,52 @@ function FileTreeItem({
           >
             ✏️
           </button>
-          <button className="inline-btn" onClick={handleDelete} title="Delete">
+          <button
+            type="button"
+            className="inline-btn"
+            onClick={handleDelete}
+            title="Delete"
+          >
             🗑️
           </button>
         </div>
       </div>
-      {isOpen &&
-        children.map((child) => (
-          <FileTreeItem
-            key={child.path}
-            file={child}
-            onFileSelect={onFileSelect}
-            level={level + 1}
-            onRefresh={onRefresh}
-          />
-        ))}
+      {isOpen && (
+        <div className="children-list">
+          {creatingChildType && (
+            <div
+              className="file-item"
+              style={{ paddingLeft: `${15 + (level + 1) * 10}px` }}
+            >
+              <span className="icon">
+                {creatingChildType === 'file' ? '📄' : '📁'}
+              </span>
+              <input
+                className="rename-input"
+                autoFocus
+                value={newChildName}
+                placeholder={`New ${creatingChildType}...`}
+                onChange={(e) => setNewChildName(e.target.value)}
+                onKeyDown={handleCreateChild}
+                onBlur={() => {
+                  setCreatingChildType(null);
+                  setNewChildName('');
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+          {children.map((child) => (
+            <FileTreeItem
+              key={child.path}
+              file={child}
+              onFileSelect={onFileSelect}
+              level={level + 1}
+              onRefresh={onRefresh}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -232,18 +319,24 @@ export function FileExplorer({
   return (
     <div className="file-explorer">
       <div className="explorer-header">
-        <button className="open-btn" onClick={handleOpenFolder}>
+        <button
+          type="button"
+          className="open-btn"
+          onClick={handleOpenFolder}
+        >
           フォルダを開く
         </button>
         {currentPath && (
           <div className="explorer-actions">
             <button
+              type="button"
               className="action-btn"
               onClick={() => setCreatingType('file')}
             >
               📄+
             </button>
             <button
+              type="button"
               className="action-btn"
               onClick={() => setCreatingType('folder')}
             >
