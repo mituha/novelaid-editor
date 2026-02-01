@@ -9,6 +9,7 @@ import { EditorSettingsTab } from '../components/Settings/Tabs/EditorSettingsTab
 import { AISettingsTab } from '../components/Settings/Tabs/AISettingsTab';
 import { RightPane } from '../components/RightPane/RightPane';
 import { Resizer } from '../components/Common/Resizer';
+import { StatusBar } from '../components/Common/StatusBar';
 import './MainLayout.css';
 
 export function MainLayout() {
@@ -150,93 +151,98 @@ export function MainLayout() {
   const activeContent = activeTabPath ? tabContents[activeTabPath] : '';
 
   return (
-    <div className="main-layout">
-      {isLeftPaneVisible && (
-        <div
-          className="sidebar-container"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            width: `${leftPaneWidth}px`,
-            backgroundColor: '#252526',
-            borderRight: '1px solid #333',
-          }}
-        >
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <FileExplorer
-              onFileSelect={handleFileSelect}
-              onProjectOpened={loadProjectSettings}
-            />
-          </div>
+    <div className="layout-wrapper">
+      <div className="main-layout">
+        {isLeftPaneVisible && (
           <div
-            className="sidebar-footer"
+            className="sidebar-container"
             style={{
-              padding: '10px',
-              borderTop: '1px solid #333',
               display: 'flex',
-              justifyContent: 'flex-end',
+              flexDirection: 'column',
+              width: `${leftPaneWidth}px`,
+              backgroundColor: '#252526',
+              borderRight: '1px solid #333',
             }}
           >
-            <button
-              type="button"
-              onClick={openSettings}
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <FileExplorer
+                onFileSelect={handleFileSelect}
+                onProjectOpened={loadProjectSettings}
+              />
+            </div>
+            <div
+              className="sidebar-footer"
               style={{
-                background: 'none',
-                border: 'none',
-                color: '#ccc',
-                cursor: 'pointer',
+                padding: '10px',
+                borderTop: '1px solid #333',
+                display: 'flex',
+                justifyContent: 'flex-end',
               }}
-              title="Settings"
             >
-              <SettingsIcon size={20} />
-            </button>
+              <button
+                type="button"
+                onClick={openSettings}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#ccc',
+                  cursor: 'pointer',
+                }}
+                title="Settings"
+              >
+                <SettingsIcon size={20} />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-      {isLeftPaneVisible && <Resizer onResize={handleLeftResize} />}
+        )}
+        {isLeftPaneVisible && <Resizer onResize={handleLeftResize} />}
 
-      <div className="editor-area">
-        <TabBar
-          tabs={tabs}
-          activeTabPath={activeTabPath}
-          onTabClick={handleTabClick}
-          onTabClose={handleTabClose}
-          onToggleLeftPane={toggleLeftPane}
-          onToggleRightPane={toggleRightPane}
-          isLeftPaneVisible={isLeftPaneVisible}
-          isRightPaneVisible={isRightPaneVisible}
-        />
-        {activeTabPath ? (
-          <CodeEditor
-            key={activeTabPath}
-            value={activeContent}
-            onChange={handleContentChange}
+        <div className="editor-area">
+          <TabBar
+            tabs={tabs}
+            activeTabPath={activeTabPath}
+            onTabClick={handleTabClick}
+            onTabClose={handleTabClose}
+            onToggleLeftPane={toggleLeftPane}
+            onToggleRightPane={toggleRightPane}
+            isLeftPaneVisible={isLeftPaneVisible}
+            isRightPaneVisible={isRightPaneVisible}
           />
-        ) : (
-          <div className="empty-editor-state">
-            <p>Select a file to edit</p>
+          {activeTabPath ? (
+            <CodeEditor
+              key={activeTabPath}
+              value={activeContent}
+              onChange={handleContentChange}
+            />
+          ) : (
+            <div className="empty-editor-state">
+              <p>Select a file to edit</p>
+            </div>
+          )}
+        </div>
+
+        {isRightPaneVisible && <Resizer onResize={handleRightResize} />}
+        {isRightPaneVisible && (
+          <div
+            style={{
+              width: `${rightPaneWidth}px`,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            <RightPane
+              activeContent={activeContent}
+              activePath={activeTabPath}
+            />
           </div>
         )}
       </div>
-
-      {isRightPaneVisible && <Resizer onResize={handleRightResize} />}
-      {isRightPaneVisible && (
-        <div
-          style={{
-            width: `${rightPaneWidth}px`,
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            overflow: 'hidden',
-          }}
-        >
-          <RightPane
-            activeContent={activeContent}
-            activePath={activeTabPath}
-          />
-        </div>
-      )}
-
+      <StatusBar
+        charCount={activeContent.length}
+        activePath={activeTabPath}
+      />
       <SettingsModal />
     </div>
   );
