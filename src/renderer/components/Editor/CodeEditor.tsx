@@ -5,9 +5,10 @@ import './CodeEditor.css';
 interface CodeEditorProps {
   value: string;
   onChange: (value: string | undefined) => void;
+  onFocus?: () => void;
 }
 
-export function CodeEditor({ value, onChange }: CodeEditorProps) {
+export function CodeEditor({ value, onChange, onFocus }: CodeEditorProps) {
   return (
     <div className="code-editor-wrapper">
       <Editor
@@ -15,6 +16,11 @@ export function CodeEditor({ value, onChange }: CodeEditorProps) {
         defaultLanguage="markdown"
         value={value}
         onChange={onChange}
+        onMount={(editor) => {
+          editor.onDidFocusEditorText(() => {
+            onFocus?.();
+          });
+        }}
         theme="vs-dark"
         options={{
           wordWrap: 'on',

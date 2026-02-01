@@ -1,5 +1,5 @@
 import React, { MouseEvent } from 'react';
-import { X, PanelLeft, PanelRight } from 'lucide-react';
+import { X, PanelLeft, PanelRight, Columns } from 'lucide-react';
 import './TabBar.css';
 
 export interface Tab {
@@ -15,8 +15,10 @@ interface TabBarProps {
   onTabClose: (path: string) => void;
   onToggleLeftPane?: () => void;
   onToggleRightPane?: () => void;
+  onToggleSplit?: () => void;
   isLeftPaneVisible?: boolean;
   isRightPaneVisible?: boolean;
+  isSplit?: boolean;
 }
 
 export function TabBar({
@@ -26,8 +28,10 @@ export function TabBar({
   onTabClose,
   onToggleLeftPane,
   onToggleRightPane,
+  onToggleSplit,
   isLeftPaneVisible = true,
   isRightPaneVisible = true,
+  isSplit = false,
 }: TabBarProps) {
   const handleClose = (e: MouseEvent, path: string) => {
     e.stopPropagation();
@@ -68,6 +72,18 @@ export function TabBar({
           </div>
         ))}
       </div>
+
+      {onToggleSplit && (
+        <button
+          type="button"
+          className={`pane-toggle-btn ${isSplit ? 'active' : ''}`}
+          onClick={onToggleSplit}
+          title={isSplit ? 'Unsplit Editor' : 'Split Editor'}
+          style={{ marginLeft: '10px' }}
+        >
+          <Columns size={16} />
+        </button>
+      )}
 
       {onToggleRightPane && (
         <button

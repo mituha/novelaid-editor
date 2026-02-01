@@ -15,18 +15,30 @@ import './MainLayout.css';
 
 export function MainLayout() {
   const [tabs, setTabs] = useState<Tab[]>([]);
-  const [activeTabPath, setActiveTabPath] = useState<string | null>(null);
+  const [leftActivePath, setLeftActivePath] = useState<string | null>(null);
+  const [rightActivePath, setRightActivePath] = useState<string | null>(null);
+  const [activeSide, setActiveSide] = useState<'left' | 'right'>('left');
+  const [isSplit, setIsSplit] = useState(false);
   const [tabContents, setTabContents] = useState<Record<string, string>>({});
   const { openSettings, registerSettingTab, loadProjectSettings } =
     useSettings();
 
   const [leftPaneWidth, setLeftPaneWidth] = useState(250);
   const [rightPaneWidth, setRightPaneWidth] = useState(300);
+  const [editorSplitRatio, setEditorSplitRatio] = useState(0.5);
   const [isLeftPaneVisible, setIsLeftPaneVisible] = useState(true);
   const [isRightPaneVisible, setIsRightPaneVisible] = useState(true);
 
+  const activeTabPath = activeSide === 'left' ? leftActivePath : rightActivePath;
+
   const handleLeftResize = useCallback((delta: number) => {
     setLeftPaneWidth((prev) => Math.max(150, Math.min(600, prev + delta)));
+  }, []);
+
+  const handleEditorSplitResize = useCallback((delta: number) => {
+    // We need to account for the actual width of the editors container to make ratio-based resize accurate.
+    // For now, using a slightly better multiplier.
+    setEditorSplitRatio((prev) => Math.max(0.1, Math.min(0.9, prev + delta / 800)));
   }, []);
 
   const handleRightResize = useCallback((delta: number) => {
@@ -55,46 +67,72 @@ export function MainLayout() {
     });
   }, [registerSettingTab]);
 
-  const handleFileSelect = useCallback((path: string, content: string) => {
-    setTabs((prev) => {
-      if (prev.find((tab) => tab.path === path)) {
-        return prev;
+  const handleFileSelect = useCallback(
+    (path: string, content: string) => {
+      setTabs((prev) => {
+        if (prev.find((tab) => tab.path === path)) {
+          return prev;
+        }
+        const name = path.split('\\').pop() || 'Untitled';
+        return [...prev, { path, name }];
+      });
+      setTabContents((prev) => {
+        return { ...prev, [path]: content };
+      });
+
+      if (activeSide === 'left') {
+        setLeftActivePath(path);
+      } else {
+        setRightActivePath(path);
       }
-      const name = path.split('\\').pop() || 'Untitled';
-      return [...prev, { path, name }];
-    });
-    setTabContents((prev) => {
-      // Only set content if we don't have it (or to update it on open, but here we assume open means read from disk)
-      // If we want to keep unsaved changes, we should be careful.
-      // For now, simple approach: Always update content on file select (re-read) if not dirty?
-      // But handleFileSelect usually comes from reading file.
-      return { ...prev, [path]: content };
-    });
-    setActiveTabPath(path);
-  }, []);
+    },
+    [activeSide],
+  );
 
   const handleTabClick = (path: string) => {
-    setActiveTabPath(path);
+    if (activeSide === 'left') {
+      setLeftActivePath(path);
+    } else {
+      setRightActivePath(path);
+    }
+  };
+
+  const handleToggleSplit = () => {
+    setIsSplit((prev) => {
+      const next = !prev;
+      if (next && !rightActivePath) {
+        setRightActivePath(leftActivePath);
+      }
+      return next;
+    });
   };
 
   const handleTabClose = (path: string) => {
     setTabs((prev) => {
       const newTabs = prev.filter((tab) => tab.path !== path);
-      if (activeTabPath === path) {
-        // If closing active tab, switch to the last one or null
+
+      // Handle left active path
+      if (leftActivePath === path) {
         const closedTabIndex = prev.findIndex((tab) => tab.path === path);
-        // Try to go to the left tab, or the new first tab, or null
         if (newTabs.length > 0) {
-          // If we closed the last tab, go to previous last.
-          // If we closed a middle tab, stay at same index (which is now next tab) or go back?
-          // VSCode usually goes to most recently used, but simplistic approach:
-          // Go to the tab that took the place of closed one, or the one before it.
           const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
-          setActiveTabPath(newTabs[nextIndex].path);
+          setLeftActivePath(newTabs[nextIndex].path);
         } else {
-          setActiveTabPath(null);
+          setLeftActivePath(null);
         }
       }
+
+      // Handle right active path
+      if (rightActivePath === path) {
+        const closedTabIndex = prev.findIndex((tab) => tab.path === path);
+        if (newTabs.length > 0) {
+          const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
+          setRightActivePath(newTabs[nextIndex].path);
+        } else {
+          setRightActivePath(null);
+        }
+      }
+
       return newTabs;
     });
     // Optional: cleanup content memory if closed
@@ -105,17 +143,15 @@ export function MainLayout() {
     });
   };
 
-  const handleContentChange = (value: string | undefined) => {
-    if (activeTabPath) {
+  const handleContentChange = (path: string | null) => (value: string | undefined) => {
+    if (path) {
       setTabContents((prev) => ({
         ...prev,
-        [activeTabPath]: value || '',
+        [path]: value || '',
       }));
       // Mark as dirty
       setTabs((prev) =>
-        prev.map((tab) =>
-          tab.path === activeTabPath ? { ...tab, isDirty: true } : tab,
-        ),
+        prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
       );
     }
   };
@@ -149,6 +185,8 @@ export function MainLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeTabPath, tabContents]);
 
+  const leftContent = leftActivePath ? tabContents[leftActivePath] : '';
+  const rightContent = rightActivePath ? tabContents[rightActivePath] : '';
   const activeContent = activeTabPath ? tabContents[activeTabPath] : '';
 
   return (
@@ -206,20 +244,75 @@ export function MainLayout() {
             onTabClose={handleTabClose}
             onToggleLeftPane={toggleLeftPane}
             onToggleRightPane={toggleRightPane}
+            onToggleSplit={handleToggleSplit}
             isLeftPaneVisible={isLeftPaneVisible}
             isRightPaneVisible={isRightPaneVisible}
+            isSplit={isSplit}
           />
-          {activeTabPath ? (
-            <CodeEditor
-              key={activeTabPath}
-              value={activeContent}
-              onChange={handleContentChange}
-            />
-          ) : (
-            <div className="empty-editor-state">
-              <p>Select a file to edit</p>
+          <div
+            className="editors-container"
+            style={{
+              display: 'flex',
+              flex: 1,
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
+            <div
+              className={`editor-pane ${activeSide === 'left' ? 'active' : ''}`}
+              style={{
+                flex: isSplit ? `${editorSplitRatio} 1 0%` : '1 1 0%',
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: 0,
+              }}
+              onFocus={() => setActiveSide('left')}
+              onClick={() => setActiveSide('left')}
+            >
+              {leftActivePath ? (
+                <CodeEditor
+                  key={`left-${leftActivePath}`}
+                  value={leftContent}
+                  onChange={handleContentChange(leftActivePath)}
+                  onFocus={() => setActiveSide('left')}
+                />
+              ) : (
+                <div className="empty-editor-state">
+                  <p>Select a file to edit (Left)</p>
+                </div>
+              )}
             </div>
-          )}
+
+            {isSplit && (
+              <>
+                <Resizer onResize={handleEditorSplitResize} />
+                <div
+                  className={`editor-pane ${activeSide === 'right' ? 'active' : ''}`}
+                  style={{
+                    flex: `${1 - editorSplitRatio} 1 0%`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minWidth: 0,
+                  }}
+                  onFocus={() => setActiveSide('right')}
+                  onClick={() => setActiveSide('right')}
+                >
+                  {rightActivePath ? (
+                    <CodeEditor
+                      key={`right-${rightActivePath}`}
+                      value={rightContent}
+                      onChange={handleContentChange(rightActivePath)}
+                      onFocus={() => setActiveSide('right')}
+                    />
+                  ) : (
+                    <div className="empty-editor-state">
+                      <p>Select a file to edit (Right)</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {isRightPaneVisible && <Resizer onResize={handleRightResize} />}
