@@ -102,8 +102,17 @@ export default function MainLayout() {
   const handleToggleSplit = () => {
     setIsSplit((prev) => {
       const next = !prev;
-      if (next && !rightActivePath) {
-        setRightActivePath(leftActivePath);
+      if (next) {
+        // When splitting, if the right side is empty, clone the current active tab to the right side
+        if (rightTabs.length === 0 && leftActivePath) {
+          const activeTab = leftTabs.find((t) => t.path === leftActivePath);
+          if (activeTab) {
+            setRightTabs([activeTab]);
+            setRightActivePath(leftActivePath);
+          }
+        } else if (!rightActivePath && leftActivePath) {
+          setRightActivePath(leftActivePath);
+        }
       }
       return next;
     });
@@ -199,7 +208,12 @@ export default function MainLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeTabPath, tabContents]);
 
-  const activeContent = activeTabPath ? tabContents[activeTabPath] : '';
+  const getOriginalPath = (path: string | null) =>
+    path?.startsWith('preview://') ? path.replace('preview://', '') : path;
+
+  const activeContent = activeTabPath
+    ? tabContents[getOriginalPath(activeTabPath) || '']
+    : '';
 
   const renderEditorOrPreview = (side: 'left' | 'right') => {
     const activePath = side === 'left' ? leftActivePath : rightActivePath;
@@ -297,6 +311,11 @@ export default function MainLayout() {
               }}
               onFocus={() => setActiveSide('left')}
               onClick={() => setActiveSide('left')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setActiveSide('left');
+                }
+              }}
               role="region"
               aria-label="Left Editor Group"
               tabIndex={0}
@@ -328,6 +347,11 @@ export default function MainLayout() {
                   }}
                   onFocus={() => setActiveSide('right')}
                   onClick={() => setActiveSide('right')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setActiveSide('right');
+                    }
+                  }}
                   role="region"
                   aria-label="Right Editor Group"
                   tabIndex={0}
@@ -339,11 +363,13 @@ export default function MainLayout() {
                     onTabClose={handleTabClose('right')}
                     onToggleRightPane={toggleRightPane}
                     isRightPaneVisible={isRightPaneVisible}
+                    onToggleSplit={handleToggleSplit}
+                    isSplit={isSplit}
                     onOpenPreview={handleOpenPreview}
                   />
-              <div className="editor-pane">
-                {renderEditorOrPreview('right')}
-              </div>
+                  <div className="editor-pane">
+                    {renderEditorOrPreview('right')}
+                  </div>
                 </div>
               </>
             )}
@@ -369,8 +395,11 @@ export default function MainLayout() {
         )}
       </div>
       <StatusBar
-        metrics={CharCounter.getMetrics(activeContent, activeTabPath)}
-        activePath={activeTabPath}
+        metrics={CharCounter.getMetrics(
+          activeContent,
+          getOriginalPath(activeTabPath),
+        )}
+        activePath={getOriginalPath(activeTabPath)}
       />
       <SettingsModal />
     </div>
