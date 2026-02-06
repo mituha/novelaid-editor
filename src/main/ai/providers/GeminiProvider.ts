@@ -1,127 +1,121 @@
-import { GoogleGenerativeAI } from '@google/genai';
+import { createGoogleAI } from '@google/genai';
 import { BaseProvider } from './BaseProvider';
-import { GenerateOptions, ChatMessage } from '../interface';
+import { GenerateOptions, ChatMessage, StreamChunk } from '../interface';
 
 export class GeminiProvider extends BaseProvider {
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private client: ReturnType<typeof createGoogleAI>;
 
-  constructor(apiKey: string, modelName: string) {
+  constructor(modelName: string, apiKey: string) {
     super(modelName);
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: modelName });
+    this.client = createGoogleAI({ apiKey });
   }
 
-  async generateContent(prompt: string, options?: GenerateOptions): Promise<string> {
-     return this.chat([{ role: 'user', content: prompt }], options);
+  async generateContent(
+    prompt: string,
+    options?: GenerateOptions,
+  ): Promise<string> {
+    const result = await this.client.models.generateContent({
+      model: this.modelName,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        maxOutputTokens: options?.maxTokens,
+        temperature: options?.temperature,
+        systemInstruction: options?.systemPrompt,
+      },
+    });
+    return result.text() || '';
   }
 
-  private prepareChatHistory(messages: ChatMessage[], options?: GenerateOptions) {
-      // Separate system message if any
-      let systemInstruction = options?.systemPrompt;
-      const history = [];
+  async chat(
+    messages: ChatMessage[],
+    options?: GenerateOptions,
+  ): Promise<string> {
+    const result = await this.client.models.generateContent({
+      model: this.modelName,
+      contents: messages.map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      })),
+      config: {
+        maxOutputTokens: options?.maxTokens,
+        temperature: options?.temperature,
+        systemInstruction: options?.systemPrompt,
+      },
+    });
+    return result.text() || '';
+  }
 
-      // Filter out system messages from history and set systemInstruction if not already set
-      for(const msg of messages) {
-          if (msg.role === 'system') {
-              if (!systemInstruction) systemInstruction = msg.content;
-          } else {
-              history.push({
-                  role: msg.role === 'assistant' ? 'model' : 'user',
-                  parts: [{ text: msg.content }]
-              });
+  async *streamContent(
+    prompt: string,
+    options?: GenerateOptions,
+  ): AsyncGenerator<StreamChunk> {
+    const stream = await this.client.models.generateContentStream({
+      model: this.modelName,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        maxOutputTokens: options?.maxTokens,
+        temperature: options?.temperature,
+        systemInstruction: options?.systemPrompt,
+      },
+    });
+
+    for await (const chunk of stream.stream) {
+      const parts = chunk.candidates?.[0]?.content?.parts;
+      if (parts) {
+        for (const part of parts) {
+          if ('thought' in part && (part as any).thought) {
+            yield { content: (part as any).text, type: 'thought' };
+          } else if (part.text) {
+            yield { content: part.text, type: 'text' };
           }
-      }
-
-      // The last message is the new message to send
-      const lastMessage = history.pop();
-
-      if (!lastMessage) {
-          throw new Error('No user message found to send.');
-      }
-
-      // Configure model with system instruction if present
-      const model = systemInstruction
-          ? this.genAI.getGenerativeModel({ model: this.modelName, systemInstruction })
-          : this.model;
-
-      const chat = model.startChat({
-         history: history,
-         generationConfig: {
-            temperature: options?.temperature,
-            maxOutputTokens: options?.maxTokens,
-         }
-      });
-
-      return { chat, lastMessage };
-  }
-
-  async chat(messages: ChatMessage[], options?: GenerateOptions): Promise<string> {
-    try {
-      const { chat, lastMessage } = this.prepareChatHistory(messages, options);
-      const result = await chat.sendMessage(lastMessage.parts[0].text);
-      return result.response.text();
-    } catch (error) {
-      console.error('Gemini chat error:', error);
-      throw error;
-    }
-  }
-
-  async *streamContent(prompt: string, options?: GenerateOptions): AsyncGenerator<string> {
-     yield* this.streamChat([{ role: 'user', content: prompt }], options);
-  }
-
-  async *streamChat(messages: ChatMessage[], options?: GenerateOptions): AsyncGenerator<string> {
-    try {
-      const { chat, lastMessage } = this.prepareChatHistory(messages, options);
-      const result = await chat.sendMessageStream(lastMessage.parts[0].text);
-
-      let isInThought = false;
-      for await (const chunk of result.stream) {
-        const parts = chunk.candidates?.[0]?.content?.parts;
-        if (parts) {
-          for (const part of parts) {
-            const isThought = (part as any).thought;
-            if (isThought && !isInThought) {
-              yield `<thought>${(part as any).text}`;
-              isInThought = true;
-            } else if (!isThought && isInThought) {
-              yield `</thought>${part.text || ''}`;
-              isInThought = false;
-            } else {
-              yield part.text || '';
-            }
-          }
-        } else {
-             // Fallback if parts are missing but text() works
-             const text = chunk.text();
-             if (isInThought && text) {
-                 yield `</thought>${text}`;
-                 isInThought = false;
-             } else {
-                 yield text;
-             }
         }
+      } else {
+        const text = chunk.text();
+        if (text) yield { content: text, type: 'text' };
       }
-      if (isInThought) {
-          yield '</thought>';
-      }
-    } catch (error) {
-      console.error('Gemini streamChat error:', error);
-      throw error;
     }
   }
 
+  async *streamChat(
+    messages: ChatMessage[],
+    options?: GenerateOptions,
+  ): AsyncGenerator<StreamChunk> {
+    const stream = await this.client.models.generateContentStream({
+      model: this.modelName,
+      contents: messages.map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      })),
+      config: {
+        maxOutputTokens: options?.maxTokens,
+        temperature: options?.temperature,
+        systemInstruction: options?.systemPrompt,
+      },
+    });
+
+    for await (const chunk of stream.stream) {
+      const parts = chunk.candidates?.[0]?.content?.parts;
+      if (parts) {
+        for (const part of parts) {
+          if ('thought' in part && (part as any).thought) {
+            yield { content: (part as any).text, type: 'thought' };
+          } else if (part.text) {
+            yield { content: part.text, type: 'text' };
+          }
+        }
+      } else {
+        const text = chunk.text();
+        if (text) yield { content: text, type: 'text' };
+      }
+    }
+  }
 
   async listModels(): Promise<string[]> {
-      // Currently hardcoded standard models.
-      // Dynamic listing requires a different API call structure not directly exposed on the generativeModel instance easily
-      // or requires extra permissions/setup. keeping it simple for now.
-      return [
-        'gemini-2.0-flash-exp',
-        'gemini-1.5-flash',
-        'gemini-1.5-pro',
-        'gemini-1.0-pro'
-      ];
+    return [
+      'gemini-2.0-flash-exp',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-1.0-pro',
+    ];
   }
 }

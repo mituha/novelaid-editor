@@ -1,6 +1,6 @@
 import { LMStudioClient } from '@lmstudio/sdk';
 import { BaseProvider } from './BaseProvider';
-import { GenerateOptions, ChatMessage } from '../interface';
+import { GenerateOptions, ChatMessage, StreamChunk } from '../interface';
 
 export class LMStudioProvider extends BaseProvider {
   private client: LMStudioClient;
@@ -11,67 +11,74 @@ export class LMStudioProvider extends BaseProvider {
    */
   constructor(modelName: string, baseUrl: string = 'ws://localhost:1234') {
     super(modelName);
-    this.client = new LMStudioClient({
-      baseUrl,
+    this.client = new LMStudioClient({ baseUrl });
+  }
+
+  async generateContent(
+    prompt: string,
+    options?: GenerateOptions,
+  ): Promise<string> {
+    const model = await this.client.llm.model(this.modelName);
+    const result = await model.respond(prompt, {
+      temperature: options?.temperature,
+      maxPredictedTokens: options?.maxTokens,
     });
+    return result.content;
   }
 
-  async generateContent(prompt: string, options?: GenerateOptions): Promise<string> {
-    return this.chat([{ role: 'user', content: prompt }], options);
-  }
-
-  async chat(messages: ChatMessage[], options?: GenerateOptions): Promise<string> {
-    try {
-      const model = await this.client.llm.model(this.modelName);
-
-      const prediction = await model.respond(messages, {
+  async chat(
+    messages: ChatMessage[],
+    options?: GenerateOptions,
+  ): Promise<string> {
+    const model = await this.client.llm.model(this.modelName);
+    const result = await model.respond(
+      messages.map((m) => ({ role: m.role, content: m.content })),
+      {
         temperature: options?.temperature,
-        maxTokens: options?.maxTokens
-      });
+        maxPredictedTokens: options?.maxTokens,
+      },
+    );
+    return result.content;
+  }
 
-      return prediction.content;
-    } catch (error) {
-      console.error('LMStudio chat error:', error);
-      throw error;
+  async *streamContent(
+    prompt: string,
+    options?: GenerateOptions,
+  ): AsyncGenerator<StreamChunk> {
+    const model = await this.client.llm.model(this.modelName);
+    const prediction = model.respond(prompt, {
+      temperature: options?.temperature,
+      maxPredictedTokens: options?.maxTokens,
+    });
+
+    for await (const chunk of prediction) {
+      const isReasoning = (chunk as any).reasoningType === 'reasoning';
+      yield {
+        content: chunk.content,
+        type: isReasoning ? 'thought' : 'text',
+      };
     }
   }
 
-  async *streamContent(prompt: string, options?: GenerateOptions): AsyncGenerator<string> {
-     yield* this.streamChat([{ role: 'user', content: prompt }], options);
-  }
-
-  async *streamChat(messages: ChatMessage[], options?: GenerateOptions): AsyncGenerator<string> {
-    try {
-      const model = await this.client.llm.model(this.modelName);
-
-      const prediction = model.respond(messages, {
+  async *streamChat(
+    messages: ChatMessage[],
+    options?: GenerateOptions,
+  ): AsyncGenerator<StreamChunk> {
+    const model = await this.client.llm.model(this.modelName);
+    const prediction = model.respond(
+      messages.map((m) => ({ role: m.role, content: m.content })),
+      {
         temperature: options?.temperature,
-        maxTokens: options?.maxTokens,
-      });
+        maxPredictedTokens: options?.maxTokens,
+      },
+    );
 
-      // The SDK might return an object that contains the stream, or is itself async iterable.
-      // Based on error "predictionStream is not async iterable", and checking docs/examples pattern:
-      // If it's a standard iterator:
-      let isInReasoning = false;
-      for await (const chunk of prediction) {
-        const isReasoning = (chunk as any).reasoningType === 'reasoning';
-
-        if (isReasoning && !isInReasoning) {
-          yield `<thought>${chunk.content}`;
-          isInReasoning = true;
-        } else if (!isReasoning && isInReasoning) {
-          yield `</thought>${chunk.content}`;
-          isInReasoning = false;
-        } else {
-          yield chunk.content;
-        }
-      }
-      if (isInReasoning) {
-        yield '</thought>';
-      }
-    } catch (error) {
-      console.error('LMStudio stream error:', error);
-      throw error;
+    for await (const chunk of prediction) {
+      const isReasoning = (chunk as any).reasoningType === 'reasoning';
+      yield {
+        content: chunk.content,
+        type: isReasoning ? 'thought' : 'text',
+      };
     }
   }
 
