@@ -1,6 +1,4 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Settings as SettingsIcon } from 'lucide-react';
-import { FileExplorer } from '../components/Sidebar/FileExplorer';
 import { CodeEditor } from '../components/Editor/CodeEditor';
 import { TabBar, Tab } from '../components/TabBar/TabBar';
 import { SettingsModal } from '../components/Settings/SettingsModal';
@@ -14,7 +12,7 @@ import { CharCounter } from '../utils/CharCounter';
 import NovelPreview from '../components/Preview/NovelPreview';
 import './MainLayout.css';
 
-import { GitPanel } from '../components/Git/GitPanel';
+import { LeftPane } from '../components/LeftPane/LeftPane';
 
 export default function MainLayout() {
   const [leftTabs, setLeftTabs] = useState<Tab[]>([]);
@@ -32,8 +30,6 @@ export default function MainLayout() {
   const [editorSplitRatio, setEditorSplitRatio] = useState(0.5);
   const [isLeftPaneVisible, setIsLeftPaneVisible] = useState(true);
   const [isRightPaneVisible, setIsRightPaneVisible] = useState(true);
-
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'git'>('files');
 
   const activeTabPath = activeSide === 'left' ? leftActivePath : rightActivePath;
 
@@ -268,72 +264,21 @@ export default function MainLayout() {
   return (
     <div className="layout-wrapper">
       <div className="main-layout">
-        <div className="activity-bar">
-             <div
-                className={`activity-icon ${activeSidebarTab === 'files' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveSidebarTab('files');
-                  setIsLeftPaneVisible(true);
-                }}
-                title="Files"
-             >
-                 📁
-             </div>
-             <div
-                className={`activity-icon ${activeSidebarTab === 'git' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveSidebarTab('git');
-                  setIsLeftPaneVisible(true);
-                }}
-                title="Git"
-             >
-                 <span style={{ fontSize: '1.2em', fontWeight: 'bold' }}>S</span>
-             </div>
-        </div>
         {isLeftPaneVisible && (
           <div
-            className="sidebar-container"
             style={{
+              width: `${leftPaneWidth}px`,
               display: 'flex',
               flexDirection: 'column',
-              width: `${leftPaneWidth}px`,
-              backgroundColor: '#252526',
-              borderRight: '1px solid #333',
+              height: '100%',
+              overflow: 'hidden',
             }}
           >
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              {activeSidebarTab === 'files' ? (
-                  <FileExplorer
-                    onFileSelect={handleFileSelect}
-                    onProjectOpened={loadProjectSettings}
-                  />
-              ) : (
-                  <GitPanel />
-              )}
-            </div>
-            <div
-              className="sidebar-footer"
-              style={{
-                padding: '10px',
-                borderTop: '1px solid #333',
-                display: 'flex',
-                justifyContent: 'flex-end',
-              }}
-            >
-              <button
-                type="button"
-                onClick={openSettings}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#ccc',
-                  cursor: 'pointer',
-                }}
-                title="Settings"
-              >
-                <SettingsIcon size={20} />
-              </button>
-            </div>
+            <LeftPane
+              onFileSelect={handleFileSelect}
+              onProjectOpened={loadProjectSettings}
+              openSettings={openSettings}
+            />
           </div>
         )}
         {isLeftPaneVisible && <Resizer onResize={handleLeftResize} />}
