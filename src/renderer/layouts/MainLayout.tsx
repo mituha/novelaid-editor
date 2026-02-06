@@ -14,6 +14,8 @@ import { CharCounter } from '../utils/CharCounter';
 import NovelPreview from '../components/Preview/NovelPreview';
 import './MainLayout.css';
 
+import { GitPanel } from '../components/Git/GitPanel';
+
 export default function MainLayout() {
   const [leftTabs, setLeftTabs] = useState<Tab[]>([]);
   const [rightTabs, setRightTabs] = useState<Tab[]>([]);
@@ -30,6 +32,8 @@ export default function MainLayout() {
   const [editorSplitRatio, setEditorSplitRatio] = useState(0.5);
   const [isLeftPaneVisible, setIsLeftPaneVisible] = useState(true);
   const [isRightPaneVisible, setIsRightPaneVisible] = useState(true);
+
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'git'>('files');
 
   const activeTabPath = activeSide === 'left' ? leftActivePath : rightActivePath;
 
@@ -264,6 +268,28 @@ export default function MainLayout() {
   return (
     <div className="layout-wrapper">
       <div className="main-layout">
+        <div className="activity-bar">
+             <div
+                className={`activity-icon ${activeSidebarTab === 'files' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveSidebarTab('files');
+                  setIsLeftPaneVisible(true);
+                }}
+                title="Files"
+             >
+                 📁
+             </div>
+             <div
+                className={`activity-icon ${activeSidebarTab === 'git' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveSidebarTab('git');
+                  setIsLeftPaneVisible(true);
+                }}
+                title="Git"
+             >
+                 <span style={{ fontSize: '1.2em', fontWeight: 'bold' }}>S</span>
+             </div>
+        </div>
         {isLeftPaneVisible && (
           <div
             className="sidebar-container"
@@ -276,10 +302,14 @@ export default function MainLayout() {
             }}
           >
             <div style={{ flex: 1, overflow: 'hidden' }}>
-              <FileExplorer
-                onFileSelect={handleFileSelect}
-                onProjectOpened={loadProjectSettings}
-              />
+              {activeSidebarTab === 'files' ? (
+                  <FileExplorer
+                    onFileSelect={handleFileSelect}
+                    onProjectOpened={loadProjectSettings}
+                  />
+              ) : (
+                  <GitPanel />
+              )}
             </div>
             <div
               className="sidebar-footer"
