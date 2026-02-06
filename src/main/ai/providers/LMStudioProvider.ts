@@ -52,8 +52,22 @@ export class LMStudioProvider extends BaseProvider {
       // The SDK might return an object that contains the stream, or is itself async iterable.
       // Based on error "predictionStream is not async iterable", and checking docs/examples pattern:
       // If it's a standard iterator:
+      let isInReasoning = false;
       for await (const chunk of prediction) {
-        yield chunk.content;
+        const isReasoning = (chunk as any).reasoningType === 'reasoning';
+
+        if (isReasoning && !isInReasoning) {
+          yield `<thought>${chunk.content}`;
+          isInReasoning = true;
+        } else if (!isReasoning && isInReasoning) {
+          yield `</thought>${chunk.content}`;
+          isInReasoning = false;
+        } else {
+          yield chunk.content;
+        }
+      }
+      if (isInReasoning) {
+        yield '</thought>';
       }
     } catch (error) {
       console.error('LMStudio stream error:', error);

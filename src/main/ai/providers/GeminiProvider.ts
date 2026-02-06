@@ -76,8 +76,35 @@ export class GeminiProvider extends BaseProvider {
       const { chat, lastMessage } = this.prepareChatHistory(messages, options);
       const result = await chat.sendMessageStream(lastMessage.parts[0].text);
 
+      let isInThought = false;
       for await (const chunk of result.stream) {
-        yield chunk.text();
+        const parts = chunk.candidates?.[0]?.content?.parts;
+        if (parts) {
+          for (const part of parts) {
+            const isThought = (part as any).thought;
+            if (isThought && !isInThought) {
+              yield `<thought>${(part as any).text}`;
+              isInThought = true;
+            } else if (!isThought && isInThought) {
+              yield `</thought>${part.text || ''}`;
+              isInThought = false;
+            } else {
+              yield part.text || '';
+            }
+          }
+        } else {
+             // Fallback if parts are missing but text() works
+             const text = chunk.text();
+             if (isInThought && text) {
+                 yield `</thought>${text}`;
+                 isInThought = false;
+             } else {
+                 yield text;
+             }
+        }
+      }
+      if (isInThought) {
+          yield '</thought>';
       }
     } catch (error) {
       console.error('Gemini streamChat error:', error);

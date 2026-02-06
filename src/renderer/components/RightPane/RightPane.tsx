@@ -127,9 +127,54 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
       <div className="right-pane-content">
         {messages.map((msg) => (
           <div key={msg.id} className={`chat-message ${msg.role}`}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {msg.displayContent || msg.content}
-            </ReactMarkdown>
+            {msg.role === 'user' ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {msg.displayContent || msg.content}
+              </ReactMarkdown>
+            ) : (
+              <div className="assistant-message-content">
+                {(() => {
+                  const content = msg.content;
+                  const parts = [];
+                  let remaining = content;
+
+                  while (remaining.includes('<thought>')) {
+                    const startIndex = remaining.indexOf('<thought>');
+                    const before = remaining.substring(0, startIndex);
+                    if (before) parts.push({ type: 'text', content: before });
+
+                    const contentStart = startIndex + '<thought>'.length;
+                    const endIndex = remaining.indexOf('</thought>', contentStart);
+
+                    if (endIndex === -1) {
+                      parts.push({ type: 'thought', content: remaining.substring(contentStart) });
+                      remaining = '';
+                    } else {
+                      parts.push({ type: 'thought', content: remaining.substring(contentStart, endIndex) });
+                      remaining = remaining.substring(endIndex + '</thought>'.length);
+                    }
+                  }
+                  if (remaining) parts.push({ type: 'text', content: remaining });
+
+                  return parts.map((part, index) =>
+                    part.type === 'thought' ? (
+                      <details key={index} className="thought-container" open>
+                        <summary>Thinking...</summary>
+                        <div className="thought-content">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {part.content}
+                          </ReactMarkdown>
+                        </div>
+                      </details>
+                    ) : (
+                      <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>
+                        {part.content}
+                      </ReactMarkdown>
+                    )
+                  );
+                })()}
+              </div>
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />

@@ -34,8 +34,49 @@
 }
 
 .chat-message.assistant {
-  background-color: #2d2d2d;
-  border: 1px solid #3c3c3c;
+  align-self: flex-start;
+  background-color: #333;
+  color: #eee;
+}
+
+/* Thought Block Styling */
+.thought-container {
+  margin-bottom: 10px;
+  border-left: 3px solid #555;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.thought-container summary {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.85em;
+  color: #aaa;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.thought-container summary::marker {
+  color: #888;
+}
+
+.thought-container summary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.thought-content {
+  padding: 0 12px 12px 12px;
+  font-size: 0.9em;
+  color: #ccc;
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.thought-content .markdown-body {
+    background: transparent;
 }
 
 .chat-message.user {

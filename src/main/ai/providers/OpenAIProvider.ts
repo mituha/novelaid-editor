@@ -76,6 +76,24 @@ export class OpenAIProvider extends BaseProvider {
       if (!response.body) return;
 
       const stream = response.body as any;
+      let isInReasoning = false;
+
+      const handleLine = (line: string): string | null => {
+        const result = this.parseStreamLineComplex(line);
+        if (!result) return null;
+
+        let output = '';
+        if (result.type === 'reasoning' && !isInReasoning) {
+          output = `<thought>${result.content}`;
+          isInReasoning = true;
+        } else if (result.type === 'content' && isInReasoning) {
+          output = `</thought>${result.content}`;
+          isInReasoning = false;
+        } else {
+          output = result.content;
+        }
+        return output;
+      };
 
       if (typeof stream.getReader === 'function') {
         const reader = stream.getReader();
@@ -93,7 +111,7 @@ export class OpenAIProvider extends BaseProvider {
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-             const content = this.parseStreamLine(line);
+             const content = handleLine(line);
              if (content) yield content;
           }
         }
@@ -106,10 +124,14 @@ export class OpenAIProvider extends BaseProvider {
             const lines = buffer.split('\n');
             buffer = lines.pop() || '';
             for (const line of lines) {
-                const content = this.parseStreamLine(line);
+                const content = handleLine(line);
                 if (content) yield content;
             }
         }
+      }
+
+      if (isInReasoning) {
+        yield '</thought>';
       }
 
     } catch (error) {
@@ -118,13 +140,20 @@ export class OpenAIProvider extends BaseProvider {
     }
   }
 
-  private parseStreamLine(line: string): string | null {
+  private parseStreamLineComplex(line: string): { content: string, type: 'reasoning' | 'content' } | null {
     const trimmed = line.trim();
     if (!trimmed || trimmed === 'data: [DONE]') return null;
     if (trimmed.startsWith('data: ')) {
       try {
         const data = JSON.parse(trimmed.slice(6));
-        return data.choices?.[0]?.delta?.content || null;
+        const delta = data.choices?.[0]?.delta;
+        if (delta?.reasoning_content) {
+          return { content: delta.reasoning_content, type: 'reasoning' };
+        }
+        if (delta?.content) {
+          return { content: delta.content, type: 'content' };
+        }
+        return null;
       } catch (e) {
         return null;
       }
