@@ -27,23 +27,70 @@
 }
 
 .chat-message {
-  padding: 8px;
-  border-radius: 4px;
-  background-color: #333;
-  font-size: 0.9rem;
+  max-width: 85%;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  line-height: 1.6;
+  position: relative;
+  word-wrap: break-word;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
 }
 
 .chat-message.assistant {
   align-self: flex-start;
-  background-color: #333;
-  color: #eee;
+  background-color: #383838;
+  color: #f0f0f0;
+  border: 1px solid #555;
+  border-bottom-left-radius: 4px;
+  /* ふきだしの尻尾のような表現 */
+}
+
+.chat-message.assistant.thought-bubble {
+  background-color: #242424;
+  color: #999;
+  border: 1px dashed #666;
+  opacity: 0.9;
+  font-size: 0.9em;
+  margin-bottom: 12px;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-message.user {
+  align-self: flex-end;
+  background-color: #0078d4;
+  color: white;
+  border: 1px solid #2b88d8;
+  border-bottom-right-radius: 4px;
+}
+
+.message-sender {
+  font-size: 0.75em;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chat-message.user .message-sender {
+  color: #c7e0f4;
+  text-align: right;
+}
+
+.chat-message.assistant .message-sender {
+  color: #aaa;
+}
+
+.chat-message.assistant.thought-bubble .message-sender {
+  color: #777;
 }
 
 /* Thought Block Styling */
 .thought-container {
-  margin-bottom: 10px;
-  border-left: 3px solid #555;
-  background-color: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid #666;
+  background-color: transparent;
   border-radius: 4px;
   overflow: hidden;
 }
@@ -76,7 +123,7 @@
 }
 
 .thought-content .markdown-body {
-    background: transparent;
+  background: transparent;
 }
 
 .chat-message.user {

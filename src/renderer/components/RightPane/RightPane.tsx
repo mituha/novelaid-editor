@@ -25,7 +25,8 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I am your AI assistant. How can I help you today?',
+      content:
+        '<thought>I should greet the user and offer help as a novel editing assistant.</thought>Hello! I am your AI assistant specialized in novel editing. How can I help you with your story today?',
     },
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,51 +75,72 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
     // Prepare for assistant response
     const assistantMsgId = (Date.now() + 1).toString();
     const assistantMessage: Message = {
-        id: assistantMsgId,
-        role: 'assistant',
-        content: ''
+      id: assistantMsgId,
+      role: 'assistant',
+      content: '',
     };
-    setMessages(prev => [...prev, assistantMessage]);
+    setMessages((prev) => [...prev, assistantMessage]);
 
     // Setup listeners
     // We strictly use the channels defined in preload
-    const removeDataListener = window.electron.ipcRenderer.on('ai:streamChat:data', (chunk) => {
-        setMessages(prev => prev.map(msg =>
+    const removeDataListener = window.electron.ipcRenderer.on(
+      'ai:streamChat:data',
+      (chunk) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
             msg.id === assistantMsgId
-                ? { ...msg, content: msg.content + (typeof chunk === 'string' ? chunk : '') }
-                : msg
-        ));
-    });
+              ? {
+                  ...msg,
+                  content:
+                    msg.content + (typeof chunk === 'string' ? chunk : ''),
+                }
+              : msg,
+          ),
+        );
+      },
+    );
 
-    const removeEndListener = window.electron.ipcRenderer.on('ai:streamChat:end', () => {
+    const removeEndListener = window.electron.ipcRenderer.on(
+      'ai:streamChat:end',
+      () => {
         setIsStreaming(false);
         cleanup();
-    });
+      },
+    );
 
-    const removeErrorListener = window.electron.ipcRenderer.on('ai:streamChat:error', (error) => {
+    const removeErrorListener = window.electron.ipcRenderer.on(
+      'ai:streamChat:error',
+      (error) => {
         console.error('Stream error:', error);
-        setMessages(prev => prev.map(msg =>
+        setMessages((prev) =>
+          prev.map((msg) =>
             msg.id === assistantMsgId
-                ? { ...msg, content: msg.content + `\n[Error: ${error}]` }
-                : msg
-        ));
+              ? { ...msg, content: msg.content + `\n[Error: ${error}]` }
+              : msg,
+          ),
+        );
         setIsStreaming(false);
         cleanup();
-    });
+      },
+    );
 
     const cleanup = () => {
-        removeDataListener();
-        removeEndListener();
-        removeErrorListener();
+      removeDataListener();
+      removeEndListener();
+      removeErrorListener();
     };
 
     // Send request
-    const apiMessages = newMessages.map(m => ({
-        role: m.role,
-        content: m.content
+    const apiMessages = newMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
     }));
 
-    window.electron.ipcRenderer.sendMessage('ai:streamChat', apiMessages, settings.ai || {});
+    window.electron.ipcRenderer.sendMessage(
+      'ai:streamChat',
+      apiMessages,
+      settings.ai || {},
+    );
   };
 
   return (
@@ -126,56 +148,85 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
       <div className="right-pane-header">AI Agent</div>
       <div className="right-pane-content">
         {messages.map((msg) => (
-          <div key={msg.id} className={`chat-message ${msg.role}`}>
+          <React.Fragment key={msg.id}>
             {msg.role === 'user' ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {msg.displayContent || msg.content}
-              </ReactMarkdown>
+              <div className={`chat-message ${msg.role}`}>
+                <div className="message-sender">You</div>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {msg.displayContent || msg.content}
+                </ReactMarkdown>
+              </div>
             ) : (
-              <div className="assistant-message-content">
+              <>
                 {(() => {
                   const content = msg.content;
-                  const parts = [];
+                  const parts: { type: 'thought' | 'text'; content: string }[] =
+                    [];
                   let remaining = content;
 
                   while (remaining.includes('<thought>')) {
                     const startIndex = remaining.indexOf('<thought>');
-                    const before = remaining.substring(0, startIndex);
+                    const before = remaining.substring(0, startIndex).trim();
                     if (before) parts.push({ type: 'text', content: before });
 
                     const contentStart = startIndex + '<thought>'.length;
-                    const endIndex = remaining.indexOf('</thought>', contentStart);
+                    const endIndex = remaining.indexOf(
+                      '</thought>',
+                      contentStart,
+                    );
 
                     if (endIndex === -1) {
-                      parts.push({ type: 'thought', content: remaining.substring(contentStart) });
+                      parts.push({
+                        type: 'thought',
+                        content: remaining.substring(contentStart),
+                      });
                       remaining = '';
                     } else {
-                      parts.push({ type: 'thought', content: remaining.substring(contentStart, endIndex) });
-                      remaining = remaining.substring(endIndex + '</thought>'.length);
+                      parts.push({
+                        type: 'thought',
+                        content: remaining.substring(contentStart, endIndex),
+                      });
+                      remaining = remaining
+                        .substring(endIndex + '</thought>'.length)
+                        .trim();
                     }
                   }
-                  if (remaining) parts.push({ type: 'text', content: remaining });
+                  if (remaining) {
+                    parts.push({ type: 'text', content: remaining });
+                  }
 
                   return parts.map((part, index) =>
                     part.type === 'thought' ? (
-                      <details key={index} className="thought-container" open>
-                        <summary>Thinking...</summary>
-                        <div className="thought-content">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {part.content}
-                          </ReactMarkdown>
-                        </div>
-                      </details>
+                      <div
+                        key={`${msg.id}-thought-${index}`}
+                        className="chat-message assistant thought-bubble"
+                      >
+                        <div className="message-sender">AI Thought</div>
+                        <details className="thought-container" open>
+                          <summary>Thinking...</summary>
+                          <div className="thought-content">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {part.content}
+                            </ReactMarkdown>
+                          </div>
+                        </details>
+                      </div>
                     ) : (
-                      <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>
-                        {part.content}
-                      </ReactMarkdown>
-                    )
+                      <div
+                        key={`${msg.id}-text-${index}`}
+                        className="chat-message assistant"
+                      >
+                        <div className="message-sender">AI Assistant</div>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {part.content}
+                        </ReactMarkdown>
+                      </div>
+                    ),
                   );
                 })()}
-              </div>
+              </>
             )}
-          </div>
+          </React.Fragment>
         ))}
         <div ref={messagesEndRef} />
       </div>
@@ -184,18 +235,26 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder={isStreaming ? "AI is typing..." : "Ask AI..."}
+          placeholder={isStreaming ? 'AI is typing...' : 'Ask AI...'}
           disabled={isStreaming}
         />
         <div className="chat-options" style={{ marginTop: '5px' }}>
-             <label style={{ fontSize: '12px', color: '#ccc', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                 <input
-                     type="checkbox"
-                     checked={includeContext}
-                     onChange={(e) => setIncludeContext(e.target.checked)}
-                 />
-                 Include Editor Context
-             </label>
+          <label
+            style={{
+              fontSize: '12px',
+              color: '#ccc',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={includeContext}
+              onChange={(e) => setIncludeContext(e.target.checked)}
+            />
+            Include Editor Context
+          </label>
         </div>
       </div>
     </div>
