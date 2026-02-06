@@ -22,7 +22,12 @@ export type Channels =
   | 'ai:streamChat' // Request channel for streaming
   | 'ai:streamChat:data' // Response channel for data
   | 'ai:streamChat:end' // Response channel for end
-  | 'ai:streamChat:error'; // Response channel for error
+  | 'ai:streamChat:error' // Response channel for error
+  | 'git:init'
+  | 'git:status'
+  | 'git:log'
+  | 'git:add'
+  | 'git:commit';
 
 const electronHandler = {
   ipcRenderer: {
@@ -43,6 +48,23 @@ const electronHandler = {
     },
     invoke(channel: Channels, ...args: unknown[]) {
       return ipcRenderer.invoke(channel, ...args);
+    },
+  },
+  git: {
+    init(dir: string) {
+      return ipcRenderer.invoke('git:init', dir);
+    },
+    status(dir: string) {
+      return ipcRenderer.invoke('git:status', dir);
+    },
+    log(dir: string) {
+      return ipcRenderer.invoke('git:log', dir);
+    },
+    add(dir: string, files: string[]) {
+      return ipcRenderer.invoke('git:add', dir, files);
+    },
+    commit(dir: string, message: string) {
+      return ipcRenderer.invoke('git:commit', dir, message);
     },
   },
 };

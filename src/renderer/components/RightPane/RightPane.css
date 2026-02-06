@@ -17,6 +17,31 @@
   background-color: #2d2d2d;
 }
 
+.right-pane-tabs {
+  display: flex;
+  background-color: #252526;
+  border-bottom: 1px solid #333;
+}
+
+.right-pane-tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #888;
+  border-bottom: 2px solid transparent;
+}
+
+.right-pane-tab:hover {
+  color: #ccc;
+  background-color: #2a2a2a;
+}
+
+.right-pane-tab.active {
+  color: #fff;
+  border-bottom: 2px solid #0e639c;
+  background-color: #333;
+}
+
 .right-pane-content {
   flex: 1;
   padding: 10px;

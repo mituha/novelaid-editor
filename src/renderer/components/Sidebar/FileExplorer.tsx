@@ -243,6 +243,8 @@ function FileTreeItem({
   );
 }
 
+import { useGit } from '../../contexts/GitContext';
+
 export function FileExplorer({
   onFileSelect,
   onProjectOpened,
@@ -253,6 +255,7 @@ export function FileExplorer({
     null,
   );
   const [newName, setNewName] = useState('');
+  const { setCurrentDir } = useGit();
 
   const refreshRoot = useCallback(async () => {
     if (!currentPath) return;
@@ -279,6 +282,7 @@ export function FileExplorer({
       );
       if (path) {
         setCurrentPath(path);
+        setCurrentDir(path);
         if (onProjectOpened) {
           onProjectOpened(path);
         }

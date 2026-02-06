@@ -288,6 +288,28 @@ ipcMain.on('ai:streamChat', async (event, messages: any[], config: any) => {
     }
 });
 
+import { GitService } from './git/GitService';
+
+ipcMain.handle('git:init', async (_, dir: string) => {
+  return await GitService.getInstance().init(dir);
+});
+
+ipcMain.handle('git:status', async (_, dir: string) => {
+  return await GitService.getInstance().status(dir);
+});
+
+ipcMain.handle('git:log', async (_, dir: string) => {
+  return await GitService.getInstance().log(dir);
+});
+
+ipcMain.handle('git:add', async (_, dir: string, files: string[]) => {
+  return await GitService.getInstance().add(dir, files);
+});
+
+ipcMain.handle('git:commit', async (_, dir: string, message: string) => {
+  return await GitService.getInstance().commit(dir, message);
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();

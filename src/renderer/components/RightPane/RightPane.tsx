@@ -16,13 +16,18 @@ interface Message {
   displayContent?: string; // For user message display
 }
 
+import { GitPanel } from '../Git/GitPanel';
+
 interface RightPaneProps {
   activeContent?: string;
   activePath?: string | null;
 }
 
+type Tab = 'ai' | 'git';
+
 export function RightPane({ activeContent, activePath }: RightPaneProps) {
   const { settings } = useSettings();
+  const [activeTab, setActiveTab] = useState<Tab>('ai');
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [includeContext, setIncludeContext] = useState(true);
@@ -50,7 +55,7 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, activeTab]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -218,81 +223,101 @@ export function RightPane({ activeContent, activePath }: RightPaneProps) {
 
   return (
     <div className="right-pane">
-      <div className="right-pane-header">AI Agent</div>
-      <div className="right-pane-content">
-        {messages.map((msg) => (
-          <React.Fragment key={msg.id}>
-            {msg.role === 'user' ? (
-              <div className={`chat-message ${msg.role}`}>
-                <div className="message-sender">You</div>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.displayContent ||
-                    msg.parts.map((p) => p.content).join('')}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              <>
-                {msg.parts.map((part, index) =>
-                  part.type === 'thought' ? (
-                    <div
-                      key={`${msg.id}-thought-${index}`}
-                      className="chat-message assistant thought-bubble"
-                    >
-                      <div className="message-sender">AI Thought</div>
-                      <details className="thought-container" open>
-                        <summary>Thinking...</summary>
-                        <div className="thought-content">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {part.content}
-                          </ReactMarkdown>
-                        </div>
-                      </details>
-                    </div>
-                  ) : (
-                    <div
-                      key={`${msg.id}-text-${index}`}
-                      className="chat-message assistant"
-                    >
-                      <div className="message-sender">AI Assistant</div>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {part.content}
-                      </ReactMarkdown>
-                    </div>
-                  ),
-                )}
-              </>
-            )}
-          </React.Fragment>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-      <div className="right-pane-input-area">
-        <textarea
-          value={input}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={isStreaming ? 'AI is typing...' : 'Ask AI...'}
-          disabled={isStreaming}
-        />
-        <div className="chat-options" style={{ marginTop: '5px' }}>
-          <label
-            style={{
-              fontSize: '12px',
-              color: '#ccc',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={includeContext}
-              onChange={(e) => setIncludeContext(e.target.checked)}
-            />
-            Include Editor Context
-          </label>
+      <div className="right-pane-tabs">
+        <div
+            className={`right-pane-tab ${activeTab === 'ai' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ai')}
+        >
+            AI Agent
+        </div>
+        <div
+            className={`right-pane-tab ${activeTab === 'git' ? 'active' : ''}`}
+            onClick={() => setActiveTab('git')}
+        >
+            Git
         </div>
       </div>
+
+      {activeTab === 'ai' ? (
+        <>
+        <div className="right-pane-content">
+            {messages.map((msg) => (
+            <React.Fragment key={msg.id}>
+                {msg.role === 'user' ? (
+                <div className={`chat-message ${msg.role}`}>
+                    <div className="message-sender">You</div>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.displayContent ||
+                        msg.parts.map((p) => p.content).join('')}
+                    </ReactMarkdown>
+                </div>
+                ) : (
+                <>
+                    {msg.parts.map((part, index) =>
+                    part.type === 'thought' ? (
+                        <div
+                        key={`${msg.id}-thought-${index}`}
+                        className="chat-message assistant thought-bubble"
+                        >
+                        <div className="message-sender">AI Thought</div>
+                        <details className="thought-container" open>
+                            <summary>Thinking...</summary>
+                            <div className="thought-content">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {part.content}
+                            </ReactMarkdown>
+                            </div>
+                        </details>
+                        </div>
+                    ) : (
+                        <div
+                        key={`${msg.id}-text-${index}`}
+                        className="chat-message assistant"
+                        >
+                        <div className="message-sender">AI Assistant</div>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {part.content}
+                        </ReactMarkdown>
+                        </div>
+                    ),
+                    )}
+                </>
+                )}
+            </React.Fragment>
+            ))}
+            <div ref={messagesEndRef} />
+        </div>
+        <div className="right-pane-input-area">
+            <textarea
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={isStreaming ? 'AI is typing...' : 'Ask AI...'}
+            disabled={isStreaming}
+            />
+            <div className="chat-options" style={{ marginTop: '5px' }}>
+            <label
+                style={{
+                fontSize: '12px',
+                color: '#ccc',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                }}
+            >
+                <input
+                type="checkbox"
+                checked={includeContext}
+                onChange={(e) => setIncludeContext(e.target.checked)}
+                />
+                Include Editor Context
+            </label>
+            </div>
+        </div>
+        </>
+      ) : (
+          <GitPanel />
+      )}
     </div>
   );
 }
