@@ -27,12 +27,15 @@ export class DefaultCountStrategy implements CountStrategy {
  */
 export class NovelCountStrategy implements CountStrategy {
   count(text: string): CountMetric[] {
-    // 1. Remove Ruby syntax: |漢字《かんじ》 or ｜漢字《かんじ》 or 漢字《かんじ》
-    // We want to keep the "Body" (漢字), not the ruby (かんじ) or the prefix pipe.
-    // Pattern: [|｜]?([^|｜\n《》]+)《[^》\n]+》
-    let processed = text.replace(/[|｜]?([^|｜\n《》]+)《[^》\n]+》/g, '$1');
+    // 1. Remove Emphasis Dots: 《《傍点》》 -> 傍点
+    let processed = text.replace(/《《([^》\n]+)》》/g, '$1');
 
-    // 2. Remove whitespace, newlines, and full-width spaces
+    // 2. Remove Ruby syntax: |漢字《かんじ》 or ｜漢字《かんじ》 or 漢字《かんじ》
+    // We want to keep the "Body" (漢字), not the ruby (かんじ) or the prefix pipe.
+    processed = processed.replace(/[|｜]([^|｜\n《》]+)《[^》\n]+》/g, '$1'); // With pipe
+    processed = processed.replace(/([^|｜\n《》]+)《[^》\n]+》/g, '$1'); // Without pipe (general ruby)
+
+    // 3. Remove whitespace, newlines, and full-width spaces
     processed = processed.replace(/[\s　]/g, '');
 
     return [
