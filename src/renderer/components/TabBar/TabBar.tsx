@@ -1,5 +1,5 @@
 import React, { MouseEvent } from 'react';
-import { X, PanelLeft, PanelRight, Columns, Eye } from 'lucide-react';
+import { X, Columns, Eye } from 'lucide-react';
 import './TabBar.css';
 
 export interface Tab {
@@ -13,12 +13,8 @@ interface TabBarProps {
   activeTabPath: string | null;
   onTabClick: (path: string) => void;
   onTabClose: (path: string) => void;
-  onToggleLeftPane?: () => void;
-  onToggleRightPane?: () => void;
   onToggleSplit?: () => void;
   onOpenPreview?: (path: string) => void;
-  isLeftPaneVisible?: boolean;
-  isRightPaneVisible?: boolean;
   isSplit?: boolean;
 }
 
@@ -27,12 +23,8 @@ export function TabBar({
   activeTabPath,
   onTabClick,
   onTabClose,
-  onToggleLeftPane,
-  onToggleRightPane,
   onToggleSplit,
   onOpenPreview,
-  isLeftPaneVisible = true,
-  isRightPaneVisible = true,
   isSplit = false,
 }: TabBarProps) {
   const handleClose = (e: MouseEvent, path: string) => {
@@ -49,16 +41,6 @@ export function TabBar({
 
   return (
     <div className="tab-bar">
-      {onToggleLeftPane && (
-        <button
-          type="button"
-          className={`pane-toggle-btn ${!isLeftPaneVisible ? 'inactive' : ''}`}
-          onClick={onToggleLeftPane}
-          title="Toggle Sidebar"
-        >
-          <PanelLeft size={16} />
-        </button>
-      )}
 
       <div className="tabs-container">
         {tabs.map((tab) => (
@@ -112,17 +94,6 @@ export function TabBar({
           </button>
         )}
 
-      {onToggleRightPane && (
-        <button
-          type="button"
-          className={`pane-toggle-btn ${!isRightPaneVisible ? 'inactive' : ''}`}
-          onClick={onToggleRightPane}
-          title="Toggle Right Pane"
-          style={{ marginLeft: 'auto' }}
-        >
-          <PanelRight size={16} />
-        </button>
-      )}
     </div>
   );
 }

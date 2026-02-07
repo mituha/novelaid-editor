@@ -11,9 +11,22 @@
   position: relative;
 }
 
-.status-item {
+.status-group {
   display: flex;
   align-items: center;
+  height: 100%;
+}
+
+.left-group {
+  display: flex;
+  align-items: center;
+}
+
+.status-item {
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
   height: 100%;
 }
 
@@ -23,7 +36,37 @@
 }
 
 .right-info {
-  gap: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.metric-item {
+  margin-right: 15px;
+}
+
+.status-pane-toggle-btn,
+.status-bar-settings-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  opacity: 0.8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 8px;
+  transition: all 0.2s;
+}
+
+.status-pane-toggle-btn:hover,
+.status-bar-settings-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+}
+
+.status-pane-toggle-btn.inactive {
+  opacity: 0.4;
 }
 
 .char-count {

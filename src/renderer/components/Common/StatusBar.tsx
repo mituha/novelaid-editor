@@ -1,5 +1,4 @@
-import React from 'react';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { Settings as SettingsIcon, PanelLeft, PanelRight } from 'lucide-react';
 import './StatusBar.css';
 import { CountMetric } from '../../utils/CharCounter';
 
@@ -7,17 +6,37 @@ interface StatusBarProps {
   metrics: CountMetric[];
   activePath: string | null;
   openSettings: () => void;
+  onToggleLeftPane: () => void;
+  onToggleRightPane: () => void;
+  isLeftPaneVisible: boolean;
+  isRightPaneVisible: boolean;
 }
 
-
-
-export function StatusBar({ metrics, activePath, openSettings }: StatusBarProps) {
+export function StatusBar({
+  metrics,
+  activePath,
+  openSettings,
+  onToggleLeftPane,
+  onToggleRightPane,
+  isLeftPaneVisible,
+  isRightPaneVisible,
+}: StatusBarProps) {
   const fileName = activePath ? activePath.split('\\').pop() : 'No file open';
 
   return (
     <div className="status-bar">
-      <div className="status-item file-info">
-        <span>{fileName}</span>
+      <div className="status-item left-group">
+        <button
+          type="button"
+          className={`status-pane-toggle-btn ${!isLeftPaneVisible ? 'inactive' : ''}`}
+          onClick={onToggleLeftPane}
+          title="Toggle Sidebar"
+        >
+          <PanelLeft size={14} />
+        </button>
+        <div className="status-item file-info">
+          <span>{fileName}</span>
+        </div>
       </div>
       <div className="status-item right-info">
         {metrics.map((metric) => (
@@ -25,31 +44,25 @@ export function StatusBar({ metrics, activePath, openSettings }: StatusBarProps)
             {metric.label}: {metric.value.toLocaleString()}
           </span>
         ))}
-          <button
-            type="button"
-            onClick={(e) => {
-                console.log('Settings button clicked', e);
-                e.stopPropagation(); // Prevent bubbling just in case
-                openSettings();
-            }}
-            className="status-bar-settings-btn"
-            title="Settings"
-            style={{
-                background: 'none',
-                border: 'none',
-                color: 'inherit',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                marginLeft: '10px',
-                padding: '0 5px',
-                pointerEvents: 'auto',
-                position: 'relative',
-                zIndex: 1001
-            }}
-          >
-            <SettingsIcon size={14} />
-          </button>
+        <button
+          type="button"
+          className="status-bar-settings-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            openSettings();
+          }}
+          title="Settings"
+        >
+          <SettingsIcon size={14} />
+        </button>
+        <button
+          type="button"
+          className={`status-pane-toggle-btn ${!isRightPaneVisible ? 'inactive' : ''}`}
+          onClick={onToggleRightPane}
+          title="Toggle Right Pane"
+        >
+          <PanelRight size={14} />
+        </button>
       </div>
     </div>
   );

@@ -341,10 +341,6 @@ export default function MainLayout() {
                 activeTabPath={leftActivePath}
                 onTabClick={handleTabClick('left')}
                 onTabClose={handleTabClose('left')}
-                onToggleLeftPane={toggleLeftPane}
-                isLeftPaneVisible={isLeftPaneVisible}
-                onToggleRightPane={!isSplit ? toggleRightPane : undefined}
-                isRightPaneVisible={isRightPaneVisible}
                 onToggleSplit={handleToggleSplit}
                 isSplit={isSplit}
                 onOpenPreview={handleOpenPreview}
@@ -379,8 +375,6 @@ export default function MainLayout() {
                     activeTabPath={rightActivePath}
                     onTabClick={handleTabClick('right')}
                     onTabClose={handleTabClose('right')}
-                    onToggleRightPane={toggleRightPane}
-                    isRightPaneVisible={isRightPaneVisible}
                     onToggleSplit={handleToggleSplit}
                     isSplit={isSplit}
                     onOpenPreview={handleOpenPreview}
@@ -419,6 +413,10 @@ export default function MainLayout() {
         )}
         activePath={getOriginalPath(activeTabPath)}
         openSettings={openSettings}
+        onToggleLeftPane={toggleLeftPane}
+        onToggleRightPane={toggleRightPane}
+        isLeftPaneVisible={isLeftPaneVisible}
+        isRightPaneVisible={isRightPaneVisible}
       />
       <SettingsModal />
     </div>
