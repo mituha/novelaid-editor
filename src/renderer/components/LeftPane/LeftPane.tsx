@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { FileExplorer } from '../Sidebar/FileExplorer';
+import { FileExplorerPanel } from '../FileExplorer/FileExplorerPanel';
 import { GitPanel } from '../Git/GitPanel';
 import './LeftPane.css';
 
@@ -19,7 +19,7 @@ export const LeftPane: React.FC<LeftPaneProps> = (props) => {
       id: 'files',
       title: 'Files',
       icon: <div className="activity-icon-content">📁</div>,
-      component: FileExplorer,
+      component: FileExplorerPanel,
     },
     {
       id: 'git',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import './FileExplorer.css';
+import './FileExplorerPanel.css';
 
 interface FileNode {
   name: string;
@@ -245,7 +245,7 @@ function FileTreeItem({
 
 import { useGit } from '../../contexts/GitContext';
 
-export function FileExplorer({
+export function FileExplorerPanel({
   onFileSelect,
   onProjectOpened,
 }: FileExplorerProps) {
