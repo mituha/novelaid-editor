@@ -14,29 +14,27 @@ interface PanelContextType extends PanelRegistry {
 
 const PanelContext = createContext<PanelContextType | undefined>(undefined);
 
+import { Files, GitGraph, MessageSquare } from 'lucide-react';
+
 const initialPanels: Panel[] = [
   {
     id: 'files',
     title: 'Files',
-    icon: <div className="activity-icon-content">📁</div>,
+    icon: <Files size={24} strokeWidth={1.5} />,
     component: FileExplorerPanel,
     defaultLocation: 'left',
   },
   {
     id: 'git',
     title: 'Git',
-    icon: (
-      <div className="activity-icon-content">
-        <span style={{ fontSize: '1.2em', fontWeight: 'bold' }}>S</span>
-      </div>
-    ),
+    icon: <GitGraph size={24} strokeWidth={1.5} />,
     component: GitPanel,
     defaultLocation: 'left',
   },
   {
     id: 'ai-chat',
     title: 'AI Chat',
-    icon: <div className="activity-icon-content">🤖</div>,
+    icon: <MessageSquare size={24} strokeWidth={1.5} />,
     component: AIChatPanel,
     defaultLocation: 'right',
   },
