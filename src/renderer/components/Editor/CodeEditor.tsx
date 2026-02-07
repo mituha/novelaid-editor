@@ -55,6 +55,31 @@ export default function CodeEditor({
     [selectedText],
   );
 
+  const handleBoutenAction = useCallback((editor: any) => {
+    const selection = editor.getSelection();
+    const model = editor.getModel();
+    if (selection && model) {
+      const text = model.getValueInRange(selection);
+      if (text) {
+        const range = {
+          startLineNumber: selection.startLineNumber,
+          startColumn: selection.startColumn,
+          endLineNumber: selection.endLineNumber,
+          endColumn: selection.endColumn,
+        };
+        const id = { major: 1, minor: 2 };
+        const newText = `《《${text}》》`;
+        const op = {
+          identifier: id,
+          range,
+          text: newText,
+          forceMoveMarkers: true,
+        };
+        editor.executeEdits('bouten-insertion', [op]);
+      }
+    }
+  }, []);
+
   const handleEditorOnMount: OnMount = (editor) => {
     editorRef.current = editor;
 
@@ -69,6 +94,15 @@ export default function CodeEditor({
       contextMenuGroupId: 'navigation',
       contextMenuOrder: 1.5,
       run: () => handleRubyAction(editor),
+    });
+
+    // Add Bouten action to context menu
+    editor.addAction({
+      id: 'insert-bouten',
+      label: '傍点を振る',
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 1.6,
+      run: () => handleBoutenAction(editor),
     });
   };
 
