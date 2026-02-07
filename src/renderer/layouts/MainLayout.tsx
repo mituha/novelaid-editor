@@ -11,6 +11,7 @@ import { Resizer } from '../components/Common/Resizer';
 import { StatusBar } from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
 import NovelPreview from '../components/Preview/NovelPreview';
+import { usePanel } from '../contexts/PanelContext';
 import './MainLayout.css';
 
 import { LeftPane } from '../components/LeftPane/LeftPane';
@@ -26,11 +27,25 @@ export default function MainLayout() {
   const { settings, openSettings, registerSettingTab, loadProjectSettings } =
     useSettings();
 
+  const {
+    activeLeftPanelId,
+    activeRightPanelId,
+    setActivePanel,
+    getPanels,
+  } = usePanel();
+
   const [leftPaneWidth, setLeftPaneWidth] = useState(250);
   const [rightPaneWidth, setRightPaneWidth] = useState(300);
   const [editorSplitRatio, setEditorSplitRatio] = useState(0.5);
-  const [isLeftPaneVisible, setIsLeftPaneVisible] = useState(true);
-  const [isRightPaneVisible, setIsRightPaneVisible] = useState(true);
+
+  const isLeftPaneVisible = true; // Activity Bar is always visible according to new plan
+  const isRightPaneVisible = true;
+
+  const isLeftPaneNarrow = !activeLeftPanelId;
+  const isRightPaneNarrow = !activeRightPanelId;
+
+  const leftDisplayWidth = isLeftPaneNarrow ? 50 : leftPaneWidth;
+  const rightDisplayWidth = isRightPaneNarrow ? 50 : rightPaneWidth;
 
   const activeTabPath = activeSide === 'left' ? leftActivePath : rightActivePath;
 
@@ -39,23 +54,36 @@ export default function MainLayout() {
   }, []);
 
   const handleEditorSplitResize = useCallback((delta: number) => {
-    // We need to account for the actual width of the editors container to make ratio-based resize accurate.
-    // For now, using a slightly better multiplier.
-    setEditorSplitRatio((prev) => Math.max(0.1, Math.min(0.9, prev + delta / 800)));
+    setEditorSplitRatio((prev) =>
+      Math.max(0.1, Math.min(0.9, prev + delta / 800)),
+    );
   }, []);
 
   const handleRightResize = useCallback((delta: number) => {
-    setRightPaneWidth((prev) => Math.max(200, Math.min(600, prev - delta))); // Negative delta because resizing from left edge
+    setRightPaneWidth((prev) => Math.max(200, Math.min(600, prev - delta)));
   }, []);
 
-  const toggleLeftPane = useCallback(
-    () => setIsLeftPaneVisible((prev) => !prev),
-    [],
-  );
-  const toggleRightPane = useCallback(
-    () => setIsRightPaneVisible((prev) => !prev),
-    [],
-  );
+  const handleToggleLeftPane = useCallback(() => {
+    if (isLeftPaneNarrow) {
+      const panels = getPanels().filter((p) => p.defaultLocation === 'left');
+      if (panels.length > 0) {
+        setActivePanel('left', panels[0].id);
+      }
+    } else {
+      setActivePanel('left', null);
+    }
+  }, [isLeftPaneNarrow, getPanels, setActivePanel]);
+
+  const handleToggleRightPane = useCallback(() => {
+    if (isRightPaneNarrow) {
+      const panels = getPanels().filter((p) => p.defaultLocation === 'right');
+      if (panels.length > 0) {
+        setActivePanel('right', panels[0].id);
+      }
+    } else {
+      setActivePanel('right', null);
+    }
+  }, [isRightPaneNarrow, getPanels, setActivePanel]);
 
   useEffect(() => {
     registerSettingTab({
@@ -289,12 +317,11 @@ export default function MainLayout() {
       <div className="main-layout">
         <div
           style={{
-            width: isLeftPaneVisible ? `${leftPaneWidth}px` : '0px',
+            width: `${leftDisplayWidth}px`,
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
             overflow: 'hidden',
-            visibility: isLeftPaneVisible ? 'visible' : 'hidden',
           }}
         >
           <LeftPane
@@ -302,7 +329,7 @@ export default function MainLayout() {
             onProjectOpened={loadProjectSettings}
           />
         </div>
-        {isLeftPaneVisible && <Resizer onResize={handleLeftResize} />}
+        {!isLeftPaneNarrow && <Resizer onResize={handleLeftResize} />}
 
         <div className="editor-area">
           <div
@@ -387,15 +414,14 @@ export default function MainLayout() {
           </div>
         </div>
 
-        {isRightPaneVisible && <Resizer onResize={handleRightResize} />}
+        {!isRightPaneNarrow && <Resizer onResize={handleRightResize} />}
         <div
           style={{
-            width: isRightPaneVisible ? `${rightPaneWidth}px` : '0px',
+            width: `${rightDisplayWidth}px`,
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
             overflow: 'hidden',
-            visibility: isRightPaneVisible ? 'visible' : 'hidden',
           }}
         >
           <RightPane activeContent={activeContent} activePath={activeTabPath} />
@@ -403,15 +429,16 @@ export default function MainLayout() {
       </div>
       <StatusBar
         metrics={CharCounter.getMetrics(
-          activeContent,
-          getOriginalPath(activeTabPath),
+          activeTabPath && !activeTabPath.startsWith('preview://')
+            ? tabContents[activeTabPath] || ''
+            : '',
         )}
         activePath={getOriginalPath(activeTabPath)}
         openSettings={openSettings}
-        onToggleLeftPane={toggleLeftPane}
-        onToggleRightPane={toggleRightPane}
-        isLeftPaneVisible={isLeftPaneVisible}
-        isRightPaneVisible={isRightPaneVisible}
+        onToggleLeftPane={handleToggleLeftPane}
+        onToggleRightPane={handleToggleRightPane}
+        isLeftPaneVisible={!isLeftPaneNarrow}
+        isRightPaneVisible={!isRightPaneNarrow}
       />
       <SettingsModal />
     </div>

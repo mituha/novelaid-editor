@@ -34,9 +34,7 @@ export const SidePane: React.FC<SidePaneProps> = ({
             onClick={() =>
               setActivePanel(
                 location,
-                panel.id === activePanelId && location === 'right'
-                  ? null
-                  : panel.id,
+                panel.id === activePanelId ? null : panel.id,
               )
             }
             title={panel.title}
@@ -46,9 +44,7 @@ export const SidePane: React.FC<SidePaneProps> = ({
               if (e.key === 'Enter' || e.key === ' ') {
                 setActivePanel(
                   location,
-                  panel.id === activePanelId && location === 'right'
-                    ? null
-                    : panel.id,
+                  panel.id === activePanelId ? null : panel.id,
                 );
               }
             }}
