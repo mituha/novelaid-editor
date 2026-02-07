@@ -6,11 +6,12 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
-import { Files, GitGraph, MessageSquare } from 'lucide-react';
+import { Files, GitGraph, MessageSquare, SearchCheck } from 'lucide-react';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import { FileExplorerPanel } from '../components/FileExplorer/FileExplorerPanel';
 import { GitPanel } from '../components/Git/GitPanel';
 import { AIChatPanel } from '../components/AI/AIChatPanel';
+import { AIProofreaderPanel } from '../components/AI/AIProofreaderPanel';
 
 interface PanelContextType extends PanelRegistry {
   activeLeftPanelId: string | null;
@@ -36,6 +37,13 @@ const initialPanels: Panel[] = [
     icon: <GitGraph size={24} strokeWidth={1.5} />,
     component: GitPanel,
     defaultLocation: 'left',
+  },
+  {
+    id: 'ai-proofreader',
+    title: 'AI校正',
+    icon: <SearchCheck size={24} strokeWidth={1.5} />,
+    component: AIProofreaderPanel,
+    defaultLocation: 'right',
   },
   {
     id: 'ai-chat',
