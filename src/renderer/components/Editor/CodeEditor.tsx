@@ -1,5 +1,6 @@
-import React from 'react';
-import Editor from '@monaco-editor/react';
+import React, { useState, useCallback, useRef } from 'react';
+import Editor, { OnMount } from '@monaco-editor/react';
+import RubyDialog from './RubyDialog';
 import './CodeEditor.css';
 
 interface CodeEditorProps {
@@ -8,7 +9,69 @@ interface CodeEditorProps {
   onFocus?: () => void;
 }
 
-export function CodeEditor({ value, onChange, onFocus }: CodeEditorProps) {
+export default function CodeEditor({
+  value,
+  onChange,
+  onFocus = () => {},
+}: CodeEditorProps) {
+  const [isRubyDialogOpen, setIsRubyDialogOpen] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
+  const editorRef = useRef<any>(null);
+
+  const handleRubyAction = useCallback((editor: any) => {
+    const selection = editor.getSelection();
+    const model = editor.getModel();
+    if (selection && model) {
+      const text = model.getValueInRange(selection);
+      if (text) {
+        setSelectedText(text);
+        setIsRubyDialogOpen(true);
+      }
+    }
+  }, []);
+
+  const handleRubyConfirm = useCallback(
+    (ruby: string) => {
+      if (editorRef.current) {
+        const selection = editorRef.current.getSelection();
+        const range = {
+          startLineNumber: selection.startLineNumber,
+          startColumn: selection.startColumn,
+          endLineNumber: selection.endLineNumber,
+          endColumn: selection.endColumn,
+        };
+        const id = { major: 1, minor: 1 };
+        const text = `|${selectedText}《${ruby}》`;
+        const op = {
+          identifier: id,
+          range,
+          text,
+          forceMoveMarkers: true,
+        };
+        editorRef.current.executeEdits('ruby-insertion', [op]);
+      }
+      setIsRubyDialogOpen(false);
+    },
+    [selectedText],
+  );
+
+  const handleEditorOnMount: OnMount = (editor) => {
+    editorRef.current = editor;
+
+    editor.onDidFocusEditorText(() => {
+      onFocus?.();
+    });
+
+    // Add Ruby action to context menu
+    editor.addAction({
+      id: 'insert-ruby',
+      label: 'ルビを振る',
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 1.5,
+      run: () => handleRubyAction(editor),
+    });
+  };
+
   return (
     <div className="code-editor-wrapper">
       <Editor
@@ -16,11 +79,7 @@ export function CodeEditor({ value, onChange, onFocus }: CodeEditorProps) {
         defaultLanguage="markdown"
         value={value}
         onChange={onChange}
-        onMount={(editor) => {
-          editor.onDidFocusEditorText(() => {
-            onFocus?.();
-          });
-        }}
+        onMount={handleEditorOnMount}
         theme="vs-dark"
         options={{
           wordWrap: 'on',
@@ -32,6 +91,12 @@ export function CodeEditor({ value, onChange, onFocus }: CodeEditorProps) {
           padding: { top: 20 },
           fontFamily: "'Yu Gothic', 'Meiryo', sans-serif", // Japanese fonts
         }}
+      />
+      <RubyDialog
+        isOpen={isRubyDialogOpen}
+        initialText={selectedText}
+        onConfirm={handleRubyConfirm}
+        onCancel={() => setIsRubyDialogOpen(false)}
       />
     </div>
   );

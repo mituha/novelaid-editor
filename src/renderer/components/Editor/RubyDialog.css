@@ -1,0 +1,90 @@
+.ruby-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.ruby-dialog {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    width: 320px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    color: #ccc;
+}
+
+.ruby-dialog h3 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: #fff;
+}
+
+.ruby-dialog-target {
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.ruby-dialog-target strong {
+    color: #4dc9ff;
+}
+
+.ruby-dialog-input {
+    width: 100%;
+    padding: 8px;
+    background: #2d2d2d;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #fff;
+    margin-bottom: 20px;
+    outline: none;
+}
+
+.ruby-dialog-input:focus {
+    border-color: #007acc;
+}
+
+.ruby-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.ruby-dialog-actions button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.ruby-btn-cancel {
+    background: #333;
+    color: #ccc;
+}
+
+.ruby-btn-cancel:hover {
+    background: #444;
+}
+
+.ruby-btn-confirm {
+    background: #007acc;
+    color: #fff;
+}
+
+.ruby-btn-confirm:hover {
+    background: #0088e0;
+}
+
+.ruby-btn-confirm:disabled {
+    background: #2a4155;
+    color: #666;
+    cursor: not-allowed;
+}

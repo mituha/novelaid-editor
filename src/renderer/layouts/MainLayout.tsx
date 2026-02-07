@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { CodeEditor } from '../components/Editor/CodeEditor';
+import CodeEditor from '../components/Editor/CodeEditor';
 import { TabBar, Tab } from '../components/TabBar/TabBar';
 import { SettingsModal } from '../components/Settings/SettingsModal';
 import { useSettings } from '../contexts/SettingsContext';
