@@ -406,6 +406,7 @@ export default function MainLayout() {
           getOriginalPath(activeTabPath),
         )}
         activePath={getOriginalPath(activeTabPath)}
+        openSettings={openSettings}
       />
       <SettingsModal />
     </div>

@@ -25,9 +25,13 @@ export function StatusBar({ metrics, activePath, openSettings }: StatusBarProps)
             {metric.label}: {metric.value.toLocaleString()}
           </span>
         ))}
-         <button
+          <button
             type="button"
-            onClick={openSettings}
+            onClick={(e) => {
+                console.log('Settings button clicked', e);
+                e.stopPropagation(); // Prevent bubbling just in case
+                openSettings();
+            }}
             className="status-bar-settings-btn"
             title="Settings"
             style={{
@@ -38,7 +42,10 @@ export function StatusBar({ metrics, activePath, openSettings }: StatusBarProps)
                 display: 'flex',
                 alignItems: 'center',
                 marginLeft: '10px',
-                padding: '0 5px'
+                padding: '0 5px',
+                pointerEvents: 'auto',
+                position: 'relative',
+                zIndex: 1001
             }}
           >
             <SettingsIcon size={14} />
