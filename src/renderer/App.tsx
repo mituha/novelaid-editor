@@ -4,14 +4,18 @@ import { SettingsProvider } from './contexts/SettingsContext';
 import { GitContextProvider } from './contexts/GitContext';
 import './App.css';
 
+import { PanelProvider } from './contexts/PanelContext';
+
 export default function App() {
   return (
     <Router>
       <SettingsProvider>
         <GitContextProvider>
-          <Routes>
-            <Route path="/" element={<MainLayout />} />
-          </Routes>
+          <PanelProvider>
+            <Routes>
+              <Route path="/" element={<MainLayout />} />
+            </Routes>
+          </PanelProvider>
         </GitContextProvider>
       </SettingsProvider>
     </Router>

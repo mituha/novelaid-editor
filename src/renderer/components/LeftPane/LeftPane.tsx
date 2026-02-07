@@ -1,10 +1,6 @@
-import React, { useState } from 'react';
-
-import { FileExplorerPanel } from '../FileExplorer/FileExplorerPanel';
-import { GitPanel } from '../Git/GitPanel';
+import React, { useMemo } from 'react';
 import './LeftPane.css';
-
-import { Panel } from '../../types/panel';
+import { usePanel } from '../../contexts/PanelContext';
 
 interface LeftPaneProps {
   onFileSelect: (path: string, content: string) => void;
@@ -12,28 +8,17 @@ interface LeftPaneProps {
 }
 
 export const LeftPane: React.FC<LeftPaneProps> = (props) => {
-  const [activePanelId, setActivePanelId] = useState<string>('files');
+  const { getPanels, activeLeftPanelId, setActivePanel } = usePanel();
 
-  const panels: Panel[] = [
-    {
-      id: 'files',
-      title: 'Files',
-      icon: <div className="activity-icon-content">📁</div>,
-      component: FileExplorerPanel,
-    },
-    {
-      id: 'git',
-      title: 'Git',
-      icon: (
-        <div className="activity-icon-content">
-          <span style={{ fontSize: '1.2em', fontWeight: 'bold' }}>S</span>
-        </div>
-      ),
-      component: GitPanel,
-    },
-  ];
+  const panels = useMemo(
+    () => getPanels().filter((p) => p.defaultLocation === 'left'),
+    [getPanels],
+  );
 
-  const activePanel = panels.find((p) => p.id === activePanelId) || panels[0];
+  const activePanel = useMemo(
+    () => panels.find((p) => p.id === activeLeftPanelId) || panels[0],
+    [panels, activeLeftPanelId],
+  );
 
   return (
     <div className="left-pane">
@@ -41,8 +26,8 @@ export const LeftPane: React.FC<LeftPaneProps> = (props) => {
         {panels.map((panel) => (
           <div
             key={panel.id}
-            className={`activity-icon ${activePanelId === panel.id ? 'active' : ''}`}
-            onClick={() => setActivePanelId(panel.id)}
+            className={`activity-icon ${activeLeftPanelId === panel.id ? 'active' : ''}`}
+            onClick={() => setActivePanel('left', panel.id)}
             title={panel.title}
           >
             {panel.icon}
