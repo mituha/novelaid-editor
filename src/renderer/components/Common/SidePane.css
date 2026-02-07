@@ -1,0 +1,88 @@
+.side-pane {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    background-color: var(--bg-secondary);
+}
+
+.left-pane {
+    flex-direction: row;
+    border-right: 1px solid var(--border-color);
+}
+
+.right-pane {
+    flex-direction: row-reverse;
+    border-left: 1px solid var(--border-color);
+}
+
+.activity-bar {
+    width: 50px;
+    background-color: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
+}
+
+.left-pane .activity-bar {
+    border-left: none;
+}
+
+.right-pane .activity-bar {
+    border-right: none;
+}
+
+.activity-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+    border-right: 2px solid transparent;
+}
+
+.activity-icon:hover {
+    color: var(--text-primary);
+}
+
+.activity-icon.active {
+    color: var(--accent-color);
+}
+
+.left-pane .activity-icon.active {
+    border-left-color: var(--accent-color);
+}
+
+.right-pane .activity-icon.active {
+    border-right-color: var(--accent-color);
+}
+
+.pane-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.pane-header {
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+}
+
+.pane-content {
+    flex: 1;
+    overflow: hidden;
+}
