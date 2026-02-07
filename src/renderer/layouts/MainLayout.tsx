@@ -287,22 +287,21 @@ export default function MainLayout() {
   return (
     <div className="layout-wrapper">
       <div className="main-layout">
-        {isLeftPaneVisible && (
-          <div
-            style={{
-              width: `${leftPaneWidth}px`,
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100%',
-              overflow: 'hidden',
-            }}
-          >
-            <LeftPane
-              onFileSelect={handleFileSelect}
-              onProjectOpened={loadProjectSettings}
-            />
-          </div>
-        )}
+        <div
+          style={{
+            width: isLeftPaneVisible ? `${leftPaneWidth}px` : '0px',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            overflow: 'hidden',
+            visibility: isLeftPaneVisible ? 'visible' : 'hidden',
+          }}
+        >
+          <LeftPane
+            onFileSelect={handleFileSelect}
+            onProjectOpened={loadProjectSettings}
+          />
+        </div>
         {isLeftPaneVisible && <Resizer onResize={handleLeftResize} />}
 
         <div className="editor-area">
@@ -389,22 +388,18 @@ export default function MainLayout() {
         </div>
 
         {isRightPaneVisible && <Resizer onResize={handleRightResize} />}
-        {isRightPaneVisible && (
-          <div
-            style={{
-              width: `${rightPaneWidth}px`,
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100%',
-              overflow: 'hidden',
-            }}
-          >
-            <RightPane
-              activeContent={activeContent}
-              activePath={activeTabPath}
-            />
-          </div>
-        )}
+        <div
+          style={{
+            width: isRightPaneVisible ? `${rightPaneWidth}px` : '0px',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            overflow: 'hidden',
+            visibility: isRightPaneVisible ? 'visible' : 'hidden',
+          }}
+        >
+          <RightPane activeContent={activeContent} activePath={activeTabPath} />
+        </div>
       </div>
       <StatusBar
         metrics={CharCounter.getMetrics(

@@ -24,13 +24,6 @@ export const SidePane: React.FC<SidePaneProps> = ({
     [getPanels, location],
   );
 
-  const activePanel = useMemo(
-    () =>
-      panels.find((p) => p.id === activePanelId) ||
-      (location === 'left' ? panels[0] : null),
-    [panels, activePanelId, location],
-  );
-
   return (
     <div className={`side-pane ${location}-pane`}>
       <div className="activity-bar">
@@ -65,13 +58,33 @@ export const SidePane: React.FC<SidePaneProps> = ({
         ))}
       </div>
       <div className="pane-container">
-        {activePanel && (
-          <>
-            <div className="pane-header">{activePanel.title}</div>
-            <div className="pane-content">
-              <activePanel.component {...(componentProps as any)} />
+        {panels.map((panel) => {
+          const isActive = panel.id === activePanelId;
+          const isDefaultAndNoneActive =
+            !activePanelId && location === 'left' && panel.id === panels[0]?.id;
+
+          const shouldShow = isActive || isDefaultAndNoneActive;
+
+          return (
+            <div
+              key={panel.id}
+              className="pane-content-wrapper"
+              style={{
+                display: shouldShow ? 'flex' : 'none',
+                flexDirection: 'column',
+                height: '100%',
+                overflow: 'hidden',
+              }}
+            >
+              <div className="pane-header">{panel.title}</div>
+              <div className="pane-content">
+                <panel.component {...(componentProps as any)} />
+              </div>
             </div>
-          </>
+          );
+        })}
+        {!activePanelId && location === 'right' && (
+          <div className="empty-state-placeholder" />
         )}
       </div>
     </div>
