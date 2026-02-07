@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import RubyDialog from './RubyDialog';
+import { useSettings } from '../../contexts/SettingsContext';
 import './CodeEditor.css';
 
 interface CodeEditorProps {
@@ -14,6 +15,8 @@ export default function CodeEditor({
   onChange,
   onFocus = () => {},
 }: CodeEditorProps) {
+  const { settings } = useSettings();
+  const editorConfig = settings.editor || {};
   const [isRubyDialogOpen, setIsRubyDialogOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const editorRef = useRef<any>(null);
@@ -116,10 +119,13 @@ export default function CodeEditor({
         onMount={handleEditorOnMount}
         theme="vs-dark"
         options={{
-          wordWrap: 'on',
+          wordWrap: editorConfig.wordWrap || 'on',
           minimap: { enabled: false },
-          fontSize: 14,
-          lineNumbers: 'on',
+          fontSize: editorConfig.fontSize || 14,
+          lineNumbers: editorConfig.showLineNumbers ? 'on' : 'off',
+          selectionHighlight: editorConfig.selectionHighlight !== false,
+          occurrencesHighlight: editorConfig.occurrencesHighlight !== false ? 'singleFile' : 'off',
+          renderLineHighlight: 'all',
           scrollBeyondLastLine: false,
           automaticLayout: true,
           padding: { top: 20 },

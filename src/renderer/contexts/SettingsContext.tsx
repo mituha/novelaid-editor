@@ -3,6 +3,7 @@ import React, {
   useContext,
   useState,
   useCallback,
+  useMemo,
   ReactNode,
 } from 'react';
 
@@ -13,6 +14,8 @@ export interface ProjectConfig {
     fontSize?: number;
     showLineNumbers?: boolean;
     wordWrap?: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
+    selectionHighlight?: boolean;
+    occurrencesHighlight?: boolean;
     [key: string]: any;
   };
   ai?: {
@@ -37,7 +40,7 @@ export interface ProjectConfig {
 export interface SettingsTab {
   id: string;
   name: string;
-  render: () => JSX.Element;
+  render: () => React.JSX.Element;
 }
 
 interface SettingsContextType {
@@ -61,6 +64,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       fontSize: 14,
       showLineNumbers: true,
       wordWrap: 'on',
+      selectionHighlight: true,
+      occurrencesHighlight: false, //小説執筆としては不要
     },
   });
   const [settingTabs, setSettingTabs] = useState<SettingsTab[]>([]);
@@ -110,19 +115,31 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const openSettings = useCallback(() => setIsSettingsOpen(true), []);
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
 
+  const value = useMemo(
+    () => ({
+      settings,
+      updateSettings,
+      registerSettingTab,
+      settingTabs,
+      openSettings,
+      closeSettings,
+      isSettingsOpen,
+      loadProjectSettings,
+    }),
+    [
+      settings,
+      updateSettings,
+      registerSettingTab,
+      settingTabs,
+      openSettings,
+      closeSettings,
+      isSettingsOpen,
+      loadProjectSettings,
+    ],
+  );
+
   return (
-    <SettingsContext.Provider
-      value={{
-        settings,
-        updateSettings,
-        registerSettingTab,
-        settingTabs,
-        openSettings,
-        closeSettings,
-        isSettingsOpen,
-        loadProjectSettings,
-      }}
-    >
+    <SettingsContext.Provider value={value}>
       {children}
     </SettingsContext.Provider>
   );
