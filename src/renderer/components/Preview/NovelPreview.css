@@ -1,101 +1,110 @@
 .novel-preview-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-    background-color: #f8f1e7;
-    /* Traditional Japanese paper-like color */
-    color: #333;
-    overflow: hidden;
-    position: relative;
-    font-family: 'Sawarabi Mincho', serif;
-    /* Would be nice, but fallback to serif */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  overflow: hidden;
+  position: relative;
+  font-family: 'Sawarabi Mincho', serif;
 }
 
 .preview-toolbar {
-    display: flex;
-    padding: 8px 16px;
-    background-color: #eee;
-    border-bottom: 1px solid #ccc;
-    z-index: 10;
+  display: flex;
+  padding: 8px 16px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 10;
 }
 
 .preview-toggle-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 12px;
-    border: 1px solid #ccc;
-    background-color: white;
-    cursor: pointer;
-    font-size: 13px;
-    border-radius: 4px;
-    color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 4px;
+  color: var(--text-primary);
+  transition: all 0.2s;
 }
 
 .preview-toggle-btn:hover {
-    background-color: #f0f0f0;
+  background-color: var(--bg-active);
+  border-color: var(--accent-color);
 }
 
 .preview-content {
-    flex: 1;
-    overflow: auto;
-    padding: 40px;
-    display: flex;
-    justify-content: center;
+  flex: 1;
+  overflow: auto;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
 }
 
 .novel-page {
-    background-color: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 60px;
-    min-height: 100%;
-    box-sizing: border-box;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  padding: 60px;
+  min-height: 100%;
+  box-sizing: border-box;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Specific Light Theme adjustments for "Paper" feel if desired */
+[data-theme='light'] .novel-page {
+  background-color: #fdfdfd;
+  /* Very slightly off-white */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='light'] .novel-preview-container {
+  background-color: #f0f0f0;
 }
 
 /* Vertical Writing Mode */
 .vertical .preview-content {
-    flex-direction: row-reverse;
+  flex-direction: row-reverse;
 }
 
 .vertical .novel-page {
-    writing-mode: vertical-rl;
-    height: calc(100% - 80px);
-    /* Adjust for padding */
-    width: auto;
-    min-width: 600px;
+  writing-mode: vertical-rl;
+  height: calc(100% - 80px);
+  /* Adjust for padding */
+  width: auto;
+  min-width: 600px;
 }
 
 .vertical .novel-page p {
-    margin-left: 1.5em;
-    /* Space between lines in vertical mode */
+  margin-left: 1.5em;
+  /* Space between lines in vertical mode */
 }
 
 /* Horizontal Writing Mode */
 .horizontal .novel-page {
-    writing-mode: horizontal-tb;
-    width: 100%;
-    max-width: 800px;
-    height: auto;
+  writing-mode: horizontal-tb;
+  width: 100%;
+  max-width: 800px;
+  height: auto;
 }
 
 .horizontal .novel-page p {
-    margin-bottom: 1.5em;
-    line-height: 1.8;
+  margin-bottom: 1.5em;
+  line-height: 1.8;
 }
 
 /* Ruby and Bouten */
 ruby rt {
-    font-size: 0.5em;
-    color: #666;
+  font-size: 0.5em;
+  color: var(--text-secondary);
 }
 
 .bouten {
-    text-emphasis: filled dot;
-    -webkit-text-emphasis: filled dot;
-}
-
-/* Dark mode adjustment for the container if needed (though preview often stays light like paper) */
-@media (prefers-color-scheme: dark) {
-    /* Keeping paper theme for readability */
+  text-emphasis: filled dot;
+  -webkit-text-emphasis: filled dot;
+  text-emphasis-color: var(--accent-color);
 }
