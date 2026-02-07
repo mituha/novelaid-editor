@@ -193,7 +193,7 @@ export default class MenuBuilder {
   }
 
   buildDefaultTemplate() {
-    const templateDefault = [
+    const templateDefault: MenuItemConstructorOptions[] = [
       {
         label: '&File',
         submenu: [
@@ -208,6 +208,14 @@ export default class MenuBuilder {
               this.mainWindow.close();
             },
           },
+          { type: 'separator' },
+          {
+            label: '&Settings',
+            accelerator: 'Ctrl+,',
+            click: () => {
+                this.mainWindow.webContents.send('menu:open-settings');
+            }
+          }
         ],
       },
       {

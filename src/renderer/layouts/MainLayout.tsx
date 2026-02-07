@@ -67,7 +67,18 @@ export default function MainLayout() {
       name: 'AI',
       render: () => <AISettingsTab />,
     });
-  }, [registerSettingTab]);
+
+    const ipcRenderer = window.electron?.ipcRenderer;
+    if (ipcRenderer) {
+        const removeListener = ipcRenderer.on('menu:open-settings', () => {
+            openSettings();
+        });
+        return () => {
+            removeListener();
+        };
+    }
+    return () => {};
+  }, [registerSettingTab, openSettings]);
 
   const handleFileSelect = useCallback(
     (path: string, content: string) => {
@@ -277,7 +288,6 @@ export default function MainLayout() {
             <LeftPane
               onFileSelect={handleFileSelect}
               onProjectOpened={loadProjectSettings}
-              openSettings={openSettings}
             />
           </div>
         )}

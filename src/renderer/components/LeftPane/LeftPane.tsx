@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon } from 'lucide-react';
+
 import { FileExplorer } from '../Sidebar/FileExplorer';
 import { GitPanel } from '../Git/GitPanel';
 import './LeftPane.css';
@@ -7,13 +7,11 @@ import './LeftPane.css';
 interface LeftPaneProps {
   onFileSelect: (path: string, content: string) => void;
   onProjectOpened: () => void;
-  openSettings: () => void;
 }
 
 export const LeftPane: React.FC<LeftPaneProps> = ({
   onFileSelect,
   onProjectOpened,
-  openSettings,
 }) => {
   const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'git'>('files');
 
@@ -45,16 +43,6 @@ export const LeftPane: React.FC<LeftPaneProps> = ({
           ) : (
             <GitPanel />
           )}
-        </div>
-        <div className="sidebar-footer">
-          <button
-            type="button"
-            onClick={openSettings}
-            className="settings-button"
-            title="Settings"
-          >
-            <SettingsIcon size={20} />
-          </button>
         </div>
       </div>
     </div>
