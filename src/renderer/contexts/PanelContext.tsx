@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+  useMemo,
+} from 'react';
+import { Files, GitGraph, MessageSquare } from 'lucide-react';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import { FileExplorerPanel } from '../components/FileExplorer/FileExplorerPanel';
 import { GitPanel } from '../components/Git/GitPanel';
@@ -13,8 +21,6 @@ interface PanelContextType extends PanelRegistry {
 }
 
 const PanelContext = createContext<PanelContextType | undefined>(undefined);
-
-import { Files, GitGraph, MessageSquare } from 'lucide-react';
 
 const initialPanels: Panel[] = [
   {
@@ -40,10 +46,16 @@ const initialPanels: Panel[] = [
   },
 ];
 
-export const PanelProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const PanelProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [panels, setPanels] = useState<Panel[]>(initialPanels);
-  const [activeLeftPanelId, setActiveLeftPanelId] = useState<string | null>('files');
-  const [activeRightPanelId, setActiveRightPanelId] = useState<string | null>('ai-chat');
+  const [activeLeftPanelId, setActiveLeftPanelId] = useState<string | null>(
+    'files',
+  );
+  const [activeRightPanelId, setActiveRightPanelId] = useState<string | null>(
+    'ai-chat',
+  );
   const [isRightPaneOpen, setIsRightPaneOpen] = useState(true);
 
   const register = useCallback((panel: Panel) => {
@@ -55,38 +67,54 @@ export const PanelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const getPanels = useCallback(() => panels, [panels]);
 
-  const getPanel = useCallback((id: string) => panels.find((p) => p.id === id), [panels]);
+  const getPanel = useCallback(
+    (id: string) => panels.find((p) => p.id === id),
+    [panels],
+  );
 
-  const setActivePanel = useCallback((location: PanelLocation, panelId: string | null) => {
-    if (location === 'left') {
-      setActiveLeftPanelId(panelId);
-    } else if (location === 'right') {
-      setActiveRightPanelId(panelId);
-      if (panelId && !isRightPaneOpen) {
-        setIsRightPaneOpen(true);
+  const setActivePanel = useCallback(
+    (location: PanelLocation, panelId: string | null) => {
+      if (location === 'left') {
+        setActiveLeftPanelId(panelId);
+      } else if (location === 'right') {
+        setActiveRightPanelId(panelId);
+        if (panelId && !isRightPaneOpen) {
+          setIsRightPaneOpen(true);
+        }
       }
-    }
-  }, [isRightPaneOpen]);
+    },
+    [isRightPaneOpen],
+  );
 
   const toggleRightPane = useCallback(() => {
     setIsRightPaneOpen((prev) => !prev);
   }, []);
 
+  const value = useMemo(
+    () => ({
+      register,
+      getPanels,
+      getPanel,
+      activeLeftPanelId,
+      activeRightPanelId,
+      setActivePanel,
+      isRightPaneOpen,
+      toggleRightPane,
+    }),
+    [
+      register,
+      getPanels,
+      getPanel,
+      activeLeftPanelId,
+      activeRightPanelId,
+      setActivePanel,
+      isRightPaneOpen,
+      toggleRightPane,
+    ],
+  );
+
   return (
-    <PanelContext.Provider
-      value={{
-        register,
-        getPanels,
-        getPanel,
-        activeLeftPanelId,
-        activeRightPanelId,
-        setActivePanel,
-        isRightPaneOpen,
-        toggleRightPane,
-      }}
-    >
-      {children}
-    </PanelContext.Provider>
+    <PanelContext.Provider value={value}>{children}</PanelContext.Provider>
   );
 };
 

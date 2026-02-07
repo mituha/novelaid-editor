@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from 'react';
 import { GitFileStatus, GitLogEntry } from '../../main/git/interface';
 
 interface GitContextType {
@@ -27,7 +33,7 @@ interface GitProviderProps {
   children: ReactNode;
 }
 
-export const GitContextProvider: React.FC<GitProviderProps> = ({ children }) => {
+export function GitContextProvider({ children }: GitProviderProps) {
   const [status, setStatus] = useState<GitFileStatus[]>([]);
   const [history, setHistory] = useState<GitLogEntry[]>([]);
   const [currentDir, setCurrentDirState] = useState<string | null>(null);
@@ -42,22 +48,22 @@ export const GitContextProvider: React.FC<GitProviderProps> = ({ children }) => 
   const refreshStatus = useCallback(async () => {
     if (!currentDir) return;
     try {
-        const newStatus = await window.electron.git.status(currentDir);
-        setStatus(newStatus);
+      const newStatus = await window.electron.git.status(currentDir);
+      setStatus(newStatus);
     } catch (e) {
-        console.error("Failed to refresh status", e);
-        setStatus([]);
+      console.error('Failed to refresh status', e);
+      setStatus([]);
     }
   }, [currentDir]);
 
   const refreshHistory = useCallback(async () => {
     if (!currentDir) return;
     try {
-        const newHistory = await window.electron.git.log(currentDir);
-        setHistory(newHistory);
+      const newHistory = await window.electron.git.log(currentDir);
+      setHistory(newHistory);
     } catch (e) {
-         console.error("Failed to refresh history", e);
-         setHistory([]);
+      console.error('Failed to refresh history', e);
+      setHistory([]);
     }
   }, [currentDir]);
 
@@ -68,30 +74,49 @@ export const GitContextProvider: React.FC<GitProviderProps> = ({ children }) => 
     await refreshHistory();
   }, [currentDir, refreshStatus, refreshHistory]);
 
-  const stageFiles = useCallback(async (files: string[]) => {
-    if (!currentDir) return;
-    await window.electron.git.add(currentDir, files);
-    await refreshStatus();
-  }, [currentDir, refreshStatus]);
+  const stageFiles = useCallback(
+    async (files: string[]) => {
+      if (!currentDir) return;
+      await window.electron.git.add(currentDir, files);
+      await refreshStatus();
+    },
+    [currentDir, refreshStatus],
+  );
 
-  const commitChanges = useCallback(async (message: string) => {
-    if (!currentDir) return;
-    await window.electron.git.commit(currentDir, message);
-    await refreshStatus();
-    await refreshHistory();
-  }, [currentDir, refreshStatus, refreshHistory]);
+  const commitChanges = useCallback(
+    async (message: string) => {
+      if (!currentDir) return;
+      await window.electron.git.commit(currentDir, message);
+      await refreshStatus();
+      await refreshHistory();
+    },
+    [currentDir, refreshStatus, refreshHistory],
+  );
 
-  const value = {
-    status,
-    history,
-    currentDir,
-    refreshStatus,
-    refreshHistory,
-    initRepo,
-    stageFiles,
-    commitChanges,
-    setCurrentDir
-  };
+  const value = React.useMemo(
+    () => ({
+      status,
+      history,
+      currentDir,
+      refreshStatus,
+      refreshHistory,
+      initRepo,
+      stageFiles,
+      commitChanges,
+      setCurrentDir,
+    }),
+    [
+      status,
+      history,
+      currentDir,
+      refreshStatus,
+      refreshHistory,
+      initRepo,
+      stageFiles,
+      commitChanges,
+      setCurrentDir,
+    ],
+  );
 
   return <GitContext.Provider value={value}>{children}</GitContext.Provider>;
-};
+}

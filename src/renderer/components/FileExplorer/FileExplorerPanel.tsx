@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useGit } from '../../contexts/GitContext';
 import './FileExplorerPanel.css';
 
 interface FileNode {
@@ -243,26 +244,26 @@ function FileTreeItem({
   );
 }
 
-import { useGit } from '../../contexts/GitContext';
-
 export function FileExplorerPanel({
   onFileSelect,
   onProjectOpened,
 }: FileExplorerProps) {
   const [rootFiles, setRootFiles] = useState<FileNode[]>([]);
-  const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [creatingType, setCreatingType] = useState<'file' | 'folder' | null>(
     null,
   );
   const [newName, setNewName] = useState('');
-  const { setCurrentDir } = useGit();
+  const { currentDir, setCurrentDir } = useGit();
 
   const refreshRoot = useCallback(async () => {
-    if (!currentPath) return;
+    if (!currentDir) {
+      setRootFiles([]);
+      return;
+    }
     try {
       const fileList = await window.electron.ipcRenderer.invoke(
         'fs:readDirectory',
-        currentPath,
+        currentDir,
       );
       const sorted = (fileList as FileNode[]).sort((a, b) => {
         if (a.isDirectory === b.isDirectory)
@@ -273,7 +274,7 @@ export function FileExplorerPanel({
     } catch (error) {
       console.error(error);
     }
-  }, [currentPath]);
+  }, [currentDir]);
 
   const handleOpenFolder = async () => {
     try {
@@ -281,7 +282,6 @@ export function FileExplorerPanel({
         'dialog:openDirectory',
       );
       if (path) {
-        setCurrentPath(path);
         setCurrentDir(path);
         if (onProjectOpened) {
           onProjectOpened(path);
@@ -294,12 +294,12 @@ export function FileExplorerPanel({
 
   useEffect(() => {
     refreshRoot();
-  }, [currentPath, refreshRoot]);
+  }, [currentDir, refreshRoot]);
 
   const handleCreate = async (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && newName && currentPath) {
+    if (e.key === 'Enter' && newName && currentDir) {
       try {
-        const fullPath = `${currentPath}\\${newName}`;
+        const fullPath = `${currentDir}\\${newName}`;
         if (creatingType === 'file') {
           await window.electron.ipcRenderer.invoke('fs:createFile', fullPath);
         } else {
@@ -323,14 +323,10 @@ export function FileExplorerPanel({
   return (
     <div className="file-explorer">
       <div className="explorer-header">
-        <button
-          type="button"
-          className="open-btn"
-          onClick={handleOpenFolder}
-        >
+        <button type="button" className="open-btn" onClick={handleOpenFolder}>
           フォルダを開く
         </button>
-        {currentPath && (
+        {currentDir && (
           <div className="explorer-actions">
             <button
               type="button"
@@ -352,7 +348,9 @@ export function FileExplorerPanel({
       <div className="explorer-content">
         {creatingType && (
           <div className="file-item" style={{ paddingLeft: '15px' }}>
-            <span className="icon">{creatingType === 'file' ? '📄' : '📁'}</span>
+            <span className="icon">
+              {creatingType === 'file' ? '📄' : '📁'}
+            </span>
             <input
               className="rename-input"
               autoFocus
