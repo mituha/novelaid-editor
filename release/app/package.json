@@ -1,12 +1,11 @@
 {
-  "name": "electron-react-boilerplate",
-  "version": "4.6.0",
-  "description": "A foundation for scalable desktop apps",
+  "name": "novelagent-editor",
+  "version": "0.1.0",
+  "description": "小説執筆用のエディター",
   "license": "MIT",
   "author": {
-    "name": "Electron React Boilerplate Maintainers",
-    "email": "electronreactboilerplate@gmail.com",
-    "url": "https://github.com/electron-react-boilerplate"
+    "name": "Mizuki Mituha",
+    "url": "https://github.com/mituha"
   },
   "main": "./dist/main/main.js",
   "scripts": {

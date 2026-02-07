@@ -1,6 +1,7 @@
 {
   "name": "novelagent-editor",
-  "description": "A foundation for scalable desktop apps",
+  "version": "0.1.0",
+  "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
     "boilerplate",
