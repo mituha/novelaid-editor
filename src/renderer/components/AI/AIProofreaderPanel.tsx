@@ -212,28 +212,50 @@ export function AIProofreaderPanel({
           </div>
         )}
         {messages.map((msg) => (
-          <div key={msg.id} className={`proofreader-msg ${msg.role}`}>
-            {msg.parts.map((part, idx) => (
-              <div key={idx} className={`part-type-${part.type}`}>
-                {part.type === 'thought' ? (
-                  <details className="thought-details">
-                    <summary>思考プロセス</summary>
-                    <div className="thought-body">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {part.content}
-                      </ReactMarkdown>
-                    </div>
-                  </details>
-                ) : (
-                  <div className="text-body">
+          <React.Fragment key={msg.id}>
+            <div className={`proofreader-msg ${msg.role}`}>
+              {msg.displayContent ? (
+                <div className="text-body summary-message">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.displayContent}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                msg.role === 'user' &&
+                msg.parts.map((part, idx) => (
+                  <div key={idx} className="text-body">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {part.content}
                     </ReactMarkdown>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                ))
+              )}
+            </div>
+            {msg.role === 'assistant' &&
+              msg.parts.map((part, idx) => (
+                <div
+                  key={`${msg.id}-${idx}`}
+                  className={`proofreader-msg assistant part-type-${part.type}`}
+                >
+                  {part.type === 'thought' ? (
+                    <details className="thought-details" open>
+                      <summary>Thinking...</summary>
+                      <div className="thought-body">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {part.content}
+                        </ReactMarkdown>
+                      </div>
+                    </details>
+                  ) : (
+                    <div className="text-body">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {part.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+              ))}
+          </React.Fragment>
         ))}
         <div ref={messagesEndRef} />
       </div>
