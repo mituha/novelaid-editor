@@ -5,6 +5,7 @@ import { SettingsModal } from '../components/Settings/SettingsModal';
 import { useSettings } from '../contexts/SettingsContext';
 import { EditorSettingsTab } from '../components/Settings/Tabs/EditorSettingsTab';
 import { AISettingsTab } from '../components/Settings/Tabs/AISettingsTab';
+import { AppearanceSettingsTab } from '../components/Settings/Tabs/AppearanceSettingsTab';
 import { RightPane } from '../components/RightPane/RightPane';
 import { Resizer } from '../components/Common/Resizer';
 import { StatusBar } from '../components/Common/StatusBar';
@@ -22,7 +23,7 @@ export default function MainLayout() {
   const [activeSide, setActiveSide] = useState<'left' | 'right'>('left');
   const [isSplit, setIsSplit] = useState(false);
   const [tabContents, setTabContents] = useState<Record<string, string>>({});
-  const { openSettings, registerSettingTab, loadProjectSettings } =
+  const { settings, openSettings, registerSettingTab, loadProjectSettings } =
     useSettings();
 
   const [leftPaneWidth, setLeftPaneWidth] = useState(250);
@@ -67,6 +68,11 @@ export default function MainLayout() {
       name: 'AI',
       render: () => <AISettingsTab />,
     });
+    registerSettingTab({
+      id: 'appearance',
+      name: 'Appearance',
+      render: () => <AppearanceSettingsTab />,
+    });
 
     const ipcRenderer = window.electron?.ipcRenderer;
     if (ipcRenderer) {
@@ -74,11 +80,17 @@ export default function MainLayout() {
             openSettings();
         });
         return () => {
-            removeListener();
+            if (removeListener) removeListener();
         };
     }
     return () => {};
   }, [registerSettingTab, openSettings]);
+
+  // Apply theme to body
+  useEffect(() => {
+    const theme = settings.theme || 'dark';
+    document.body.setAttribute('data-theme', theme);
+  }, [settings.theme]);
 
   const handleFileSelect = useCallback(
     (path: string, content: string) => {

@@ -1,7 +1,7 @@
 .status-bar {
   height: 25px;
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent-color);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -1,8 +1,8 @@
 .tab-bar {
   display: flex;
   height: 35px;
-  background-color: #252526;
-  border-bottom: 1px solid #333;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
   /* Separator between tabs and editor */
   overflow: hidden;
   /* Hide horizontal scrollbar if too many tabs */
@@ -29,9 +29,9 @@
   display: flex;
   align-items: center;
   padding: 0 10px;
-  background-color: #2d2d2d;
-  color: #999;
-  border-right: 1px solid #333;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-right: 1px solid var(--border-color);
   cursor: pointer;
   min-width: 120px;
   max-width: 200px;
@@ -45,9 +45,9 @@
 }
 
 .tab-item.active {
-  background-color: #1e1e1e;
-  color: #fff;
-  border-top: 2px solid #0e639c;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-top: 2px solid var(--accent-color);
   /* Active tab indicator */
 }
 

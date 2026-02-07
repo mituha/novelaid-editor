@@ -4,7 +4,7 @@ import { usePanel } from '../../contexts/PanelContext';
 
 interface LeftPaneProps {
   onFileSelect: (path: string, content: string) => void;
-  onProjectOpened: () => void;
+  onProjectOpened: (path: string) => void;
 }
 
 export const LeftPane: React.FC<LeftPaneProps> = (props) => {

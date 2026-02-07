@@ -9,7 +9,7 @@ import React, {
 
 // プロジェクト設定の型定義 (src/main/project.ts とあわせるのが理想だが、一旦ここで定義)
 export interface ProjectConfig {
-  theme?: string;
+  theme?: 'dark' | 'light';
   editor?: {
     fontSize?: number;
     showLineNumbers?: boolean;
@@ -60,6 +60,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<ProjectConfig>({
+    theme: 'dark',
     editor: {
       fontSize: 14,
       showLineNumbers: true,

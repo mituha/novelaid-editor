@@ -2,18 +2,18 @@
     display: flex;
     height: 100%;
     width: 100%;
-    background-color: #252526;
-    border-right: 1px solid #333;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
 }
 
 .activity-bar {
     width: 50px;
-    background-color: #333;
+    background-color: var(--border-color);
     display: flex;
     flex-direction: column;
     align-items: center;
     padding-top: 10px;
-    border-right: 1px solid #1e1e1e;
+    border-right: 1px solid var(--bg-primary);
     flex-shrink: 0;
 }
 
@@ -35,8 +35,8 @@
 }
 
 .activity-icon.active {
-    color: #fff;
-    border-left: 2px solid #0e639c;
+    color: var(--text-primary);
+    border-left: 2px solid var(--accent-color);
 }
 
 .sidebar-container {
@@ -44,7 +44,7 @@
     flex-direction: column;
     flex: 1;
     overflow: hidden;
-    background-color: #252526;
+    background-color: var(--bg-secondary);
 }
 
 .sidebar-footer {

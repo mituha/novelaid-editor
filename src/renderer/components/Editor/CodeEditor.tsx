@@ -117,7 +117,7 @@ export default function CodeEditor({
         value={value}
         onChange={onChange}
         onMount={handleEditorOnMount}
-        theme="vs-dark"
+        theme={settings.theme === 'light' ? 'vs' : 'vs-dark'}
         options={{
           wordWrap: editorConfig.wordWrap || 'on',
           minimap: { enabled: false },
