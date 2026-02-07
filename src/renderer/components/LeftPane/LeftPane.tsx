@@ -4,45 +4,54 @@ import { FileExplorer } from '../Sidebar/FileExplorer';
 import { GitPanel } from '../Git/GitPanel';
 import './LeftPane.css';
 
+import { Panel } from '../../types/panel';
+
 interface LeftPaneProps {
   onFileSelect: (path: string, content: string) => void;
   onProjectOpened: () => void;
 }
 
-export const LeftPane: React.FC<LeftPaneProps> = ({
-  onFileSelect,
-  onProjectOpened,
-}) => {
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'git'>('files');
+export const LeftPane: React.FC<LeftPaneProps> = (props) => {
+  const [activePanelId, setActivePanelId] = useState<string>('files');
+
+  const panels: Panel[] = [
+    {
+      id: 'files',
+      title: 'Files',
+      icon: <div className="activity-icon-content">📁</div>,
+      component: FileExplorer,
+    },
+    {
+      id: 'git',
+      title: 'Git',
+      icon: (
+        <div className="activity-icon-content">
+          <span style={{ fontSize: '1.2em', fontWeight: 'bold' }}>S</span>
+        </div>
+      ),
+      component: GitPanel,
+    },
+  ];
+
+  const activePanel = panels.find((p) => p.id === activePanelId) || panels[0];
 
   return (
     <div className="left-pane">
       <div className="activity-bar">
-        <div
-          className={`activity-icon ${activeSidebarTab === 'files' ? 'active' : ''}`}
-          onClick={() => setActiveSidebarTab('files')}
-          title="Files"
-        >
-          📁
-        </div>
-        <div
-          className={`activity-icon ${activeSidebarTab === 'git' ? 'active' : ''}`}
-          onClick={() => setActiveSidebarTab('git')}
-          title="Git"
-        >
-          <span style={{ fontSize: '1.2em', fontWeight: 'bold' }}>S</span>
-        </div>
+        {panels.map((panel) => (
+          <div
+            key={panel.id}
+            className={`activity-icon ${activePanelId === panel.id ? 'active' : ''}`}
+            onClick={() => setActivePanelId(panel.id)}
+            title={panel.title}
+          >
+            {panel.icon}
+          </div>
+        ))}
       </div>
       <div className="sidebar-container">
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          {activeSidebarTab === 'files' ? (
-            <FileExplorer
-              onFileSelect={onFileSelect}
-              onProjectOpened={onProjectOpened}
-            />
-          ) : (
-            <GitPanel />
-          )}
+          {activePanel && <activePanel.component {...props} />}
         </div>
       </div>
     </div>
