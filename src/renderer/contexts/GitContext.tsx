@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { GitFileStatus, GitLogEntry } from '../../../main/git/interface';
+import { GitFileStatus, GitLogEntry } from '../../main/git/interface';
 
 interface GitContextType {
   status: GitFileStatus[];
@@ -34,6 +34,9 @@ export const GitContextProvider: React.FC<GitProviderProps> = ({ children }) => 
 
   const setCurrentDir = useCallback((dir: string) => {
     setCurrentDirState(dir);
+    // Update window title with folder name
+    const folderName = dir.split('\\').pop() || dir;
+    window.electron.window.setTitle(`novelagent-editor - ${folderName}`);
   }, []);
 
   const refreshStatus = useCallback(async () => {

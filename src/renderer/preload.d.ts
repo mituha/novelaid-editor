@@ -1,4 +1,4 @@
-import { GitFileStatus, GitLogEntry } from '../../../main/git/interface';
+import { GitFileStatus, GitLogEntry } from '../main/git/interface';
 
 declare global {
   interface Window {
@@ -15,6 +15,9 @@ declare global {
         log(dir: string): Promise<GitLogEntry[]>;
         add(dir: string, files: string[]): Promise<void>;
         commit(dir: string, message: string): Promise<void>;
+      };
+      window: {
+        setTitle(title: string): Promise<void>;
       };
     };
   }

@@ -27,7 +27,8 @@ export type Channels =
   | 'git:status'
   | 'git:log'
   | 'git:add'
-  | 'git:commit';
+  | 'git:commit'
+  | 'window:setTitle';
 
 const electronHandler = {
   ipcRenderer: {
@@ -65,6 +66,11 @@ const electronHandler = {
     },
     commit(dir: string, message: string) {
       return ipcRenderer.invoke('git:commit', dir, message);
+    },
+  },
+  window: {
+    setTitle(title: string) {
+      return ipcRenderer.invoke('window:setTitle', title);
     },
   },
 };

@@ -240,6 +240,12 @@ ipcMain.handle('ai:chat', async (_, messages: any[], config: any) => {
     }
 });
 
+ipcMain.handle('window:setTitle', (_, title: string) => {
+  if (mainWindow) {
+    mainWindow.setTitle(title);
+  }
+});
+
 // Since we cannot directly stream over ipcMain.handle from a generator easily without protocol or push,
 // we usually use webContents.send for streaming, OR we can just return the full text for now if streaming is too complex for this step.
 // However, the previous `ai:stream` handler (if it existed) would have used reply.
