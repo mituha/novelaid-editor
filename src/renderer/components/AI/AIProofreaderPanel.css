@@ -68,10 +68,15 @@
 }
 
 .proofreader-msg {
-    padding: 12px;
-    border-radius: 8px;
-    max-width: 95%;
+    max-width: 90%;
+    padding: 12px 16px;
+    border-radius: 18px;
     line-height: 1.6;
+    position: relative;
+    word-wrap: break-word;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
 }
 
 .proofreader-msg.user {
@@ -79,6 +84,7 @@
     background-color: var(--accent-color);
     color: #fff;
     font-size: 13px;
+    border-bottom-right-radius: 4px;
 }
 
 /* Hide empty user bubbles if displayContent/parts are empty */
@@ -90,23 +96,40 @@
     align-self: flex-start;
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
+    border-bottom-left-radius: 4px;
 }
 
 .proofreader-msg.assistant.part-type-thought {
     background-color: var(--bg-primary);
     border-style: dashed;
     opacity: 0.8;
+    box-shadow: none;
+    font-size: 0.9em;
+}
+
+.message-sender {
+    font-size: 0.75em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.proofreader-msg.user .message-sender {
+    color: rgba(255, 255, 255, 0.8);
+    text-align: right;
 }
 
 .thought-details {
     font-size: 12px;
-    color: var(--text-secondary);
 }
 
 .thought-details summary {
     cursor: pointer;
     padding: 4px 0;
     font-weight: 600;
+    color: var(--text-secondary);
 }
 
 .thought-body {
@@ -115,6 +138,8 @@
     border-radius: 4px;
     margin-top: 4px;
     border-left: 3px solid var(--border-color);
+    font-style: italic;
+    color: var(--text-secondary);
 }
 
 .text-body {

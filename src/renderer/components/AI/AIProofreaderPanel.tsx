@@ -55,9 +55,9 @@ const ACTIONS: ProofreadingAction[] = [
   },
 ];
 
-export function AIProofreaderPanel({
-  activeContent,
-  activePath,
+export default function AIProofreaderPanel({
+  activeContent = '',
+  activePath = null,
 }: AIProofreaderPanelProps) {
   const { settings } = useSettings();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -87,13 +87,17 @@ export function AIProofreaderPanel({
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
+      let removeDataListener: (() => void) | undefined;
+      let removeEndListener: (() => void) | undefined;
+      let removeErrorListener: (() => void) | undefined;
+
       const cleanup = () => {
-        removeDataListener();
-        removeEndListener();
-        removeErrorListener();
+        if (removeDataListener) removeDataListener();
+        if (removeEndListener) removeEndListener();
+        if (removeErrorListener) removeErrorListener();
       };
 
-      const removeDataListener = window.electron.ipcRenderer.on(
+      removeDataListener = window.electron.ipcRenderer.on(
         'ai:streamChat:data',
         (chunk: unknown) => {
           const typedChunk = chunk as { type: string; content: string };
@@ -125,7 +129,7 @@ export function AIProofreaderPanel({
         },
       );
 
-      const removeEndListener = window.electron.ipcRenderer.on(
+      removeEndListener = window.electron.ipcRenderer.on(
         'ai:streamChat:end',
         () => {
           setIsStreaming(false);
@@ -133,9 +137,10 @@ export function AIProofreaderPanel({
         },
       );
 
-      const removeErrorListener = window.electron.ipcRenderer.on(
+      removeErrorListener = window.electron.ipcRenderer.on(
         'ai:streamChat:error',
         (error: unknown) => {
+          // eslint-disable-next-line no-console
           console.error('Stream error:', error);
           setIsStreaming(false);
           cleanup();
@@ -214,6 +219,7 @@ export function AIProofreaderPanel({
         {messages.map((msg) => (
           <React.Fragment key={msg.id}>
             <div className={`proofreader-msg ${msg.role}`}>
+              {msg.role === 'user' && <div className="message-sender">You</div>}
               {msg.displayContent ? (
                 <div className="text-body summary-message">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -223,7 +229,10 @@ export function AIProofreaderPanel({
               ) : (
                 msg.role === 'user' &&
                 msg.parts.map((part, idx) => (
-                  <div key={idx} className="text-body">
+                  <div
+                    key={`${msg.id}-user-part-${part.type}-${idx}`}
+                    className="text-body"
+                  >
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {part.content}
                     </ReactMarkdown>
@@ -234,11 +243,14 @@ export function AIProofreaderPanel({
             {msg.role === 'assistant' &&
               msg.parts.map((part, idx) => (
                 <div
-                  key={`${msg.id}-${idx}`}
+                  key={`${msg.id}-assistant-part-${part.type}-${idx}`}
                   className={`proofreader-msg assistant part-type-${part.type}`}
                 >
+                  <div className="message-sender">
+                    {part.type === 'thought' ? 'AI Thought' : 'AI Assistant'}
+                  </div>
                   {part.type === 'thought' ? (
-                    <details className="thought-details" open>
+                    <details className="thought-details">
                       <summary>Thinking...</summary>
                       <div className="thought-body">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>

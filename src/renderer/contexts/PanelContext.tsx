@@ -10,8 +10,8 @@ import { Files, GitGraph, MessageSquare, SearchCheck } from 'lucide-react';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import { FileExplorerPanel } from '../components/FileExplorer/FileExplorerPanel';
 import { GitPanel } from '../components/Git/GitPanel';
-import { AIChatPanel } from '../components/AI/AIChatPanel';
-import { AIProofreaderPanel } from '../components/AI/AIProofreaderPanel';
+import AIChatPanel from '../components/AI/AIChatPanel';
+import AIProofreaderPanel from '../components/AI/AIProofreaderPanel';
 
 interface PanelContextType extends PanelRegistry {
   activeLeftPanelId: string | null;

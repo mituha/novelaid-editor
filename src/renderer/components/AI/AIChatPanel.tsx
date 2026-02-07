@@ -21,7 +21,10 @@ interface AIChatPanelProps {
   activePath?: string | null;
 }
 
-export function AIChatPanel({ activeContent, activePath }: AIChatPanelProps) {
+export default function AIChatPanel({
+  activeContent = '',
+  activePath = null,
+}: AIChatPanelProps) {
   const { settings } = useSettings();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -94,43 +97,53 @@ export function AIChatPanel({ activeContent, activePath }: AIChatPanelProps) {
     };
     setMessages((prev) => [...prev, assistantMessage]);
 
+    let removeDataListener: (() => void) | undefined;
+    let removeEndListener: (() => void) | undefined;
+    let removeErrorListener: (() => void) | undefined;
+
+    const cleanup = () => {
+      if (removeDataListener) removeDataListener();
+      if (removeEndListener) removeEndListener();
+      if (removeErrorListener) removeErrorListener();
+    };
+
     // Setup listeners
     // We strictly use the channels defined in preload
-    const removeDataListener = window.electron.ipcRenderer.on(
+    removeDataListener = window.electron.ipcRenderer.on(
       'ai:streamChat:data',
-      (chunk: { type: string; content: string }) => {
+      (chunk: unknown) => {
+        const typedChunk = chunk as { type: string; content: string };
         setMessages((prev) =>
           prev.map((msg) => {
             if (msg.id !== assistantMsgId) return msg;
 
             const lastPart = msg.parts[msg.parts.length - 1];
-            if (lastPart && lastPart.type === chunk.type) {
+            if (lastPart && lastPart.type === typedChunk.type) {
               // Append to existing part if same type
               const updatedParts = [...msg.parts];
               updatedParts[updatedParts.length - 1] = {
                 ...lastPart,
-                content: lastPart.content + chunk.content,
+                content: lastPart.content + typedChunk.content,
               };
               return { ...msg, parts: updatedParts };
-            } else {
-              // Create new part
-              return {
-                ...msg,
-                parts: [
-                  ...msg.parts,
-                  {
-                    type: chunk.type as MessagePart['type'],
-                    content: chunk.content,
-                  },
-                ],
-              };
             }
+            // Create new part
+            return {
+              ...msg,
+              parts: [
+                ...msg.parts,
+                {
+                  type: typedChunk.type as MessagePart['type'],
+                  content: typedChunk.content,
+                },
+              ],
+            };
           }),
         );
       },
     );
 
-    const removeEndListener = window.electron.ipcRenderer.on(
+    removeEndListener = window.electron.ipcRenderer.on(
       'ai:streamChat:end',
       () => {
         setIsStreaming(false);
@@ -138,9 +151,10 @@ export function AIChatPanel({ activeContent, activePath }: AIChatPanelProps) {
       },
     );
 
-    const removeErrorListener = window.electron.ipcRenderer.on(
+    removeErrorListener = window.electron.ipcRenderer.on(
       'ai:streamChat:error',
-      (error) => {
+      (error: unknown) => {
+        // eslint-disable-next-line no-console
         console.error('Stream error:', error);
         setMessages((prev) =>
           prev.map((msg) =>
@@ -159,12 +173,6 @@ export function AIChatPanel({ activeContent, activePath }: AIChatPanelProps) {
         cleanup();
       },
     );
-
-    const cleanup = () => {
-      removeDataListener();
-      removeEndListener();
-      removeErrorListener();
-    };
 
     // Send request
     const apiMessages = newMessages.map((m) => {
@@ -202,11 +210,11 @@ export function AIChatPanel({ activeContent, activePath }: AIChatPanelProps) {
                 {msg.parts.map((part, index) =>
                   part.type === 'thought' ? (
                     <div
-                      key={`${msg.id}-thought-${index}`}
+                      key={`${msg.id}-thought-${part.type}-${index}`}
                       className="chat-message assistant thought-bubble"
                     >
                       <div className="message-sender">AI Thought</div>
-                      <details className="thought-container" open>
+                      <details className="thought-container">
                         <summary>Thinking...</summary>
                         <div className="thought-content">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -217,7 +225,7 @@ export function AIChatPanel({ activeContent, activePath }: AIChatPanelProps) {
                     </div>
                   ) : (
                     <div
-                      key={`${msg.id}-text-${index}`}
+                      key={`${msg.id}-text-${part.type}-${index}`}
                       className="chat-message assistant"
                     >
                       <div className="message-sender">AI Assistant</div>
@@ -243,6 +251,7 @@ export function AIChatPanel({ activeContent, activePath }: AIChatPanelProps) {
         />
         <div className="chat-options" style={{ marginTop: '5px' }}>
           <label
+            htmlFor="include-context-checkbox"
             style={{
               fontSize: '12px',
               color: '#ccc',
@@ -252,6 +261,7 @@ export function AIChatPanel({ activeContent, activePath }: AIChatPanelProps) {
             }}
           >
             <input
+              id="include-context-checkbox"
               type="checkbox"
               checked={includeContext}
               onChange={(e) => setIncludeContext(e.target.checked)}

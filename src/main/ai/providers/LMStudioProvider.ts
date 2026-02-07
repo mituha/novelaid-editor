@@ -52,7 +52,14 @@ export class LMStudioProvider extends BaseProvider {
     });
 
     for await (const chunk of prediction) {
-      const isReasoning = (chunk as any).reasoningType === 'reasoning';
+      const reasoningType = (chunk as any).reasoningType;
+      if (
+        reasoningType === 'reasoningStartTag' ||
+        reasoningType === 'reasoningEndTag'
+      ) {
+        continue;
+      }
+      const isReasoning = reasoningType === 'reasoning';
       yield {
         content: chunk.content,
         type: isReasoning ? 'thought' : 'text',
@@ -74,7 +81,14 @@ export class LMStudioProvider extends BaseProvider {
     );
 
     for await (const chunk of prediction) {
-      const isReasoning = (chunk as any).reasoningType === 'reasoning';
+      const reasoningType = (chunk as any).reasoningType;
+      if (
+        reasoningType === 'reasoningStartTag' ||
+        reasoningType === 'reasoningEndTag'
+      ) {
+        continue;
+      }
+      const isReasoning = reasoningType === 'reasoning';
       yield {
         content: chunk.content,
         type: isReasoning ? 'thought' : 'text',
