@@ -1,15 +1,13 @@
 ---
-name: Feature request
-about: You want something added to the boilerplate. 🎉
+name: 機能要望
+about: 機能の追加を提案する場合に使用してください。 🎉
 labels: 'enhancement'
 ---
 
-<!---
-❗️❗️ Also, please consider donating (https://opencollective.com/electron-react-boilerplate-594) ❗️❗️
+## 要望の概要
 
-Donations will ensure the following:
+<!-- どのような機能を追加したいですか？ -->
 
-🔨 Long term maintenance of the project
-🛣 Progress on the roadmap
-🐛 Quick responses to bug reports and help requests
- -->
+## 背景・理由
+
+<!-- なぜその機能が必要ですか？どのようなユースケースを想定していますか？ -->

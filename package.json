@@ -241,9 +241,6 @@
       "repo": "novelagent-editor"
     }
   },
-  "collective": {
-    "url": "https://opencollective.com/electron-react-boilerplate-594"
-  },
   "devEngines": {
     "runtime": {
       "name": "node",

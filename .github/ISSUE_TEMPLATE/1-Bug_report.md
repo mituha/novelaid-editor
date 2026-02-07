@@ -1,33 +1,31 @@
 ---
-name: Bug report
-about: You're having technical issues. 🐞
+name: バグレポート
+about: 技術的な問題が発生している場合に使用してください。 🐞
 labels: 'bug'
 ---
 
-<!-- Please use the following issue template or your issue will be closed -->
+<!-- 以下のテンプレートを使用してください。内容が不十分な場合、Issueがクローズされる可能性があります。 -->
 
-## Prerequisites
+## 事前の確認事項
 
-<!-- If the following boxes are not ALL checked, your issue is likely to be closed -->
+<!-- 以下のチェックボックスがすべてチェックされていない場合、Issueがクローズされる可能性があります。 -->
 
-- [ ] Using npm
-- [ ] Using an up-to-date [`main` branch](https://github.com/electron-react-boilerplate/electron-react-boilerplate/tree/main)
-- [ ] Using latest version of devtools. [Check the docs for how to update](https://electron-react-boilerplate.js.org/docs/dev-tools/)
-- [ ] Tried solutions mentioned in [#400](https://github.com/electron-react-boilerplate/electron-react-boilerplate/issues/400)
-- [ ] For issue in production release, add devtools output of `DEBUG_PROD=true npm run build && npm start`
+- [ ] npm を使用している
+- [ ] 最新の `main` ブランチを使用している
+- [ ] 開発ツールが最新である
+- [ ] 既存の Issue やドキュメントを確認し、既知の問題でないことを確認した
 
-## Expected Behavior
+## 期待される動作
 
-<!--- What should have happened? -->
+<!--- 本来どうなるべきだったかを記述してください。 -->
 
-## Current Behavior
+## 現在の動作
 
-<!--- What went wrong? -->
+<!--- 何が起きたのかを記述してください。 -->
 
-## Steps to Reproduce
+## 再現手順
 
-<!-- Add relevant code and/or a live example -->
-<!-- Add stack traces -->
+<!-- 関連するコードやログ、再現手順を記述してください。 -->
 
 1.
 
@@ -37,31 +35,19 @@ labels: 'bug'
 
 4.
 
-## Possible Solution (Not obligatory)
+## 解決策の提案 (任意)
 
-<!--- Suggest a reason for the bug or how to fix it. -->
+<!--- バグの原因や修正方法の提案があれば記述してください。 -->
 
-## Context
+## コンテキスト
 
-<!--- How has this issue affected you? What are you trying to accomplish? -->
-<!--- Did you make any changes to the boilerplate after cloning it? -->
-<!--- Providing context helps us come up with a solution that is most useful in the real world -->
+<!--- この問題によってどのような影響がありますか？何を達成しようとしていましたか？ -->
+<!--- プロジェクト作成後に設定やコードに変更を加えましたか？ -->
 
-## Your Environment
+## 実行環境
 
-<!--- Include as many relevant details about the environment you experienced the bug in -->
+<!--- バグが発生した環境の詳細を記述してください。 -->
 
 - Node version :
-- electron-react-boilerplate version or branch :
 - Operating System and version :
-- Link to your project :
-
-<!---
-❗️❗️ Also, please consider donating (https://opencollective.com/electron-react-boilerplate-594) ❗️❗️
-
-Donations will ensure the following:
-
-🔨 Long term maintenance of the project
-🛣 Progress on the roadmap
-🐛 Quick responses to bug reports and help requests
- -->
+- プロジェクトのパス (可能であれば) :

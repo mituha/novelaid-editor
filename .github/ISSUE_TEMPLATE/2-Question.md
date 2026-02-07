@@ -1,19 +1,9 @@
 ---
-name: Question
-about: Ask a question.❓
+name: 質問
+about: 質問がある場合に使用してください。❓
 labels: 'question'
 ---
 
-## Summary
+## 概要
 
-<!-- What do you need help with? -->
-
-<!---
-❗️❗️ Also, please consider donating (https://opencollective.com/electron-react-boilerplate-594) ❗️❗️
-
-Donations will ensure the following:
-
-🔨 Long term maintenance of the project
-🛣 Progress on the roadmap
-🐛 Quick responses to bug reports and help requests
- -->
+<!-- どのような助けが必要ですか？ -->
