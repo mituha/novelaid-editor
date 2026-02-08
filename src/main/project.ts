@@ -43,7 +43,7 @@ export interface LoadedProject {
   plugins: PluginManifest[];
 }
 
-const NOVELAGENT_DIR = '.novelagent';
+const NOVELAID_DIR = '.novelaid';
 const CONFIG_FILE = 'config.json';
 const PLUGINS_DIR = 'plugins';
 const MANIFEST_FILE = 'manifest.json';
@@ -55,18 +55,18 @@ const MANIFEST_FILE = 'manifest.json';
 export async function loadProject(
   projectPath: string,
 ): Promise<LoadedProject | null> {
-  const novelAgentPath = path.join(projectPath, NOVELAGENT_DIR);
+  const novelaidPath = path.join(projectPath, NOVELAID_DIR);
 
   try {
-    await fs.access(novelAgentPath);
+    await fs.access(novelaidPath);
   } catch {
-    // .novelagentフォルダが存在しない場合は何もしない（あるいは初期化する？）
+    // .novelaidフォルダが存在しない場合は何もしない（あるいは初期化する？）
     // 現状はnullを返して「プロジェクトではない」または「設定なし」とする
     return null;
   }
 
-  const config = await loadConfig(novelAgentPath);
-  const plugins = await loadPlugins(novelAgentPath);
+  const config = await loadConfig(novelaidPath);
+  const plugins = await loadPlugins(novelaidPath);
 
   return {
     config,
@@ -74,8 +74,8 @@ export async function loadProject(
   };
 }
 
-async function loadConfig(novelAgentPath: string): Promise<ProjectConfig> {
-  const configPath = path.join(novelAgentPath, CONFIG_FILE);
+async function loadConfig(novelaidPath: string): Promise<ProjectConfig> {
+  const configPath = path.join(novelaidPath, CONFIG_FILE);
   try {
     const data = await fs.readFile(configPath, 'utf-8');
     return JSON.parse(data);
@@ -85,8 +85,8 @@ async function loadConfig(novelAgentPath: string): Promise<ProjectConfig> {
   }
 }
 
-async function loadPlugins(novelAgentPath: string): Promise<PluginManifest[]> {
-  const pluginsPath = path.join(novelAgentPath, PLUGINS_DIR);
+async function loadPlugins(novelaidPath: string): Promise<PluginManifest[]> {
+  const pluginsPath = path.join(novelaidPath, PLUGINS_DIR);
   const manifests: PluginManifest[] = [];
 
   try {
@@ -128,16 +128,16 @@ export async function saveProject(
   projectPath: string,
   config: ProjectConfig,
 ): Promise<void> {
-  const novelAgentPath = path.join(projectPath, NOVELAGENT_DIR);
-  // .novelagentディレクトリがない場合は作成する
+  const novelaidPath = path.join(projectPath, NOVELAID_DIR);
+  // .novelaidディレクトリがない場合は作成する
   try {
-    await fs.mkdir(novelAgentPath, { recursive: true });
+    await fs.mkdir(novelaidPath, { recursive: true });
   } catch (err) {
     if ((err as any).code !== 'EEXIST') {
       throw err;
     }
   }
 
-  const configPath = path.join(novelAgentPath, CONFIG_FILE);
+  const configPath = path.join(novelaidPath, CONFIG_FILE);
   await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
 }

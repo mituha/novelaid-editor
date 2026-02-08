@@ -57,14 +57,14 @@ export default class MenuBuilder {
       label: 'Electron',
       submenu: [
         {
-          label: 'About novelagent-editor',
+          label: 'About novelaid-editor',
           selector: 'orderFrontStandardAboutPanel:',
         },
         { type: 'separator' },
         { label: 'Services', submenu: [] },
         { type: 'separator' },
         {
-          label: 'Hide novelagent-editor',
+          label: 'Hide novelaid-editor',
           accelerator: 'Command+H',
           selector: 'hide:',
         },

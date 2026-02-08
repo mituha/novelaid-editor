@@ -7,22 +7,22 @@ jest.mock('fs/promises');
 
 describe('project load logic', () => {
   const projectPath = '/test-project';
-  const novelAgentPath = path.join(projectPath, '.novelagent');
-  const configPath = path.join(novelAgentPath, 'config.json');
-  const pluginsPath = path.join(novelAgentPath, 'plugins');
+  const novelaidPath = path.join(projectPath, '.novelaid');
+  const configPath = path.join(novelaidPath, 'config.json');
+  const pluginsPath = path.join(novelaidPath, 'plugins');
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should return null if .novelagent directory does not exist', async () => {
+  it('should return null if .novelaid directory does not exist', async () => {
     (fs.access as jest.Mock).mockRejectedValue(new Error('ENOENT'));
 
     const result = await loadProject(projectPath);
     expect(result).toBeNull();
   });
 
-  it('should load config and plugins if .novelagent directory exists', async () => {
+  it('should load config and plugins if .novelaid directory exists', async () => {
     // fs.accessのモック (成功)
     (fs.access as jest.Mock).mockResolvedValue(undefined);
 
@@ -78,8 +78,8 @@ describe('project load logic', () => {
 
 describe('project save logic', () => {
   const projectPath = '/test-project';
-  const novelAgentPath = path.join(projectPath, '.novelagent');
-  const configPath = path.join(novelAgentPath, 'config.json');
+  const novelaidPath = path.join(projectPath, '.novelaid');
+  const configPath = path.join(novelaidPath, 'config.json');
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -92,7 +92,7 @@ describe('project save logic', () => {
     const config = { theme: 'light' };
     await saveProject(projectPath, config);
 
-    expect(fs.mkdir).toHaveBeenCalledWith(novelAgentPath, { recursive: true });
+    expect(fs.mkdir).toHaveBeenCalledWith(novelaidPath, { recursive: true });
     expect(fs.writeFile).toHaveBeenCalledWith(
       configPath,
       JSON.stringify(config, null, 2),

@@ -42,7 +42,7 @@ export function GitContextProvider({ children }: GitProviderProps) {
     setCurrentDirState(dir);
     // Update window title with folder name
     const folderName = dir.split('\\').pop() || dir;
-    window.electron.window.setTitle(`novelagent-editor - ${folderName}`);
+    window.electron.window.setTitle(`novelaid-editor - ${folderName}`);
   }, []);
 
   const refreshStatus = useCallback(async () => {

@@ -1,6 +1,6 @@
 {
-  "name": "novelagent-editor",
-  "version": "0.1.0",
+  "name": "novelaid-editor",
+  "version": "0.2.0",
   "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
@@ -13,13 +13,13 @@
     "hot",
     "reload"
   ],
-  "homepage": "https://github.com/mituha/novelagent-editor",
+  "homepage": "https://github.com/mituha/novelaid-editor",
   "bugs": {
-    "url": "https://github.com/mituha/novelagent-editor/issues"
+    "url": "https://github.com/mituha/novelaid-editor/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mituha/novelagent-editor/novelagent-editor.git"
+    "url": "git+https://github.com/mituha/novelaid-editor/novelaid-editor.git"
   },
   "license": "MIT",
   "author": {
@@ -178,8 +178,8 @@
     "webpack-merge": "^6.0.1"
   },
   "build": {
-    "productName": "novelagent-editor",
-    "appId": "net.restar.novelagent-editor",
+    "productName": "novelaid-editor",
+    "appId": "net.restar.novelaid-editor",
     "asar": true,
     "afterSign": ".erb/scripts/notarize.js",
     "asarUnpack": "**\\*.{node,dll}",
@@ -239,7 +239,7 @@
     "publish": {
       "provider": "github",
       "owner": "mituha",
-      "repo": "novelagent-editor"
+      "repo": "novelaid-editor"
     }
   },
   "devEngines": {

@@ -1,4 +1,4 @@
-# novelagent-editor
+# novelaid-editor
 
 小説執筆支援のための拡張可能なデスクトップエディタです。Electron, React, TypeScript で構築されています。
 
@@ -13,7 +13,7 @@
 
 ※未実装を含みます
 
-- **プロジェクト管理**: `.novelagent` ディレクトリを使用したプロジェクト構造の管理。
+- **プロジェクト管理**: `.novelaid` ディレクトリを使用したプロジェクト構造の管理。
 - **プラグインアーキテクチャ**: 機能拡張を容易にするためのプラグインシステム（設定画面へのタブ登録機構など）。
 - **柔軟な設定管理**: Obsidian ライクな設定モーダルUIと、JSON形式での設定永続化。
 - **モダンな技術スタック**:
@@ -35,8 +35,8 @@
 リポジトリをクローンし、依存関係をインストールします。
 
 ```bash
-git clone https://github.com/mituha/novelagent-editor.git
-cd novelagent-editor
+git clone https://github.com/mituha/novelaid-editor.git
+cd novelaid-editor
 npm install
 ```
 
