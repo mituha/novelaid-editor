@@ -34,16 +34,6 @@ export function StatusBar({
         >
           <PanelLeft size={14} />
         </button>
-        <div className="status-item file-info">
-          <span>{fileName}</span>
-        </div>
-      </div>
-      <div className="status-item right-info">
-        {metrics.map((metric) => (
-          <span key={metric.label} className="metric-item">
-            {metric.label}: {metric.value.toLocaleString()}
-          </span>
-        ))}
         <button
           type="button"
           className="status-bar-settings-btn"
@@ -55,6 +45,16 @@ export function StatusBar({
         >
           <SettingsIcon size={14} />
         </button>
+        <div className="status-item file-info">
+          <span>{fileName}</span>
+        </div>
+      </div>
+      <div className="status-item right-info">
+        {metrics.map((metric) => (
+          <span key={metric.label} className="metric-item">
+            {metric.label}: {metric.value.toLocaleString()}
+          </span>
+        ))}
         <button
           type="button"
           className={`status-pane-toggle-btn ${!isRightPaneVisible ? 'inactive' : ''}`}
