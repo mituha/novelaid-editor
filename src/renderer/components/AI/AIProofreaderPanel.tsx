@@ -31,13 +31,18 @@ interface ProofreadingAction {
   prompt: string;
 }
 
+const grammerContext = `
+なお、文章中の「|漢字《ルビ》」はルビ振りを示す記法、「《《傍点》》」は傍点を示す記法として扱ってください。
+また、これらの記号、|《》等に関する指摘は不要です。
+`;
+
 const ACTIONS: ProofreadingAction[] = [
   {
     id: 'typo',
     label: '誤字脱字',
     icon: <SpellCheck size={16} />,
     prompt:
-      '以下の文章の誤字脱字、送り仮名のミス、重複表現等を指摘してください。形式は箇条書きで、修正案も提示してください。',
+      '以下の文章の誤字脱字、送り仮名のミス、重複表現等を指摘箇条書きで指摘。修正案と修正理由を簡潔に併記。なお、ルビ、傍点の記述方法に関する指摘は不要です。',
   },
   {
     id: 'style',
@@ -164,7 +169,7 @@ export default function AIProofreaderPanel({
   const handleAction = (action: ProofreadingAction) => {
     if (!activeContent || isStreaming) return;
 
-    const fullPrompt = `${action.prompt}\n\n対象テキスト (File: ${activePath || 'Untitled'}):\n\`\`\`\n${activeContent}\n\`\`\``;
+    const fullPrompt = `${action.prompt}\n\n${grammerContext}\n\n対象テキスト (File: ${activePath || 'Untitled'}):\n\`\`\`\n${activeContent}\n\`\`\``;
 
     const userMessage: Message = {
       id: Date.now().toString(),

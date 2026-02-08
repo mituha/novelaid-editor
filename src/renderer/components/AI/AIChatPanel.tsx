@@ -8,7 +8,10 @@ interface MessagePart {
   type: 'text' | 'thought' | 'tool_call' | 'error';
   content: string;
 }
-
+const grammerContext = `
+なお、文章中の「|漢字《ルビ》」はルビ振りを示す記法、「《《傍点》》」は傍点を示す記法として扱ってください。
+また、これらの記号、|《》等に関する指摘は不要です。
+`;
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -73,7 +76,7 @@ export default function AIChatPanel({
 
     // Attach context if enabled and available
     if (includeContext && activeContent && activePath) {
-      finalContent = `Context (File: ${activePath}):\n\`\`\`\n${activeContent}\n\`\`\`\n\nUser: ${input}`;
+      finalContent = `Context (File: ${activePath}):\n\`\`\`\n${activeContent}\n\`\`\`\n\n${grammerContext}\n\nUser: ${input}`;
     }
 
     const userMessage: Message = {
