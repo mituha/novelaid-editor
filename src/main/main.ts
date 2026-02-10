@@ -16,6 +16,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { loadProject, saveProject } from './project';
+import { readDocument, saveDocument } from './metadata';
 import { ProviderFactory } from './ai/ProviderFactory';
 
 class AppUpdater {
@@ -77,6 +78,14 @@ ipcMain.handle('fs:readFile', async (_, filePath: string) => {
 
 ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
   return await fs.writeFile(filePath, content, 'utf-8');
+});
+
+ipcMain.handle('fs:readDocument', async (_, filePath: string) => {
+  return await readDocument(filePath);
+});
+
+ipcMain.handle('fs:saveDocument', async (_, filePath: string, data: any) => {
+  return await saveDocument(filePath, data);
 });
 
 ipcMain.handle('fs:createFile', async (_, filePath: string) => {

@@ -12,6 +12,8 @@ import { FileExplorerPanel } from '../components/FileExplorer/FileExplorerPanel'
 import { GitPanel } from '../components/Git/GitPanel';
 import AIChatPanel from '../components/AI/AIChatPanel';
 import AIProofreaderPanel from '../components/AI/AIProofreaderPanel';
+import { MetadataPanel } from '../components/Metadata/MetadataPanel';
+import { Database } from 'lucide-react';
 
 interface PanelContextType extends PanelRegistry {
   activeLeftPanelId: string | null;
@@ -50,6 +52,13 @@ const initialPanels: Panel[] = [
     title: 'AI Chat',
     icon: <MessageSquare size={24} strokeWidth={1.5} />,
     component: AIChatPanel,
+    defaultLocation: 'right',
+  },
+  {
+    id: 'metadata',
+    title: 'Metadata',
+    icon: <Database size={24} strokeWidth={1.5} />,
+    component: MetadataPanel,
     defaultLocation: 'right',
   },
 ];

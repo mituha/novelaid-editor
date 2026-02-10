@@ -9,7 +9,7 @@ interface FileNode {
 }
 
 interface FileExplorerProps {
-  onFileSelect: (path: string, content: string) => void;
+  onFileSelect: (path: string, data: any) => void;
   onProjectOpened?: (path: string) => void;
 }
 
@@ -20,7 +20,7 @@ function FileTreeItem({
   onRefresh,
 }: {
   file: FileNode;
-  onFileSelect: (path: string, content: string) => void;
+  onFileSelect: (path: string, data: any) => void;
   level?: number;
   onRefresh: () => void;
 }) {
@@ -61,13 +61,13 @@ function FileTreeItem({
       setIsOpen(!isOpen);
     } else {
       try {
-        const content = await window.electron.ipcRenderer.invoke(
-          'fs:readFile',
+        const data = await window.electron.ipcRenderer.invoke(
+          'fs:readDocument',
           file.path,
         );
-        onFileSelect(file.path, content as string);
+        onFileSelect(file.path, data);
       } catch (err) {
-        console.error('Failed to read file', err);
+        console.error('Failed to read document', err);
       }
     }
   };

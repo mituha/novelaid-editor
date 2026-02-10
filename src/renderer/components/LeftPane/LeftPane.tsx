@@ -2,8 +2,9 @@ import React from 'react';
 import { SidePane } from '../Common/SidePane';
 
 interface LeftPaneProps {
-  onFileSelect: (path: string, content: string) => void;
+  onFileSelect: (path: string, data: any) => void;
   onProjectOpened: (path: string) => void;
+  [key: string]: any;
 }
 
 export const LeftPane: React.FC<LeftPaneProps> = (props) => {

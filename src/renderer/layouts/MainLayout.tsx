@@ -23,7 +23,9 @@ export default function MainLayout() {
   const [rightActivePath, setRightActivePath] = useState<string | null>(null);
   const [activeSide, setActiveSide] = useState<'left' | 'right'>('left');
   const [isSplit, setIsSplit] = useState(false);
-  const [tabContents, setTabContents] = useState<Record<string, string>>({});
+  const [tabContents, setTabContents] = useState<
+    Record<string, { content: string; metadata: Record<string, any> }>
+  >({});
   const { settings, openSettings, registerSettingTab, loadProjectSettings } =
     useSettings();
 
@@ -121,9 +123,11 @@ export default function MainLayout() {
   }, [settings.theme]);
 
   const handleFileSelect = useCallback(
-    (path: string, content: string) => {
-      const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
-      const setActivePath = activeSide === 'left' ? setLeftActivePath : setRightActivePath;
+    (path: string, data: { content: string; metadata: Record<string, any> }) => {
+      const setTabs =
+        activeSide === 'left' ? setLeftTabs : setRightTabs;
+      const setActivePath =
+        activeSide === 'left' ? setLeftActivePath : setRightActivePath;
 
       setTabs((prev) => {
         if (prev.find((tab) => tab.path === path)) {
@@ -133,7 +137,7 @@ export default function MainLayout() {
         return [...prev, { path, name }];
       });
       setTabContents((prev) => {
-        return { ...prev, [path]: content };
+        return { ...prev, [path]: data };
       });
 
       setActivePath(path);
@@ -232,7 +236,7 @@ export default function MainLayout() {
     if (path) {
       setTabContents((prev) => ({
         ...prev,
-        [path]: value || '',
+        [path]: { ...prev[path], content: value || '' },
       }));
       // Mark as dirty in both lists
       setLeftTabs((prev) =>
@@ -244,17 +248,32 @@ export default function MainLayout() {
     }
   };
 
+  const handleMetadataChange = useCallback((path: string | null, metadata: Record<string, any>) => {
+    if (path) {
+      setTabContents((prev) => ({
+        ...prev,
+        [path]: { ...prev[path], metadata },
+      }));
+      setLeftTabs((prev) =>
+        prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
+      );
+      setRightTabs((prev) =>
+        prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
+      );
+    }
+  }, []);
+
   React.useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         if (activeTabPath) {
           try {
-            const content = tabContents[activeTabPath];
+            const data = tabContents[activeTabPath];
             await window.electron.ipcRenderer.invoke(
-              'fs:writeFile',
+              'fs:saveDocument',
               activeTabPath,
-              content,
+              data,
             );
             // console.log('Saved:', activeTabPath);
             setLeftTabs((prev) =>
@@ -282,14 +301,14 @@ export default function MainLayout() {
     path?.startsWith('preview://') ? path.replace('preview://', '') : path;
 
   const activeContent = activeTabPath
-    ? tabContents[getOriginalPath(activeTabPath) || '']
+    ? tabContents[getOriginalPath(activeTabPath) || '']?.content
     : '';
 
   const renderEditorOrPreview = (side: 'left' | 'right') => {
     const activePath = side === 'left' ? leftActivePath : rightActivePath;
-    const content = activePath ? tabContents[activePath] : '';
+    const data = activePath ? tabContents[activePath] : null;
 
-    if (!activePath) {
+    if (!activePath || !data) {
       return (
         <div className="empty-editor-state">
           <p>Select a file to edit ({side === 'left' ? 'Left' : 'Right'})</p>
@@ -299,13 +318,13 @@ export default function MainLayout() {
 
     if (activePath.startsWith('preview://')) {
       const originalPath = activePath.replace('preview://', '');
-      return <NovelPreview content={tabContents[originalPath] || ''} />;
+      return <NovelPreview content={tabContents[originalPath]?.content || ''} />;
     }
 
     return (
       <CodeEditor
         key={`${side}-${activePath}`}
-        value={content}
+        value={data.content}
         onChange={handleContentChange(activePath)}
         onFocus={() => setActiveSide(side)}
       />
@@ -326,7 +345,7 @@ export default function MainLayout() {
         >
           <LeftPane
             onFileSelect={handleFileSelect}
-            onProjectOpened={loadProjectSettings}
+            onProjectOpened={(path) => loadProjectSettings(path)}
           />
         </div>
         {!isLeftPaneNarrow && <Resizer onResize={handleLeftResize} />}
@@ -424,14 +443,20 @@ export default function MainLayout() {
             overflow: 'hidden',
           }}
         >
-          <RightPane activeContent={activeContent} activePath={activeTabPath} />
+          <RightPane
+            activeContent={activeContent}
+            activePath={activeTabPath}
+            metadata={activeTabPath ? tabContents[activeTabPath]?.metadata : undefined}
+            onMetadataChange={(metadata) => handleMetadataChange(activeTabPath, metadata)}
+          />
         </div>
       </div>
       <StatusBar
         metrics={CharCounter.getMetrics(
           activeTabPath && !activeTabPath.startsWith('preview://')
-            ? tabContents[activeTabPath] || ''
+            ? tabContents[activeTabPath]?.content || ''
             : '',
+          activeTabPath
         )}
         activePath={getOriginalPath(activeTabPath)}
         openSettings={openSettings}
