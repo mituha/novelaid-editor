@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CodeEditor from '../components/Editor/CodeEditor';
 import { TabBar, Tab } from '../components/TabBar/TabBar';
 import { SettingsModal } from '../components/Settings/SettingsModal';
@@ -26,6 +27,7 @@ export default function MainLayout() {
   const [tabContents, setTabContents] = useState<
     Record<string, { content: string; metadata: Record<string, any> }>
   >({});
+  const navigate = useNavigate();
   const { settings, openSettings, registerSettingTab, loadProjectSettings } =
     useSettings();
 
@@ -460,6 +462,7 @@ export default function MainLayout() {
         )}
         activePath={getOriginalPath(activeTabPath)}
         openSettings={openSettings}
+        onGoHome={() => navigate('/')}
         onToggleLeftPane={handleToggleLeftPane}
         onToggleRightPane={handleToggleRightPane}
         isLeftPaneVisible={!isLeftPaneNarrow}

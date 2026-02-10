@@ -17,6 +17,11 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { loadProject, saveProject } from './project';
 import { readDocument, saveDocument } from './metadata';
+import {
+  getRecentProjects,
+  addRecentProject,
+  removeRecentProject,
+} from './launcher';
 import { ProviderFactory } from './ai/ProviderFactory';
 
 class AppUpdater {
@@ -138,6 +143,18 @@ ipcMain.handle(
     return await saveProject(projectPath, config);
   },
 );
+
+ipcMain.handle('recent:get', async () => {
+  return await getRecentProjects();
+});
+
+ipcMain.handle('recent:add', async (_, projectPath: string) => {
+  return await addRecentProject(projectPath);
+});
+
+ipcMain.handle('recent:remove', async (_, projectPath: string) => {
+  return await removeRecentProject(projectPath);
+});
 
 ipcMain.handle('ai:generate', async (_, prompt: string, config: any) => {
   try {

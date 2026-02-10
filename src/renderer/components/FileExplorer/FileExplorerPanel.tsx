@@ -282,6 +282,7 @@ export function FileExplorerPanel({
         'dialog:openDirectory',
       );
       if (path) {
+        await window.electron.ipcRenderer.invoke('recent:add', path);
         setCurrentDir(path);
         if (onProjectOpened) {
           onProjectOpened(path);

@@ -45,7 +45,8 @@
 }
 
 .status-pane-toggle-btn,
-.status-bar-settings-btn {
+.status-bar-settings-btn,
+.status-bar-home-btn {
   background: none;
   border: none;
   color: var(--text-primary);
@@ -60,7 +61,8 @@
 }
 
 .status-pane-toggle-btn:hover,
-.status-bar-settings-btn:hover {
+.status-bar-settings-btn:hover,
+.status-bar-home-btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
   opacity: 1;
 }

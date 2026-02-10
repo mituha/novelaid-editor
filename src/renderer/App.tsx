@@ -5,6 +5,7 @@ import { GitContextProvider } from './contexts/GitContext';
 import './App.css';
 
 import { PanelProvider } from './contexts/PanelContext';
+import ProjectLauncher from './components/Launcher/ProjectLauncher';
 
 export default function App() {
   return (
@@ -13,7 +14,8 @@ export default function App() {
         <GitContextProvider>
           <PanelProvider>
             <Routes>
-              <Route path="/" element={<MainLayout />} />
+              <Route path="/" element={<ProjectLauncher />} />
+              <Route path="/editor" element={<MainLayout />} />
             </Routes>
           </PanelProvider>
         </GitContextProvider>

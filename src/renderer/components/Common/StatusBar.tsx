@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, PanelLeft, PanelRight } from 'lucide-react';
+import { Settings as SettingsIcon, PanelLeft, PanelRight, Home } from 'lucide-react';
 import './StatusBar.css';
 import { CountMetric } from '../../utils/CharCounter';
 
@@ -6,6 +6,7 @@ interface StatusBarProps {
   metrics: CountMetric[];
   activePath: string | null;
   openSettings: () => void;
+  onGoHome: () => void;
   onToggleLeftPane: () => void;
   onToggleRightPane: () => void;
   isLeftPaneVisible: boolean;
@@ -16,6 +17,7 @@ export function StatusBar({
   metrics,
   activePath,
   openSettings,
+  onGoHome,
   onToggleLeftPane,
   onToggleRightPane,
   isLeftPaneVisible,
@@ -26,6 +28,14 @@ export function StatusBar({
   return (
     <div className="status-bar">
       <div className="status-item left-group">
+        <button
+          type="button"
+          className="status-bar-home-btn"
+          onClick={onGoHome}
+          title="保管庫一覧へ戻る"
+        >
+          <Home size={14} />
+        </button>
         <button
           type="button"
           className={`status-pane-toggle-btn ${!isLeftPaneVisible ? 'inactive' : ''}`}

@@ -28,7 +28,10 @@ export type Channels =
   | 'git:log'
   | 'git:add'
   | 'git:commit'
-  | 'window:setTitle';
+  | 'window:setTitle'
+  | 'recent:get'
+  | 'recent:add'
+  | 'recent:remove';
 
 const electronHandler = {
   ipcRenderer: {
