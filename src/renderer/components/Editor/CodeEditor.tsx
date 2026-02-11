@@ -162,11 +162,38 @@ export default function CodeEditor({
     monaco.languages.setMonarchTokensProvider('novel', {
       tokenizer: {
         root: [
-          [NOVEL_MONARCH_PATTERNS.DIALOGUE, 'novel.dialogue'],
-          [NOVEL_MONARCH_PATTERNS.DIALOGUE_DOUBLE, 'novel.dialogue'],
-          [NOVEL_MONARCH_PATTERNS.RUBY, 'novel.ruby'],
+          [
+            NOVEL_MONARCH_PATTERNS.DIALOGUE_START,
+            { token: 'novel.dialogue', next: '@dialogue' },
+          ],
+          [
+            NOVEL_MONARCH_PATTERNS.DIALOGUE_DOUBLE_START,
+            { token: 'novel.dialogue', next: '@dialogue_double' },
+          ],
+          [NOVEL_MONARCH_PATTERNS.RUBY_PIPE, 'novel.ruby'],
+          [NOVEL_MONARCH_PATTERNS.RUBY_KANJI, 'novel.ruby'],
           [NOVEL_MONARCH_PATTERNS.BOUTEN, 'novel.bouten'],
           { include: '@whitespace' },
+        ],
+        dialogue: [
+          [
+            NOVEL_MONARCH_PATTERNS.DIALOGUE_END,
+            { token: 'novel.dialogue', next: '@pop' },
+          ],
+          [NOVEL_MONARCH_PATTERNS.RUBY_PIPE, 'novel.ruby'],
+          [NOVEL_MONARCH_PATTERNS.RUBY_KANJI, 'novel.ruby'],
+          [NOVEL_MONARCH_PATTERNS.BOUTEN, 'novel.bouten'],
+          [/./, 'novel.dialogue'],
+        ],
+        dialogue_double: [
+          [
+            NOVEL_MONARCH_PATTERNS.DIALOGUE_DOUBLE_END,
+            { token: 'novel.dialogue', next: '@pop' },
+          ],
+          [NOVEL_MONARCH_PATTERNS.RUBY_PIPE, 'novel.ruby'],
+          [NOVEL_MONARCH_PATTERNS.RUBY_KANJI, 'novel.ruby'],
+          [NOVEL_MONARCH_PATTERNS.BOUTEN, 'novel.bouten'],
+          [/./, 'novel.dialogue'],
         ],
         whitespace: [[/[ \t\r\n]+/, 'white']],
       },
