@@ -69,7 +69,8 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  /* Reduced from 6 */
   font-size: 13px;
   color: var(--text-secondary);
   transition: background-color 0.1s;
@@ -106,7 +107,13 @@
   align-items: center;
   justify-content: center;
   width: 16px;
-  opacity: 0.6;
+  opacity: 0.4;
+  /* Slightly more subtle */
+  transition: opacity 0.2s;
+}
+
+.file-item:hover .chevron {
+  opacity: 0.8;
 }
 
 .rename-input {

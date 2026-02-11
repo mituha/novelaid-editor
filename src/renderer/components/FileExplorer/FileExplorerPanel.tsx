@@ -11,6 +11,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
 import './FileExplorerPanel.css';
 
+const BASE_INDENT = 8;
+const INDENT_STEP = 16;
+
 interface FileNode {
   name: string;
   isDirectory: boolean;
@@ -45,7 +48,7 @@ function FileTreeItem({
   creatingType: 'file' | 'folder' | null;
   newChildName: string;
   setNewChildName: (val: string) => void;
-  handleCreateChild: (e: React.KeyboardEvent) => void;
+  handleCreateChild: (e: React.KeyboardEvent, onDone?: () => void) => void;
   setCreatingPath: (path: string | null) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -189,6 +192,10 @@ function FileTreeItem({
     };
   }, [file.path, handleDelete]);
 
+  const handleLocalCreate = (e: React.KeyboardEvent) => {
+    handleCreateChild(e, loadDirectory);
+  };
+
   const getFileIcon = (fileName: string) => {
     if (fileName.endsWith('.md')) return <FileText size={16} />;
     if (fileName.endsWith('.json')) return <FileJson size={16} />;
@@ -203,16 +210,16 @@ function FileTreeItem({
         className={`file-item ${file.isDirectory ? 'directory' : 'file'} ${
           selectedPath === file.path ? 'active' : ''
         }`}
-        style={{ paddingLeft: `${10 + level * 12}px` }}
+        style={{ paddingLeft: `${BASE_INDENT + level * INDENT_STEP}px` }}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
       >
-        {file.isDirectory && (
-          <span className="chevron">
-            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </span>
-        )}
+        <span className="chevron">
+          {file.isDirectory ? (
+            isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />
+          ) : null}
+        </span>
         <span className="icon">
           {file.isDirectory ? (
             <Folder
@@ -248,10 +255,11 @@ function FileTreeItem({
               role="button"
               tabIndex={0}
               className="file-item"
-              style={{ paddingLeft: `${10 + (level + 1) * 12 + 16}px` }}
+              style={{ paddingLeft: `${BASE_INDENT + (level + 1) * INDENT_STEP}px` }}
               onKeyDown={() => {}}
               onClick={(e) => e.stopPropagation()}
             >
+              <span className="chevron" />
               <span className="icon">
                 {creatingType === 'file' ? (
                   <FileText size={16} />
@@ -266,7 +274,7 @@ function FileTreeItem({
                 value={newChildName}
                 placeholder={`New ${creatingType}...`}
                 onChange={(e) => setNewChildName(e.target.value)}
-                onKeyDown={handleCreateChild}
+                onKeyDown={handleLocalCreate}
                 onBlur={() => setCreatingPath(null)}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -278,7 +286,7 @@ function FileTreeItem({
               file={child}
               onFileSelect={onFileSelect}
               level={level + 1}
-              onRefresh={onRefresh}
+              onRefresh={loadDirectory}
               selectedPath={selectedPath}
               onSelect={onSelect}
               creatingPath={creatingPath}
@@ -354,7 +362,10 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     }
   };
 
-  const handleCreate = async (e: React.KeyboardEvent) => {
+  const handleCreate = async (
+    e: React.KeyboardEvent,
+    onCreated?: () => void,
+  ) => {
     if (e.key === 'Enter' && newName && creatingPath) {
       try {
         const fullPath = `${creatingPath}/${newName}`;
@@ -366,6 +377,7 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
             fullPath,
           );
         }
+        if (onCreated) onCreated();
         setCreatingPath(null);
         setNewName('');
         refreshRoot();
@@ -410,10 +422,11 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
             role="button"
             tabIndex={0}
             className="file-item"
-            style={{ paddingLeft: '10px' }}
+            style={{ paddingLeft: `${BASE_INDENT}px` }}
             onKeyDown={() => {}} /* Creation input handles its own keys */
             onClick={(e) => e.stopPropagation()}
           >
+            <span className="chevron" />
             <span className="icon">
               {creatingType === 'file' ? (
                 <FileText size={16} />
