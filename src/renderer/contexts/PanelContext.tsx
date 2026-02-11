@@ -15,6 +15,7 @@ import {
   Database,
   Users,
   MapPin,
+  Share2,
 } from 'lucide-react';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import FileExplorerPanel from '../components/FileExplorer/FileExplorerPanel';
@@ -23,6 +24,7 @@ import AIChatPanel from '../components/AI/AIChatPanel';
 import AIProofreaderPanel from '../components/AI/AIProofreaderPanel';
 import MetadataListPanel from '../components/Metadata/MetadataListPanel';
 import { MetadataPropertyEditor } from '../components/Metadata/MetadataPropertyEditor';
+import { SubmissionPanel } from '../components/Submission/SubmissionPanel';
 
 interface PanelContextType extends PanelRegistry {
   activeLeftPanelId: string | null;
@@ -103,11 +105,18 @@ const initialPanels: Panel[] = [
     component: MetadataPropertyEditor,
     defaultLocation: 'right',
   },
+  {
+    id: 'submission',
+    title: '投稿補助',
+    icon: <Share2 size={24} strokeWidth={1.5} />,
+    component: ({ onOpenWebBrowser }: any) => (
+      <SubmissionPanel onOpenWeb={onOpenWebBrowser} />
+    ),
+    defaultLocation: 'left',
+  },
 ];
 
-export const PanelProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export function PanelProvider({ children }: { children: ReactNode }) {
   const [panels, setPanels] = useState<Panel[]>(initialPanels);
   const [activeLeftPanelId, setActiveLeftPanelId] = useState<string | null>(
     'files',
@@ -175,7 +184,7 @@ export const PanelProvider: React.FC<{ children: ReactNode }> = ({
   return (
     <PanelContext.Provider value={value}>{children}</PanelContext.Provider>
   );
-};
+}
 
 export const usePanel = () => {
   const context = useContext(PanelContext);

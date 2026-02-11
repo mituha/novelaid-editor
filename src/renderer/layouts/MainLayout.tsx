@@ -14,6 +14,7 @@ import { CharCounter } from '../utils/CharCounter';
 import NovelPreview from '../components/Preview/NovelPreview';
 import DiffViewer from '../components/Git/DiffViewer';
 import { usePanel } from '../contexts/PanelContext';
+import WebBrowser from '../components/Common/WebBrowser';
 import './MainLayout.css';
 
 import { LeftPane } from '../components/LeftPane/LeftPane';
@@ -260,6 +261,22 @@ export default function MainLayout() {
     setActivePath(diffPath);
   };
 
+  const handleOpenWebBrowser = (url: string, title: string) => {
+    const webPath = `web-browser://${url}`;
+    const webName = `Web: ${title}`;
+    const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
+    const setActivePath =
+      activeSide === 'left' ? setLeftActivePath : setRightActivePath;
+
+    setTabs((prev) => {
+      if (prev.find((tab) => tab.path === webPath)) {
+        return prev;
+      }
+      return [...prev, { path: webPath, name: webName }];
+    });
+    setActivePath(webPath);
+  };
+
   // Auto-unsplit when one side becomes empty
   useEffect(() => {
     if (isSplit) {
@@ -408,6 +425,11 @@ export default function MainLayout() {
       return <DiffViewer path={filePath} staged={staged} />;
     }
 
+    if (activePath.startsWith('web-browser://')) {
+      const url = activePath.replace('web-browser://', '');
+      return <WebBrowser initialUrl={url} />;
+    }
+
     const data = tabContents[activePath];
     if (!data) {
       return (
@@ -443,6 +465,7 @@ export default function MainLayout() {
             onFileSelect={handleFileSelect}
             onProjectOpened={(path) => loadProjectSettings(path)}
             onOpenDiff={handleOpenDiff}
+            onOpenWebBrowser={handleOpenWebBrowser}
           />
         </div>
         {!isLeftPaneNarrow && <Resizer onResize={handleLeftResize} />}
@@ -546,6 +569,7 @@ export default function MainLayout() {
             activePath={activeTabPath}
             metadata={activeTabPath ? tabContents[activeTabPath]?.metadata : undefined}
             onMetadataChange={(metadata) => handleMetadataChange(activeTabPath, metadata)}
+            onOpenWebBrowser={handleOpenWebBrowser}
           />
         </div>
       </div>

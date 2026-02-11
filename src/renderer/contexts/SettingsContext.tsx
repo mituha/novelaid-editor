@@ -39,6 +39,11 @@ export interface ProjectConfig {
     title: string;
     tag: string;
   }[];
+  submission?: {
+    kakuyomuUrl?: string;
+    naroUrl?: string;
+    customUrl?: string;
+  };
   [key: string]: any;
 }
 
@@ -73,10 +78,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       selectionHighlight: true,
       occurrencesHighlight: false, //小説執筆としては不要
     },
+    submission: {
+      kakuyomuUrl: 'https://kakuyomu.jp/my',
+      naroUrl: 'https://syosetu.com/usernovel/list/',
+    },
   });
   const [settingTabs, setSettingTabs] = useState<SettingsTab[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [projectPath, setProjectPath] = useState<string | null>(null); // eslint-disable-line
+  const [projectPath, setProjectPath] = useState<string | null>(null); // eslint-disable-line space-in-parens
 
   const loadProjectSettings = useCallback(async (path: string) => {
     setProjectPath(path);

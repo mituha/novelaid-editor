@@ -1,0 +1,64 @@
+.submission-panel {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.submission-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.submission-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.submission-btn:hover {
+    background-color: var(--accent-primary-dim);
+    border-color: var(--accent-primary);
+}
+
+.submission-btn svg {
+    color: var(--accent-primary);
+}
+
+.submission-info {
+    margin-top: auto;
+    padding: 12px;
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.submission-info p {
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-item svg {
+    flex-shrink: 0;
+}
