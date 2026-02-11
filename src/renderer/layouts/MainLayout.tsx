@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CodeEditor from '../components/Editor/CodeEditor';
 import { TabBar, Tab } from '../components/TabBar/TabBar';
@@ -46,6 +46,7 @@ export default function MainLayout() {
   const rightDisplayWidth = isRightPaneNarrow ? 50 : rightPaneWidth;
 
   const activeTabPath = activeSide === 'left' ? leftActivePath : rightActivePath;
+  const savingPaths = useRef<Set<string>>(new Set());
 
   const handleLeftResize = useCallback((delta: number) => {
     setLeftPaneWidth((prev) => Math.max(150, Math.min(600, prev + delta)));
@@ -120,8 +121,12 @@ export default function MainLayout() {
         const lTab = findTab(leftTabs);
         const rTab = findTab(rightTabs);
         const targetTab = lTab || rTab;
-
         if (targetTab) {
+          if (savingPaths.current.has(path)) {
+            // This change was triggered by our own save operation
+            return;
+          }
+
           if (targetTab.isDirty) {
             const confirmed = await window.electron.ipcRenderer.invoke(
               'dialog:confirm',
@@ -337,6 +342,7 @@ export default function MainLayout() {
         if (activeTabPath) {
           try {
             const data = tabContents[activeTabPath];
+            savingPaths.current.add(activeTabPath);
             await window.electron.ipcRenderer.invoke(
               'fs:saveDocument',
               activeTabPath,
@@ -353,7 +359,13 @@ export default function MainLayout() {
                 tab.path === activeTabPath ? { ...tab, isDirty: false } : tab,
               ),
             );
+
+            // Give chokidar some time to report the event before we stop ignoring it
+            setTimeout(() => {
+              savingPaths.current.delete(activeTabPath);
+            }, 1000);
           } catch (error) {
+            savingPaths.current.delete(activeTabPath);
             // console.error('Save failed:', error);
           }
         }
