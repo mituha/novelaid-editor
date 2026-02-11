@@ -50,6 +50,10 @@ export class GitService {
     await this.getGit(dir).add(files);
   }
 
+  async reset(dir: string, files: string[]): Promise<void> {
+    await this.getGit(dir).reset(['HEAD', ...files]);
+  }
+
   async commit(dir: string, message: string): Promise<void> {
     await this.getGit(dir).commit(message);
   }

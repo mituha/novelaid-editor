@@ -26,6 +26,8 @@ export type Channels =
   | 'git:init'
   | 'git:status'
   | 'git:log'
+  | 'git:add'
+  | 'git:reset'
   | 'git:commit'
   | 'window:setTitle'
   | 'recent:get'
@@ -66,6 +68,9 @@ const electronHandler = {
     },
     add(dir: string, files: string[]) {
       return ipcRenderer.invoke('git:add', dir, files);
+    },
+    reset(dir: string, files: string[]) {
+      return ipcRenderer.invoke('git:reset', dir, files);
     },
     commit(dir: string, message: string) {
       return ipcRenderer.invoke('git:commit', dir, message);

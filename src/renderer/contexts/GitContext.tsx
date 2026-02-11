@@ -15,6 +15,7 @@ interface GitContextType {
   refreshHistory: () => Promise<void>;
   initRepo: () => Promise<void>;
   stageFiles: (files: string[]) => Promise<void>;
+  unstageFiles: (files: string[]) => Promise<void>;
   commitChanges: (message: string) => Promise<void>;
   setCurrentDir: (dir: string) => void;
 }
@@ -83,6 +84,15 @@ export function GitContextProvider({ children }: GitProviderProps) {
     [currentDir, refreshStatus],
   );
 
+  const unstageFiles = useCallback(
+    async (files: string[]) => {
+      if (!currentDir) return;
+      await window.electron.git.reset(currentDir, files);
+      await refreshStatus();
+    },
+    [currentDir, refreshStatus],
+  );
+
   const commitChanges = useCallback(
     async (message: string) => {
       if (!currentDir) return;
@@ -102,6 +112,7 @@ export function GitContextProvider({ children }: GitProviderProps) {
       refreshHistory,
       initRepo,
       stageFiles,
+      unstageFiles,
       commitChanges,
       setCurrentDir,
     }),
@@ -113,6 +124,7 @@ export function GitContextProvider({ children }: GitProviderProps) {
       refreshHistory,
       initRepo,
       stageFiles,
+      unstageFiles,
       commitChanges,
       setCurrentDir,
     ],

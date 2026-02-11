@@ -338,6 +338,10 @@ ipcMain.handle('git:add', async (_, dir: string, files: string[]) => {
   return await GitService.getInstance().add(dir, files);
 });
 
+ipcMain.handle('git:reset', async (_, dir: string, files: string[]) => {
+  return await GitService.getInstance().reset(dir, files);
+});
+
 ipcMain.handle('git:commit', async (_, dir: string, message: string) => {
   return await GitService.getInstance().commit(dir, message);
 });

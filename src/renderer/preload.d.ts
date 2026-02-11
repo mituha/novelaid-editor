@@ -14,6 +14,7 @@ declare global {
         status(dir: string): Promise<GitFileStatus[]>;
         log(dir: string): Promise<GitLogEntry[]>;
         add(dir: string, files: string[]): Promise<void>;
+        reset(dir: string, files: string[]): Promise<void>;
         commit(dir: string, message: string): Promise<void>;
       };
       window: {
