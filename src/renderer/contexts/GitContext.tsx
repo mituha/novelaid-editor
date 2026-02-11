@@ -46,6 +46,8 @@ export function GitContextProvider({ children }: GitProviderProps) {
     window.electron.window.setTitle(`novelaid-editor - ${folderName}`);
   }, []);
 
+
+
   const refreshStatus = useCallback(async () => {
     if (!currentDir) return;
     try {
@@ -102,6 +104,16 @@ export function GitContextProvider({ children }: GitProviderProps) {
     },
     [currentDir, refreshStatus, refreshHistory],
   );
+
+  React.useEffect(() => {
+    if (!currentDir) return;
+    const cleanup = window.electron.fs.onFileChange(() => {
+      refreshStatus();
+    });
+    return () => {
+      cleanup();
+    };
+  }, [currentDir, refreshStatus]);
 
   const value = React.useMemo(
     () => ({

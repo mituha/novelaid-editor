@@ -21,6 +21,9 @@ declare global {
       window: {
         setTitle(title: string): Promise<void>;
       };
+      fs: {
+        onFileChange(func: (payload: any) => void): () => void;
+      };
     };
   }
 }

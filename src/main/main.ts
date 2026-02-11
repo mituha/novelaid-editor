@@ -23,6 +23,8 @@ import {
   removeRecentProject,
 } from './launcher';
 import { ProviderFactory } from './ai/ProviderFactory';
+import { GitService } from './git/GitService';
+import { FileWatcher } from './watcher';
 
 class AppUpdater {
   constructor() {
@@ -33,6 +35,7 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
+const fileWatcher = new FileWatcher(null);
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
@@ -134,7 +137,11 @@ ipcMain.handle('fs:delete', async (_, targetPath: string) => {
 });
 
 ipcMain.handle('project:load', async (_, projectPath: string) => {
-  return await loadProject(projectPath);
+  const project = await loadProject(projectPath);
+  if (project) {
+    fileWatcher.start(projectPath);
+  }
+  return project;
 });
 
 ipcMain.handle(
@@ -320,7 +327,7 @@ ipcMain.on('ai:streamChat', async (event, messages: any[], config: any) => {
     }
 });
 
-import { GitService } from './git/GitService';
+
 
 ipcMain.handle('git:init', async (_, dir: string) => {
   return await GitService.getInstance().init(dir);
@@ -399,6 +406,8 @@ const createWindow = async () => {
         : path.join(__dirname, '../../.erb/dll/preload.js'),
     },
   });
+
+  fileWatcher.setWindow(mainWindow);
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 

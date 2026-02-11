@@ -34,7 +34,8 @@ export type Channels =
   | 'recent:get'
   | 'recent:add'
   | 'recent:remove'
-  | 'menu:go-home';
+  | 'menu:go-home'
+  | 'fs:file-changed';
 
 const electronHandler = {
   ipcRenderer: {
@@ -81,6 +82,17 @@ const electronHandler = {
   window: {
     setTitle(title: string) {
       return ipcRenderer.invoke('window:setTitle', title);
+    },
+  },
+  fs: {
+    onFileChange(func: (payload: any) => void) {
+      const subscription = (_event: IpcRendererEvent, payload: any) =>
+        func(payload);
+      ipcRenderer.on('fs:file-changed', subscription);
+
+      return () => {
+        ipcRenderer.removeListener('fs:file-changed', subscription);
+      };
     },
   },
 };

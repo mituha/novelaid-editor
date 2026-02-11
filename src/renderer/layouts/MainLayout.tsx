@@ -112,6 +112,59 @@ export default function MainLayout() {
     return () => {};
   }, [registerSettingTab, openSettings]);
 
+  // Handle external file changes
+  useEffect(() => {
+    const cleanup = window.electron.fs.onFileChange(async ({ event, path }) => {
+      if (event === 'change') {
+        const findTab = (tabs: Tab[]) => tabs.find((t) => t.path === path);
+        const lTab = findTab(leftTabs);
+        const rTab = findTab(rightTabs);
+        const targetTab = lTab || rTab;
+
+        if (targetTab) {
+          if (targetTab.isDirty) {
+            const confirmed = await window.electron.ipcRenderer.invoke(
+              'dialog:confirm',
+              `${targetTab.name} は外部で変更されました。ローカルの変更を破棄して再読み込みしますか？`,
+            );
+            if (!confirmed) return;
+          }
+
+          try {
+            const data = await window.electron.ipcRenderer.invoke(
+              'fs:readDocument',
+              path,
+            );
+            setTabContents((prev) => ({ ...prev, [path]: data }));
+
+            // Mark as not dirty
+            setLeftTabs((prev) =>
+              prev.map((t) => (t.path === path ? { ...t, isDirty: false } : t)),
+            );
+            setRightTabs((prev) =>
+              prev.map((t) => (t.path === path ? { ...t, isDirty: false } : t)),
+            );
+          } catch (err) {
+            console.error('Failed to reload file', err);
+          }
+        }
+      } else if (event === 'unlink') {
+        // Handle file deletion? (Maybe close tab or show warning)
+        setLeftTabs((prev) => prev.filter((t) => t.path !== path));
+        setRightTabs((prev) => prev.filter((t) => t.path !== path));
+        setTabContents((prev) => {
+          const next = { ...prev };
+          delete next[path];
+          return next;
+        });
+      }
+    });
+
+    return () => {
+      cleanup();
+    };
+  }, [leftTabs, rightTabs]);
+
   // Apply theme to body
   useEffect(() => {
     const theme = settings.theme || 'dark';
