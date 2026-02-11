@@ -1,3 +1,5 @@
+import { NOVEL_PATTERNS } from '../../common/constants/novel';
+
 export interface CountMetric {
   label: string;
   value: number;
@@ -28,15 +30,16 @@ export class DefaultCountStrategy implements CountStrategy {
 export class NovelCountStrategy implements CountStrategy {
   count(text: string): CountMetric[] {
     // 1. Remove Emphasis Dots: 《《傍点》》 -> 傍点
-    let processed = text.replace(/《《([^》\n]+)》》/g, '$1');
+    let processed = text.replace(NOVEL_PATTERNS.BOUTEN, '$1');
 
     // 2. Remove Ruby syntax: |漢字《かんじ》 or ｜漢字《かんじ》 or 漢字《かんじ》
     // We want to keep the "Body" (漢字), not the ruby (かんじ) or the prefix pipe.
-    processed = processed.replace(/[|｜]([^|｜\n《》]+)《[^》\n]+》/g, '$1'); // With pipe
-    processed = processed.replace(/([^|｜\n《》]+)《[^》\n]+》/g, '$1'); // Without pipe (general ruby)
+    processed = processed.replace(NOVEL_PATTERNS.RUBY_WITH_PIPE, '$1'); // With pipe
+    processed = processed.replace(NOVEL_PATTERNS.RUBY_WITHOUT_PIPE, '$1'); // Without pipe (general ruby)
 
     // 3. Remove whitespace, newlines, and full-width spaces
-    processed = processed.replace(/[\s　]/g, '');
+    processed = processed.replace(/[\s]/g, ''); // \s includes \r\n\t
+    processed = processed.replace(NOVEL_PATTERNS.FULL_WIDTH_SPACE, '');
 
     return [
       {

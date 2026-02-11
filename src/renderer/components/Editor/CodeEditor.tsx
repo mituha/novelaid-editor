@@ -1,7 +1,11 @@
 import React, { useState, useCallback, useRef } from 'react';
 import Editor, { OnMount, BeforeMount } from '@monaco-editor/react';
-import RubyDialog from './RubyDialog';
 import { useSettings } from '../../contexts/SettingsContext';
+import {
+  NOVEL_PATTERNS,
+  NOVEL_MONARCH_PATTERNS,
+} from '../../../common/constants/novel';
+import RubyDialog from './RubyDialog';
 import './CodeEditor.css';
 
 interface CodeEditorProps {
@@ -92,10 +96,9 @@ export default function CodeEditor({
     const text = model.getValue();
 
     // Visualize full-width spaces
-    const fullWidthSpaceRegex = /\u3000/g;
     let match;
     // eslint-disable-next-line no-cond-assign
-    while ((match = fullWidthSpaceRegex.exec(text)) !== null) {
+    while ((match = NOVEL_PATTERNS.FULL_WIDTH_SPACE.exec(text)) !== null) {
       const startPos = model.getPositionAt(match.index);
       const endPos = model.getPositionAt(match.index + 1);
       newDecorations.push({
@@ -159,10 +162,10 @@ export default function CodeEditor({
     monaco.languages.setMonarchTokensProvider('novel', {
       tokenizer: {
         root: [
-          [/「[^」]*」/, 'novel.dialogue'],
-          [/『[^』]*』/, 'novel.dialogue'],
-          [/\|[^《]*《[^》]*》/, 'novel.ruby'],
-          [/《《[^》]*》》/, 'novel.bouten'],
+          [NOVEL_MONARCH_PATTERNS.DIALOGUE, 'novel.dialogue'],
+          [NOVEL_MONARCH_PATTERNS.DIALOGUE_DOUBLE, 'novel.dialogue'],
+          [NOVEL_MONARCH_PATTERNS.RUBY, 'novel.ruby'],
+          [NOVEL_MONARCH_PATTERNS.BOUTEN, 'novel.bouten'],
           { include: '@whitespace' },
         ],
         whitespace: [[/[ \t\r\n]+/, 'white']],

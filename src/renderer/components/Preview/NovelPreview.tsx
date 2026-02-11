@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Languages, Type } from 'lucide-react';
+import { NOVEL_PATTERNS } from '../../../common/constants/novel';
 import './NovelPreview.css';
 
 interface NovelPreviewProps {
@@ -12,14 +13,22 @@ export default function NovelPreview({ content }: NovelPreviewProps) {
   const parseNovelContent = (text: string) => {
     if (!text) return [];
 
+    let processed = text;
+
     // 1. Handle Ruby
-    const rubyRegex = /[|｜]?([^|｜\n《》]+)《([^《》\n]+)》/g;
-    let processed = text.replace(rubyRegex, '<ruby>$1<rt>$2</rt></ruby>');
+    // Replace pipe versions first, then non-pipe versions
+    processed = processed.replace(
+      NOVEL_PATTERNS.RUBY_WITH_PIPE,
+      '<ruby>$1<rt>$2</rt></ruby>',
+    );
+    processed = processed.replace(
+      NOVEL_PATTERNS.RUBY_WITHOUT_PIPE,
+      '<ruby>$1<rt>$2</rt></ruby>',
+    );
 
     // 2. Handle Bouten (Double brackets)
-    const boutenRegex = /《《([^《》\n]+)》》/g;
     processed = processed.replace(
-      boutenRegex,
+      NOVEL_PATTERNS.BOUTEN,
       '<span class="bouten">$1</span>',
     );
 
@@ -47,13 +56,16 @@ export default function NovelPreview({ content }: NovelPreviewProps) {
       </div>
       <div className="preview-content">
         <div className="novel-page">
-          {lines.map((line, i) => (
-            <p
-              key={`${i}-${line.substring(0, 10)}`}
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }}
-            />
-          ))}
+          {lines.map((line, i) => {
+            const key = `line-${i}-${line.length}`;
+            return (
+              <p
+                key={key}
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
