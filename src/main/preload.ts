@@ -35,7 +35,9 @@ export type Channels =
   | 'recent:add'
   | 'menu:go-home'
   | 'fs:file-changed'
-  | 'metadata:query';
+  | 'metadata:query'
+  | 'context-menu:show-file-explorer'
+  | 'file-explorer:action';
 
 const electronHandler = {
   ipcRenderer: {

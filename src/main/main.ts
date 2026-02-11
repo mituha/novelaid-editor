@@ -9,7 +9,7 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog, Menu } from 'electron';
 import fs from 'fs/promises';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
@@ -130,6 +130,30 @@ ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
     console.error('Error renaming:', error);
     throw error;
   }
+});
+
+ipcMain.handle('context-menu:show-file-explorer', async (event, isDirectory: boolean) => {
+  const template: any[] = [
+    {
+      label: '名前を変更',
+      click: () => {
+        event.sender.send('file-explorer:action', 'rename');
+      },
+    },
+    { type: 'separator' },
+    {
+      label: '削除',
+      click: () => {
+        event.sender.send('file-explorer:action', 'delete');
+      },
+    },
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  menu.popup({
+    window: BrowserWindow.fromWebContents(event.sender) || undefined,
+  });
+  return true;
 });
 
 ipcMain.handle('fs:delete', async (_, targetPath: string) => {
