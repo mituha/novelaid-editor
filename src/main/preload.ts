@@ -37,7 +37,8 @@ export type Channels =
   | 'fs:file-changed'
   | 'metadata:query'
   | 'context-menu:show-file-explorer'
-  | 'file-explorer:action';
+  | 'file-explorer:action'
+  | 'app:getVersion';
 
 const electronHandler = {
   ipcRenderer: {
@@ -100,6 +101,11 @@ const electronHandler = {
   metadata: {
     queryByTag(tag: string) {
       return ipcRenderer.invoke('metadata:query', tag);
+    },
+  },
+  app: {
+    getVersion() {
+      return ipcRenderer.invoke('app:getVersion');
     },
   },
 };

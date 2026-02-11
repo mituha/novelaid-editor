@@ -13,6 +13,7 @@ interface RecentProject {
 
 export default function ProjectLauncher() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const [version, setVersion] = useState<string>('');
   const { currentDir, setCurrentDir } = useGit();
   const { loadProjectSettings } = useSettings();
   const navigate = useNavigate();
@@ -47,6 +48,10 @@ export default function ProjectLauncher() {
 
   useEffect(() => {
     loadRecent();
+    (async () => {
+      const v = await window.electron.app.getVersion();
+      setVersion(v);
+    })();
   }, [loadRecent]);
 
   const handleOpenFolder = async () => {
@@ -157,7 +162,7 @@ export default function ProjectLauncher() {
         </div>
 
         <div className="launcher-footer">
-          <span>Version 0.3.0</span>
+          <span>Version {version}</span>
         </div>
       </div>
     </div>

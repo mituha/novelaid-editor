@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import Editor, { OnMount } from '@monaco-editor/react';
+import Editor, { OnMount, BeforeMount } from '@monaco-editor/react';
 import RubyDialog from './RubyDialog';
 import { useSettings } from '../../contexts/SettingsContext';
 import './CodeEditor.css';
@@ -20,6 +20,7 @@ export default function CodeEditor({
   const [isRubyDialogOpen, setIsRubyDialogOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const editorRef = useRef<any>(null);
+  const decorationsRef = useRef<string[]>([]);
 
   const handleRubyAction = useCallback((editor: any) => {
     const selection = editor.getSelection();
@@ -83,6 +84,40 @@ export default function CodeEditor({
     }
   }, []);
 
+  const updateDecorations = useCallback((editor: any) => {
+    const model = editor.getModel();
+    if (!model) return;
+
+    const newDecorations: any[] = [];
+    const text = model.getValue();
+
+    // Visualize full-width spaces
+    const fullWidthSpaceRegex = /\u3000/g;
+    let match;
+    // eslint-disable-next-line no-cond-assign
+    while ((match = fullWidthSpaceRegex.exec(text)) !== null) {
+      const startPos = model.getPositionAt(match.index);
+      const endPos = model.getPositionAt(match.index + 1);
+      newDecorations.push({
+        range: {
+          startLineNumber: startPos.lineNumber,
+          startColumn: startPos.column,
+          endLineNumber: endPos.lineNumber,
+          endColumn: endPos.column,
+        },
+        options: {
+          inlineClassName: 'full-width-space-decoration',
+          stickiness: 1, // NeverGrowsWhenTypingAtEdges
+        },
+      });
+    }
+
+    decorationsRef.current = editor.deltaDecorations(
+      decorationsRef.current,
+      newDecorations,
+    );
+  }, []);
+
   const handleEditorOnMount: OnMount = (editor) => {
     editorRef.current = editor;
 
@@ -107,29 +142,90 @@ export default function CodeEditor({
       contextMenuOrder: 1.6,
       run: () => handleBoutenAction(editor),
     });
+
+    // Initial decorations
+    updateDecorations(editor);
+
+    // Update decorations on change
+    editor.onDidChangeModelContent(() => {
+      updateDecorations(editor);
+    });
+  };
+
+  const handleBeforeMount: BeforeMount = (monaco) => {
+    // Register custom language for novels
+    monaco.languages.register({ id: 'novel' });
+
+    monaco.languages.setMonarchTokensProvider('novel', {
+      tokenizer: {
+        root: [
+          [/「[^」]*」/, 'novel.dialogue'],
+          [/『[^』]*』/, 'novel.dialogue'],
+          [/\|[^《]*《[^》]*》/, 'novel.ruby'],
+          [/《《[^》]*》》/, 'novel.bouten'],
+          { include: '@whitespace' },
+        ],
+        whitespace: [[/[ \t\r\n]+/, 'white']],
+      },
+    });
+
+    monaco.editor.defineTheme('novel-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'novel.dialogue', foreground: 'A6E22E' }, // Light green
+        { token: 'novel.ruby', foreground: '66D9EF' }, // Light blue
+        { token: 'novel.bouten', foreground: 'FD971F' }, // Orange
+      ],
+      colors: {},
+    });
+
+    monaco.editor.defineTheme('novel-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: 'novel.dialogue', foreground: '008000' }, // Dark green
+        { token: 'novel.ruby', foreground: '0000FF' }, // Blue
+        { token: 'novel.bouten', foreground: 'FF8C00' }, // Dark orange
+      ],
+      colors: {},
+    });
+  };
+
+  const getTheme = () => {
+    if (settings.theme === 'light') return 'novel-light';
+    return 'novel-dark';
   };
 
   return (
     <div className="code-editor-wrapper">
       <Editor
         height="100%"
-        defaultLanguage="markdown"
+        defaultLanguage="novel"
+        language="novel"
         value={value}
         onChange={onChange}
         onMount={handleEditorOnMount}
-        theme={settings.theme === 'light' ? 'vs' : 'vs-dark'}
+        beforeMount={handleBeforeMount}
+        theme={getTheme()}
         options={{
           wordWrap: editorConfig.wordWrap || 'on',
           minimap: { enabled: false },
           fontSize: editorConfig.fontSize || 14,
           lineNumbers: editorConfig.showLineNumbers ? 'on' : 'off',
           selectionHighlight: editorConfig.selectionHighlight !== false,
-          occurrencesHighlight: editorConfig.occurrencesHighlight !== false ? 'singleFile' : 'off',
+          occurrencesHighlight:
+            editorConfig.occurrencesHighlight !== false ? 'singleFile' : 'off',
           renderLineHighlight: 'all',
           scrollBeyondLastLine: false,
           automaticLayout: true,
           padding: { top: 20 },
           fontFamily: "'Yu Gothic', 'Meiryo', sans-serif", // Japanese fonts
+          renderWhitespace: 'all', // Show tabs and spaces
+          unicodeHighlight: {
+            ambiguousCharacters: false,
+            invisibleCharacters: false,
+          },
         }}
       />
       <RubyDialog

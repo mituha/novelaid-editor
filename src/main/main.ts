@@ -310,6 +310,10 @@ ipcMain.handle('window:setTitle', (_, title: string) => {
   }
 });
 
+ipcMain.handle('app:getVersion', () => {
+  return app.getVersion();
+});
+
 // Since we cannot directly stream over ipcMain.handle from a generator easily without protocol or push,
 // we usually use webContents.send for streaming, OR we can just return the full text for now if streaming is too complex for this step.
 // However, the previous `ai:stream` handler (if it existed) would have used reply.
