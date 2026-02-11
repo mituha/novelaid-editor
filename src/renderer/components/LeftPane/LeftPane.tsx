@@ -4,6 +4,7 @@ import { SidePane } from '../Common/SidePane';
 interface LeftPaneProps {
   onFileSelect: (path: string, data: any) => void;
   onProjectOpened: (path: string) => void;
+  onOpenDiff?: (path: string, staged: boolean) => void;
   [key: string]: any;
 }
 

@@ -29,6 +29,7 @@ export type Channels =
   | 'git:add'
   | 'git:reset'
   | 'git:commit'
+  | 'git:diff'
   | 'window:setTitle'
   | 'recent:get'
   | 'recent:add'
@@ -72,9 +73,10 @@ const electronHandler = {
     reset(dir: string, files: string[]) {
       return ipcRenderer.invoke('git:reset', dir, files);
     },
-    commit(dir: string, message: string) {
-      return ipcRenderer.invoke('git:commit', dir, message);
-    },
+    commit: (dir: string, message: string) =>
+      ipcRenderer.invoke('git:commit', dir, message),
+    diff: (dir: string, path: string, staged: boolean) =>
+      ipcRenderer.invoke('git:diff', dir, path, staged),
   },
   window: {
     setTitle(title: string) {

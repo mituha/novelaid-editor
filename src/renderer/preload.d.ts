@@ -16,6 +16,7 @@ declare global {
         add(dir: string, files: string[]): Promise<void>;
         reset(dir: string, files: string[]): Promise<void>;
         commit(dir: string, message: string): Promise<void>;
+        diff: (dir: string, path: string, staged: boolean) => Promise<string>;
       };
       window: {
         setTitle(title: string): Promise<void>;

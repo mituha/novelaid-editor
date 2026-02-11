@@ -1,0 +1,92 @@
+.diff-viewer-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    overflow: hidden;
+}
+
+.diff-viewer-header {
+    padding: 8px 16px;
+    background: #252526;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9em;
+}
+
+.diff-file-path {
+    color: #e0e0e0;
+    font-weight: bold;
+}
+
+.diff-staged-tag {
+    background: #3c3c3c;
+    color: #aaa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.diff-content {
+    flex: 1;
+    overflow: auto;
+    padding: 10px 0;
+}
+
+.diff-line {
+    display: flex;
+    width: 100%;
+    line-height: 1.4;
+    white-space: pre;
+}
+
+.line-number {
+    width: 50px;
+    text-align: right;
+    padding-right: 15px;
+    color: #858585;
+    user-select: none;
+    font-size: 0.85em;
+    background: #1e1e1e;
+}
+
+.line-text {
+    margin: 0;
+    flex: 1;
+    font-size: 13px;
+}
+
+.diff-line.add {
+    background: rgba(40, 167, 69, 0.15);
+}
+
+.diff-line.add .line-text {
+    color: #b4e2d8;
+}
+
+.diff-line.remove {
+    background: rgba(241, 76, 76, 0.15);
+}
+
+.diff-line.remove .line-text {
+    color: #fca5a5;
+}
+
+.diff-line.hunk {
+    background: rgba(0, 122, 204, 0.1);
+    color: #8096b3;
+}
+
+.diff-viewer-loading,
+.diff-viewer-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    font-style: italic;
+}

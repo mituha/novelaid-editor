@@ -346,6 +346,10 @@ ipcMain.handle('git:commit', async (_, dir: string, message: string) => {
   return await GitService.getInstance().commit(dir, message);
 });
 
+ipcMain.handle('git:diff', async (_, dir: string, path: string, staged: boolean) => {
+  return await GitService.getInstance().diff(dir, path, staged);
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();

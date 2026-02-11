@@ -11,7 +11,11 @@ import {
 import { useGit } from '../../contexts/GitContext';
 import './GitPanel.css';
 
-export const GitPanel: React.FC = () => {
+interface GitPanelProps {
+  onOpenDiff?: (path: string, staged: boolean) => void;
+}
+
+export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
   const {
     status,
     history,
@@ -188,7 +192,13 @@ export const GitPanel: React.FC = () => {
                     >
                       {getStatusLabel(file)}
                     </span>
-                    <span className="git-panel-path" title={file.path}>
+                    <span
+                      className="git-panel-path"
+                      title={file.path}
+                      onClick={() => onOpenDiff?.(file.path, true)}
+                      style={{ cursor: onOpenDiff ? 'pointer' : 'default' }}
+                    >
+
                       {file.path}
                     </span>
                     <button
@@ -247,7 +257,13 @@ export const GitPanel: React.FC = () => {
                     >
                       {getStatusLabel(file)}
                     </span>
-                    <span className="git-panel-path" title={file.path}>
+                    <span
+                      className="git-panel-path"
+                      title={file.path}
+                      onClick={() => onOpenDiff?.(file.path, false)}
+                      style={{ cursor: onOpenDiff ? 'pointer' : 'default' }}
+                    >
+
                       {file.path}
                     </span>
                     <button

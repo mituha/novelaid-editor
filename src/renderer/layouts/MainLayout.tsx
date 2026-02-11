@@ -12,6 +12,7 @@ import { Resizer } from '../components/Common/Resizer';
 import { StatusBar } from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
 import NovelPreview from '../components/Preview/NovelPreview';
+import DiffViewer from '../components/Git/DiffViewer';
 import { usePanel } from '../contexts/PanelContext';
 import './MainLayout.css';
 
@@ -31,19 +32,12 @@ export default function MainLayout() {
   const { settings, openSettings, registerSettingTab, loadProjectSettings } =
     useSettings();
 
-  const {
-    activeLeftPanelId,
-    activeRightPanelId,
-    setActivePanel,
-    getPanels,
-  } = usePanel();
+  const { activeLeftPanelId, activeRightPanelId, setActivePanel, getPanels } =
+    usePanel();
 
   const [leftPaneWidth, setLeftPaneWidth] = useState(250);
   const [rightPaneWidth, setRightPaneWidth] = useState(300);
   const [editorSplitRatio, setEditorSplitRatio] = useState(0.5);
-
-  const isLeftPaneVisible = true; // Activity Bar is always visible according to new plan
-  const isRightPaneVisible = true;
 
   const isLeftPaneNarrow = !activeLeftPanelId;
   const isRightPaneNarrow = !activeRightPanelId;
@@ -190,6 +184,24 @@ export default function MainLayout() {
     setActivePath(previewPath);
   };
 
+  const handleOpenDiff = (path: string, staged: boolean) => {
+    const diffPath = `git-diff://${staged ? 'staged' : 'unstaged'}/${path}`;
+    const diffName = `Diff: ${path.split('\\').pop() || 'Untitled'} (${
+      staged ? 'Staged' : 'Changes'
+    })`;
+    const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
+    const setActivePath =
+      activeSide === 'left' ? setLeftActivePath : setRightActivePath;
+
+    setTabs((prev) => {
+      if (prev.find((tab) => tab.path === diffPath)) {
+        return prev;
+      }
+      return [...prev, { path: diffPath, name: diffName }];
+    });
+    setActivePath(diffPath);
+  };
+
   // Auto-unsplit when one side becomes empty
   useEffect(() => {
     if (isSplit) {
@@ -308,9 +320,8 @@ export default function MainLayout() {
 
   const renderEditorOrPreview = (side: 'left' | 'right') => {
     const activePath = side === 'left' ? leftActivePath : rightActivePath;
-    const data = activePath ? tabContents[activePath] : null;
 
-    if (!activePath || !data) {
+    if (!activePath) {
       return (
         <div className="empty-editor-state">
           <p>Select a file to edit ({side === 'left' ? 'Left' : 'Right'})</p>
@@ -320,7 +331,25 @@ export default function MainLayout() {
 
     if (activePath.startsWith('preview://')) {
       const originalPath = activePath.replace('preview://', '');
-      return <NovelPreview content={tabContents[originalPath]?.content || ''} />;
+      return (
+        <NovelPreview content={tabContents[originalPath]?.content || ''} />
+      );
+    }
+
+    if (activePath.startsWith('git-diff://')) {
+      const parts = activePath.replace('git-diff://', '').split('/');
+      const staged = parts[0] === 'staged';
+      const filePath = parts.slice(1).join('/');
+      return <DiffViewer path={filePath} staged={staged} />;
+    }
+
+    const data = tabContents[activePath];
+    if (!data) {
+      return (
+        <div className="loading-editor">
+          <p>読み込み中...</p>
+        </div>
+      );
     }
 
     return (
@@ -348,6 +377,7 @@ export default function MainLayout() {
           <LeftPane
             onFileSelect={handleFileSelect}
             onProjectOpened={(path) => loadProjectSettings(path)}
+            onOpenDiff={handleOpenDiff}
           />
         </div>
         {!isLeftPaneNarrow && <Resizer onResize={handleLeftResize} />}

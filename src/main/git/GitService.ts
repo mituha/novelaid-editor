@@ -57,4 +57,36 @@ export class GitService {
   async commit(dir: string, message: string): Promise<void> {
     await this.getGit(dir).commit(message);
   }
+
+  async diff(dir: string, path: string, staged: boolean): Promise<string> {
+    const git = this.getGit(dir);
+    let diffText = '';
+
+    if (staged) {
+      diffText = await git.diff(['--staged', path]);
+    } else {
+      diffText = await git.diff([path]);
+
+      // If diff is empty, check if it's an untracked file
+      if (!diffText) {
+        const status = await git.status([path]);
+        if (status.files.length > 0 && status.files[0].working_dir === '?') {
+          // It's an untracked file, read the whole content
+          try {
+            const fs = require('fs');
+            const pathModule = require('path');
+            const fullPath = pathModule.join(dir, path);
+            const content = fs.readFileSync(fullPath, 'utf8');
+            diffText = content
+              .split(/\r?\n/)
+              .map((line: string) => `+${line}`)
+              .join('\n');
+          } catch (e) {
+            console.error('Failed to read untracked file', e);
+          }
+        }
+      }
+    }
+    return diffText;
+  }
 }
