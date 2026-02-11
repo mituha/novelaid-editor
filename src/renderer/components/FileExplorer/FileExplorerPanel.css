@@ -84,6 +84,14 @@
 .file-item.active {
   background-color: var(--bg-active);
   color: var(--text-primary);
+  border-left: 2px solid var(--accent-color);
+  padding-left: -2px;
+  /* Offset border if needed, but flex gap might handle it */
+}
+
+/* Specific handling for active padding adjustment if necessary */
+.file-item.active {
+  padding-left: calc(var(--item-padding-left, 10px) - 2px);
 }
 
 .icon {

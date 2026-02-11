@@ -19,7 +19,6 @@ interface FileNode {
 
 interface FileExplorerProps {
   onFileSelect: (path: string, data: any) => void;
-  onProjectOpened?: (path: string) => void;
 }
 
 function FileTreeItem({
@@ -27,21 +26,33 @@ function FileTreeItem({
   onFileSelect,
   level = 0,
   onRefresh,
+  selectedPath,
+  onSelect,
+  creatingPath,
+  creatingType,
+  newChildName,
+  setNewChildName,
+  handleCreateChild,
+  setCreatingPath,
 }: {
   file: FileNode;
   onFileSelect: (path: string, data: any) => void;
   level?: number;
   onRefresh: () => void;
+  selectedPath: string | null;
+  onSelect: (path: string, isDirectory: boolean) => void;
+  creatingPath: string | null;
+  creatingType: 'file' | 'folder' | null;
+  newChildName: string;
+  setNewChildName: (val: string) => void;
+  handleCreateChild: (e: React.KeyboardEvent) => void;
+  setCreatingPath: (path: string | null) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [children, setChildren] = useState<FileNode[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(file.name);
-  const [creatingChildType, setCreatingChildType] = useState<
-    'file' | 'folder' | null
-  >(null);
-  const [newChildName, setNewChildName] = useState('');
 
   const loadDirectory = useCallback(async () => {
     try {
@@ -62,8 +73,19 @@ function FileTreeItem({
     }
   }, [file.path]);
 
+  // Ensure children are loaded if creating inside
+  useEffect(() => {
+    if (creatingPath === file.path && !isOpen && file.isDirectory) {
+      loadDirectory()
+        .then(() => setIsOpen(true))
+        // eslint-disable-next-line no-console
+        .catch((err) => console.error(err));
+    }
+  }, [creatingPath, file.path, file.isDirectory, isOpen, loadDirectory]);
+
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    onSelect(file.path, file.isDirectory);
     if (file.isDirectory) {
       if (!isOpen && (!isLoaded || children.length === 0)) {
         await loadDirectory();
@@ -80,6 +102,16 @@ function FileTreeItem({
         // eslint-disable-next-line no-console
         console.error('Failed to read document', err);
       }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const clickEvent = {
+        stopPropagation: () => {},
+      } as React.MouseEvent;
+      handleToggle(clickEvent as any);
     }
   };
 
@@ -128,6 +160,7 @@ function FileTreeItem({
   const handleContextMenu = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    onSelect(file.path, file.isDirectory);
     await window.electron.ipcRenderer.invoke(
       'context-menu:show-file-explorer',
       file.isDirectory,
@@ -156,31 +189,6 @@ function FileTreeItem({
     };
   }, [file.path, handleDelete]);
 
-  const handleCreateChild = async (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && newChildName) {
-      try {
-        const fullPath = `${file.path}/${newChildName}`;
-        if (creatingChildType === 'file') {
-          await window.electron.ipcRenderer.invoke('fs:createFile', fullPath);
-        } else {
-          await window.electron.ipcRenderer.invoke(
-            'fs:createDirectory',
-            fullPath,
-          );
-        }
-        setCreatingChildType(null);
-        setNewChildName('');
-        await loadDirectory();
-        if (!isOpen) setIsOpen(true);
-      } catch (err) {
-        console.error(err);
-      }
-    } else if (e.key === 'Escape') {
-      setCreatingChildType(null);
-      setNewChildName('');
-    }
-  };
-
   const getFileIcon = (fileName: string) => {
     if (fileName.endsWith('.md')) return <FileText size={16} />;
     if (fileName.endsWith('.json')) return <FileJson size={16} />;
@@ -190,9 +198,14 @@ function FileTreeItem({
   return (
     <div className="file-tree-item-container">
       <div
-        className={`file-item ${file.isDirectory ? 'directory' : 'file'}`}
+        role="button"
+        tabIndex={0}
+        className={`file-item ${file.isDirectory ? 'directory' : 'file'} ${
+          selectedPath === file.path ? 'active' : ''
+        }`}
         style={{ paddingLeft: `${10 + level * 12}px` }}
         onClick={handleToggle}
+        onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
       >
         {file.isDirectory && (
@@ -213,6 +226,7 @@ function FileTreeItem({
         {isRenaming ? (
           <input
             className="rename-input"
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -229,13 +243,17 @@ function FileTreeItem({
       </div>
       {isOpen && (
         <div className="children-list">
-          {creatingChildType && (
+          {creatingPath === file.path && creatingType && (
             <div
+              role="button"
+              tabIndex={0}
               className="file-item"
-              style={{ paddingLeft: `${10 + (level + 2) * 12}px` }}
+              style={{ paddingLeft: `${10 + (level + 1) * 12 + 16}px` }}
+              onKeyDown={() => {}}
+              onClick={(e) => e.stopPropagation()}
             >
               <span className="icon">
-                {creatingChildType === 'file' ? (
+                {creatingType === 'file' ? (
                   <FileText size={16} />
                 ) : (
                   <Folder size={16} />
@@ -243,15 +261,13 @@ function FileTreeItem({
               </span>
               <input
                 className="rename-input"
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
                 value={newChildName}
-                placeholder={`New ${creatingChildType}...`}
+                placeholder={`New ${creatingType}...`}
                 onChange={(e) => setNewChildName(e.target.value)}
                 onKeyDown={handleCreateChild}
-                onBlur={() => {
-                  setCreatingChildType(null);
-                  setNewChildName('');
-                }}
+                onBlur={() => setCreatingPath(null)}
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -263,6 +279,14 @@ function FileTreeItem({
               onFileSelect={onFileSelect}
               level={level + 1}
               onRefresh={onRefresh}
+              selectedPath={selectedPath}
+              onSelect={onSelect}
+              creatingPath={creatingPath}
+              creatingType={creatingType}
+              newChildName={newChildName}
+              setNewChildName={setNewChildName}
+              handleCreateChild={handleCreateChild}
+              setCreatingPath={setCreatingPath}
             />
           ))}
         </div>
@@ -273,6 +297,9 @@ function FileTreeItem({
 
 export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
   const [rootFiles, setRootFiles] = useState<FileNode[]>([]);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [selectedIsDir, setSelectedIsDir] = useState(false);
+  const [creatingPath, setCreatingPath] = useState<string | null>(null);
   const [creatingType, setCreatingType] = useState<'file' | 'folder' | null>(
     null,
   );
@@ -305,10 +332,32 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     refreshRoot();
   }, [currentDir, refreshRoot]);
 
+  const handleSelect = useCallback((path: string, isDirectory: boolean) => {
+    setSelectedPath(path);
+    setSelectedIsDir(isDirectory);
+  }, []);
+
+  const initiateCreate = (type: 'file' | 'folder') => {
+    setCreatingType(type);
+    setNewName('');
+    if (!selectedPath || !currentDir) {
+      setCreatingPath(currentDir);
+    } else if (selectedIsDir) {
+      setCreatingPath(selectedPath);
+    } else {
+      // It's a file, use parent
+      const lastSep =
+        selectedPath.lastIndexOf('\\') !== -1
+          ? selectedPath.lastIndexOf('\\')
+          : selectedPath.lastIndexOf('/');
+      setCreatingPath(selectedPath.substring(0, lastSep));
+    }
+  };
+
   const handleCreate = async (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && newName && currentDir) {
+    if (e.key === 'Enter' && newName && creatingPath) {
       try {
-        const fullPath = `${currentDir}/${newName}`;
+        const fullPath = `${creatingPath}/${newName}`;
         if (creatingType === 'file') {
           await window.electron.ipcRenderer.invoke('fs:createFile', fullPath);
         } else {
@@ -317,7 +366,7 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
             fullPath,
           );
         }
-        setCreatingType(null);
+        setCreatingPath(null);
         setNewName('');
         refreshRoot();
       } catch (err) {
@@ -325,21 +374,21 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
         console.error(err);
       }
     } else if (e.key === 'Escape') {
-      setCreatingType(null);
+      setCreatingPath(null);
       setNewName('');
     }
   };
 
   return (
-    <div className="file-explorer">
-      <div className="explorer-header">
+    <div className="file-explorer" onClick={() => setSelectedPath(null)}>
+      <div className="explorer-header" onClick={(e) => e.stopPropagation()}>
         <span className="explorer-title">エクスプローラー</span>
         {currentDir && (
           <div className="explorer-actions">
             <button
               type="button"
               className="action-btn"
-              onClick={() => setCreatingType('file')}
+              onClick={() => initiateCreate('file')}
               title="New File"
             >
               <FilePlus size={16} />
@@ -347,7 +396,7 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
             <button
               type="button"
               className="action-btn"
-              onClick={() => setCreatingType('folder')}
+              onClick={() => initiateCreate('folder')}
               title="New Folder"
             >
               <FolderPlus size={16} />
@@ -356,8 +405,15 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
         )}
       </div>
       <div className="explorer-content">
-        {creatingType && (
-          <div className="file-item" style={{ paddingLeft: '10px' }}>
+        {creatingPath === currentDir && creatingType && (
+          <div
+            role="button"
+            tabIndex={0}
+            className="file-item"
+            style={{ paddingLeft: '10px' }}
+            onKeyDown={() => {}} /* Creation input handles its own keys */
+            onClick={(e) => e.stopPropagation()}
+          >
             <span className="icon">
               {creatingType === 'file' ? (
                 <FileText size={16} />
@@ -367,15 +423,14 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
             </span>
             <input
               className="rename-input"
+              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
               value={newName}
               placeholder={`New ${creatingType}...`}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={handleCreate}
-              onBlur={() => {
-                setCreatingType(null);
-                setNewName('');
-              }}
+              onBlur={() => setCreatingPath(null)}
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
         )}
@@ -385,6 +440,14 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
             file={file}
             onFileSelect={onFileSelect}
             onRefresh={refreshRoot}
+            selectedPath={selectedPath}
+            onSelect={handleSelect}
+            creatingPath={creatingPath}
+            creatingType={creatingType}
+            newChildName={newName}
+            setNewChildName={setNewName}
+            handleCreateChild={handleCreate}
+            setCreatingPath={setCreatingPath}
           />
         ))}
       </div>
