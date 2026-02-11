@@ -31,7 +31,10 @@ export function StatusBar({
         <button
           type="button"
           className="status-bar-home-btn"
-          onClick={onGoHome}
+          onClick={(e) => {
+            e.stopPropagation();
+            onGoHome();
+          }}
           title="書庫一覧へ戻る"
         >
           <Home size={14} />
