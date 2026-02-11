@@ -529,6 +529,7 @@ export default function MainLayout() {
           }}
         >
           <RightPane
+            onFileSelect={handleFileSelect}
             activeContent={activeContent}
             activePath={activeTabPath}
             metadata={activeTabPath ? tabContents[activeTabPath]?.metadata : undefined}

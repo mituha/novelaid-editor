@@ -24,6 +24,9 @@ declare global {
       fs: {
         onFileChange(func: (payload: any) => void): () => void;
       };
+      metadata: {
+        queryByTag(tag: string): Promise<any[]>;
+      };
     };
   }
 }

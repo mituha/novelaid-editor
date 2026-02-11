@@ -25,6 +25,11 @@ export interface ProjectConfig {
         model?: string;
     };
   };
+  metadataLists?: {
+    id: string;
+    title: string;
+    tag: string;
+  }[];
   enabledPlugins?: string[];
   [key: string]: any;
 }

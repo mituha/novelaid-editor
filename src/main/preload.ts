@@ -33,9 +33,9 @@ export type Channels =
   | 'window:setTitle'
   | 'recent:get'
   | 'recent:add'
-  | 'recent:remove'
   | 'menu:go-home'
-  | 'fs:file-changed';
+  | 'fs:file-changed'
+  | 'metadata:query';
 
 const electronHandler = {
   ipcRenderer: {
@@ -93,6 +93,11 @@ const electronHandler = {
       return () => {
         ipcRenderer.removeListener('fs:file-changed', subscription);
       };
+    },
+  },
+  metadata: {
+    queryByTag(tag: string) {
+      return ipcRenderer.invoke('metadata:query', tag);
     },
   },
 };

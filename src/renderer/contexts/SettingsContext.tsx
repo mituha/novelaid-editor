@@ -21,19 +21,24 @@ export interface ProjectConfig {
   ai?: {
     provider?: 'lmstudio' | 'gemini' | 'openai';
     lmstudio?: {
-       model?: string;
-       baseUrl?: string;
+      model?: string;
+      baseUrl?: string;
     };
     gemini?: {
-       apiKey?: string;
-       model?: string;
+      apiKey?: string;
+      model?: string;
     };
     openai?: {
-        apiKey?: string;
-        baseUrl?: string; // e.g. http://localhost:1234/v1
-        model?: string;
+      apiKey?: string;
+      baseUrl?: string; // e.g. http://localhost:1234/v1
+      model?: string;
     };
   };
+  metadataLists?: {
+    id: string;
+    title: string;
+    tag: string;
+  }[];
   [key: string]: any;
 }
 
@@ -71,7 +76,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   });
   const [settingTabs, setSettingTabs] = useState<SettingsTab[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [projectPath, setProjectPath] = useState<string | null>(null);
+  const [projectPath, setProjectPath] = useState<string | null>(null); // eslint-disable-line
 
   const loadProjectSettings = useCallback(async (path: string) => {
     setProjectPath(path);

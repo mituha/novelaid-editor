@@ -25,6 +25,7 @@ import {
 import { ProviderFactory } from './ai/ProviderFactory';
 import { GitService } from './git/GitService';
 import { FileWatcher } from './watcher';
+import { MetadataService } from './metadataService';
 
 class AppUpdater {
   constructor() {
@@ -36,6 +37,7 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 const fileWatcher = new FileWatcher(null);
+const metadataService = new MetadataService();
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
@@ -96,6 +98,10 @@ ipcMain.handle('fs:saveDocument', async (_, filePath: string, data: any) => {
   return await saveDocument(filePath, data);
 });
 
+ipcMain.handle('metadata:query', async (_, tag: string) => {
+  return metadataService.queryByTag(tag);
+});
+
 ipcMain.handle('fs:createFile', async (_, filePath: string) => {
   try {
     await fs.writeFile(filePath, '', 'utf-8');
@@ -140,6 +146,7 @@ ipcMain.handle('project:load', async (_, projectPath: string) => {
   const project = await loadProject(projectPath);
   if (project) {
     fileWatcher.start(projectPath);
+    await metadataService.scanProject(projectPath);
   }
   return project;
 });
@@ -408,6 +415,15 @@ const createWindow = async () => {
   });
 
   fileWatcher.setWindow(mainWindow);
+
+  // Link fileWatcher events to metadataService (or other services)
+  ipcMain.on('fs:file-changed', async (_, payload: { event: string; path: string }) => {
+    if (payload.event === 'add' || payload.event === 'change') {
+      await metadataService.updateFileIndex(payload.path);
+    } else if (payload.event === 'unlink') {
+      metadataService.removeFileFromIndex(payload.path);
+    }
+  });
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 

@@ -6,14 +6,21 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
-import { Files, GitGraph, MessageSquare, SearchCheck } from 'lucide-react';
+import {
+  Files,
+  GitGraph,
+  MessageSquare,
+  SearchCheck,
+  Bookmark,
+  Database,
+} from 'lucide-react';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import { FileExplorerPanel } from '../components/FileExplorer/FileExplorerPanel';
 import { GitPanel } from '../components/Git/GitPanel';
 import AIChatPanel from '../components/AI/AIChatPanel';
 import AIProofreaderPanel from '../components/AI/AIProofreaderPanel';
-import { MetadataPanel } from '../components/Metadata/MetadataPanel';
-import { Database } from 'lucide-react';
+import { MetadataListPanel } from '../components/Metadata/MetadataListPanel';
+import { MetadataPropertyEditor } from '../components/Metadata/MetadataPropertyEditor';
 
 interface PanelContextType extends PanelRegistry {
   activeLeftPanelId: string | null;
@@ -55,10 +62,17 @@ const initialPanels: Panel[] = [
     defaultLocation: 'right',
   },
   {
-    id: 'metadata',
-    title: 'Metadata',
+    id: 'metadata-list',
+    title: '収集一覧',
+    icon: <Bookmark size={24} strokeWidth={1.5} />,
+    component: MetadataListPanel,
+    defaultLocation: 'left',
+  },
+  {
+    id: 'metadata-editor',
+    title: 'プロパティ',
     icon: <Database size={24} strokeWidth={1.5} />,
-    component: MetadataPanel,
+    component: MetadataPropertyEditor,
     defaultLocation: 'right',
   },
 ];

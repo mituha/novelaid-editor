@@ -1,0 +1,134 @@
+.metadata-list-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 10px;
+    background-color: var(--bg-secondary);
+    color: var(--text-color);
+    overflow: hidden;
+}
+
+.panel-header-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.edit-toggle-btn {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.edit-toggle-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.edit-list-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.edit-list-section input {
+    padding: 6px;
+    font-size: 0.85rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 4px;
+}
+
+.edit-list-section button {
+    padding: 6px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.bookmark-lists {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.bookmark-section {
+    margin-bottom: 24px;
+}
+
+.bookmark-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 8px;
+}
+
+.bookmark-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.remove-list-btn {
+    background: none;
+    border: none;
+    color: var(--text-error);
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 2px 6px;
+}
+
+.remove-list-btn:hover {
+    opacity: 1;
+}
+
+.bookmark-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.bookmark-item-link {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.bookmark-item-link:hover,
+.bookmark-item-link:focus {
+    background: var(--bg-tertiary);
+}
+
+.item-icon {
+    margin-right: 8px;
+    opacity: 0.6;
+}
+
+.item-name {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.empty-bookmark-msg {
+    padding: 8px;
+    font-size: 0.8rem;
+    opacity: 0.4;
+    text-align: center;
+}
