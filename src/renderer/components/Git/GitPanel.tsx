@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Plus, Minus, GitCommit, Database } from 'lucide-react';
+import {
+  RefreshCw,
+  Plus,
+  Minus,
+  GitCommit,
+  Database,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
 import { useGit } from '../../contexts/GitContext';
 import './GitPanel.css';
 
@@ -18,6 +26,13 @@ export const GitPanel: React.FC = () => {
   const [commitMessage, setCommitMessage] = useState('');
   const [isCommiting, setIsCommiting] = useState(false);
 
+  // 折れ畳み状態の管理
+  const [expanded, setExpanded] = useState({
+    staged: true,
+    changes: true,
+    history: true,
+  });
+
   useEffect(() => {
     if (currentDir) {
       refreshStatus();
@@ -30,14 +45,20 @@ export const GitPanel: React.FC = () => {
     (f) => f.working_dir !== ' ' || f.index === '?',
   );
 
-  const handleStageAll = async () => {
+  const toggleSection = (section: keyof typeof expanded) => {
+    setExpanded((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const handleStageAll = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const files = unstagedFiles.map((s) => s.path);
     if (files.length > 0) {
       await stageFiles(files);
     }
   };
 
-  const handleUnstageAll = async () => {
+  const handleUnstageAll = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const files = stagedFiles.map((s) => s.path);
     if (files.length > 0) {
       await unstageFiles(files);
@@ -92,94 +113,17 @@ export const GitPanel: React.FC = () => {
         </button>
       </div>
 
-      <div className="git-panel-section">
-        <div className="section-title-row">
-          <h4>ステージ済みの変更</h4>
-          {stagedFiles.length > 1 && (
-            <button
-              type="button"
-              onClick={handleUnstageAll}
-              className="git-panel-action-link"
-              title="すべてステージ解除"
-            >
-              <Minus size={14} />
-            </button>
-          )}
-        </div>
-        {stagedFiles.length === 0 ? (
-          <div className="git-panel-empty">ステージされたファイルはありません</div>
-        ) : (
-          <ul className="git-panel-fileList">
-            {stagedFiles.map((file) => (
-              <li key={file.path} className="git-panel-fileItem staged">
-                <span className={`git-panel-status status-${getStatusLabel(file)}`}>
-                  {getStatusLabel(file)}
-                </span>
-                <span className="git-panel-path" title={file.path}>
-                  {file.path}
-                </span>
-                <button
-                  className="git-panel-item-action"
-                  type="button"
-                  onClick={() => handleUnstageFile(file.path)}
-                  title="ステージ解除"
-                >
-                  <Minus size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="git-panel-section">
-        <div className="section-title-row">
-          <h4>変更</h4>
-          {unstagedFiles.length > 0 && (
-            <button
-              type="button"
-              onClick={handleStageAll}
-              className="git-panel-action-link"
-              title="すべてステージに追加"
-            >
-              <Plus size={14} />
-            </button>
-          )}
-        </div>
-        {unstagedFiles.length === 0 ? (
-          <div className="git-panel-empty">変更はありません</div>
-        ) : (
-          <ul className="git-panel-fileList">
-            {unstagedFiles.map((file) => (
-              <li key={file.path} className="git-panel-fileItem">
-                <span className={`git-panel-status status-${getStatusLabel(file)}`}>
-                  {getStatusLabel(file)}
-                </span>
-                <span className="git-panel-path" title={file.path}>
-                  {file.path}
-                </span>
-                <button
-                  className="git-panel-item-action"
-                  type="button"
-                  onClick={() => handleStageFile(file.path)}
-                  title="ステージに追加"
-                >
-                  <Plus size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
+      {/* コミットセクション (最上部) */}
       <div className="git-panel-section commit-section">
-        <h4>コミット</h4>
         <textarea
           className="git-panel-commitInput"
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value)}
-          placeholder="コミットメッセージを入力..."
+          placeholder="メッセージ (Ctrl+Enter でコミット)"
           rows={3}
+          onKeyDown={(e) => {
+            if (e.ctrlKey && e.key === 'Enter') handleCommit();
+          }}
         />
         <button
           className="git-panel-commitBtn"
@@ -191,25 +135,168 @@ export const GitPanel: React.FC = () => {
           {isCommiting ? 'コミット中...' : 'コミット'}
         </button>
         {history.length === 0 && (
-          <button type="button" onClick={initRepo} className="git-panel-initBtn">
+          <button
+            type="button"
+            onClick={initRepo}
+            className="git-panel-initBtn"
+          >
             <Database size={14} />
             リポジトリを初期化
           </button>
         )}
       </div>
 
+      {/* ステージ済みの変更 */}
       <div className="git-panel-section">
-        <h4>履歴</h4>
-        <ul className="git-panel-historyList">
-          {history.slice(0, 5).map((entry) => (
-            <li key={entry.hash} className="git-panel-historyItem">
-              <div className="git-panel-historyMessage">{entry.message}</div>
-              <div className="git-panel-historyMeta">
-                {entry.author_name} - {new Date(entry.date).toLocaleDateString()}
+        <button
+          className="section-header"
+          type="button"
+          onClick={() => toggleSection('staged')}
+        >
+          {expanded.staged ? (
+            <ChevronDown size={16} />
+          ) : (
+            <ChevronRight size={16} />
+          )}
+          <span className="section-title">ステージ済みの変更</span>
+          <span className="section-count">{stagedFiles.length}</span>
+          <div className="section-actions">
+            {stagedFiles.length > 0 && (
+              <button
+                type="button"
+                onClick={handleUnstageAll}
+                className="section-action-btn"
+                title="すべてステージ解除"
+              >
+                <Minus size={14} />
+              </button>
+            )}
+          </div>
+        </button>
+        {expanded.staged && (
+          <div className="section-content">
+            {stagedFiles.length === 0 ? (
+              <div className="git-panel-empty">
+                ステージされたファイルはありません
               </div>
-            </li>
-          ))}
-        </ul>
+            ) : (
+              <ul className="git-panel-fileList">
+                {stagedFiles.map((file) => (
+                  <li key={file.path} className="git-panel-fileItem staged">
+                    <span
+                      className={`git-panel-status status-${getStatusLabel(file)}`}
+                    >
+                      {getStatusLabel(file)}
+                    </span>
+                    <span className="git-panel-path" title={file.path}>
+                      {file.path}
+                    </span>
+                    <button
+                      className="git-panel-item-action"
+                      type="button"
+                      onClick={() => handleUnstageFile(file.path)}
+                      title="ステージ解除"
+                    >
+                      <Minus size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 変更 */}
+      <div className="git-panel-section">
+        <button
+          className="section-header"
+          type="button"
+          onClick={() => toggleSection('changes')}
+        >
+          {expanded.changes ? (
+            <ChevronDown size={16} />
+          ) : (
+            <ChevronRight size={16} />
+          )}
+          <span className="section-title">変更</span>
+          <span className="section-count">{unstagedFiles.length}</span>
+          <div className="section-actions">
+            {unstagedFiles.length > 0 && (
+              <button
+                type="button"
+                onClick={handleStageAll}
+                className="section-action-btn"
+                title="すべてステージに追加"
+              >
+                <Plus size={14} />
+              </button>
+            )}
+          </div>
+        </button>
+        {expanded.changes && (
+          <div className="section-content">
+            {unstagedFiles.length === 0 ? (
+              <div className="git-panel-empty">変更はありません</div>
+            ) : (
+              <ul className="git-panel-fileList">
+                {unstagedFiles.map((file) => (
+                  <li key={file.path} className="git-panel-fileItem">
+                    <span
+                      className={`git-panel-status status-${getStatusLabel(file)}`}
+                    >
+                      {getStatusLabel(file)}
+                    </span>
+                    <span className="git-panel-path" title={file.path}>
+                      {file.path}
+                    </span>
+                    <button
+                      className="git-panel-item-action"
+                      type="button"
+                      onClick={() => handleStageFile(file.path)}
+                      title="ステージに追加"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 履歴 */}
+      <div className="git-panel-section">
+        <button
+          className="section-header"
+          type="button"
+          onClick={() => toggleSection('history')}
+        >
+          {expanded.history ? (
+            <ChevronDown size={16} />
+          ) : (
+            <ChevronRight size={16} />
+          )}
+          <span className="section-title">履歴</span>
+          <span className="section-count">{history.length}</span>
+        </button>
+        {expanded.history && (
+          <div className="section-content">
+            <ul className="git-panel-historyList">
+              {history.slice(0, 10).map((entry) => (
+                <li key={entry.hash} className="git-panel-historyItem">
+                  <div className="git-panel-historyMessage">
+                    {entry.message}
+                  </div>
+                  <div className="git-panel-historyMeta">
+                    {entry.author_name} - {new Date(entry.date).toLocaleDateString()}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
