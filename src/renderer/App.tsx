@@ -12,10 +12,15 @@ function AppRoutes() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = window.electron.ipcRenderer.on('menu:go-home', () => {
-      navigate('/');
-    });
-    return unsubscribe;
+    if (!window.electron?.ipcRenderer) return;
+    try {
+      const unsubscribe = window.electron.ipcRenderer.on('menu:go-home', () => {
+        navigate('/');
+      });
+      return unsubscribe;
+    } catch (e) {
+      console.error('Failed to setup menu:go-home listener', e);
+    }
   }, [navigate]);
 
   return (

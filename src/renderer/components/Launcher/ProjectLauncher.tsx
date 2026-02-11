@@ -13,21 +13,37 @@ interface RecentProject {
 
 export default function ProjectLauncher() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
-  const { setCurrentDir } = useGit();
+  const { currentDir, setCurrentDir } = useGit();
   const { loadProjectSettings } = useSettings();
   const navigate = useNavigate();
 
   const loadRecent = useCallback(async () => {
-    const projects = await window.electron.ipcRenderer.invoke('recent:get');
-    setRecentProjects(projects);
+    if (!window.electron?.ipcRenderer) return;
+    try {
+      const projects = await window.electron.ipcRenderer.invoke('recent:get');
+      if (Array.isArray(projects)) {
+        setRecentProjects(projects);
+      }
+    } catch (e) {
+      console.error('Failed to load recent projects', e);
+    }
   }, []);
 
-  const openProject = useCallback(async (path: string) => {
-    await window.electron.ipcRenderer.invoke('recent:add', path);
-    setCurrentDir(path);
-    await loadProjectSettings(path);
-    navigate('/editor');
-  }, [setCurrentDir, loadProjectSettings, navigate]);
+  const openProject = useCallback(
+    async (path: string) => {
+      // 現在開いているフォルダと同じなら、読み込み処理をスキップしてエディタに戻る
+      if (currentDir === path) {
+        navigate('/editor');
+        return;
+      }
+
+      await window.electron.ipcRenderer.invoke('recent:add', path);
+      setCurrentDir(path);
+      await loadProjectSettings(path);
+      navigate('/editor');
+    },
+    [currentDir, setCurrentDir, loadProjectSettings, navigate],
+  );
 
   useEffect(() => {
     loadRecent();
@@ -58,6 +74,16 @@ export default function ProjectLauncher() {
     <div className="launcher-container">
       <div className="launcher-card">
         <div className="launcher-header">
+          {currentDir && (
+            <button
+              type="button"
+              className="launcher-close-btn"
+              onClick={() => navigate('/editor')}
+              title="エディタに戻る"
+            >
+              <X size={20} />
+            </button>
+          )}
           <Book size={48} className="logo-icon" />
           <h1>novelaid-editor</h1>
           <p className="subtitle">小説執筆のための書庫を選択</p>
