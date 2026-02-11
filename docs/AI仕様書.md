@@ -7,6 +7,7 @@
 
 *   **LMStudio**: ローカルLLM実行環境
 *   **Google GenAI (Gemini)**: Googleの生成AIモデル
+*   **OpenAI**: OpenAI API および互換API
 
 ## アーキテクチャ
 
@@ -18,7 +19,9 @@ classDiagram
         <<interface>>
         +modelName: string
         +generateContent(prompt, options): Promise<string>
-        +streamContent(prompt, options): AsyncGenerator<string>
+        +chat(messages, options): Promise<string>
+        +streamContent(prompt, options): AsyncGenerator<StreamChunk>
+        +streamChat(messages, options): AsyncGenerator<StreamChunk>
     }
 
     class BaseProvider {
@@ -33,6 +36,10 @@ classDiagram
     class GeminiProvider {
         +constructor(apiKey, modelName)
     }
+    
+    class OpenAIProvider {
+        +constructor(modelName, baseUrl, apiKey)
+    }
 
     class ProviderFactory {
         +createProvider(config): AIProvider
@@ -41,6 +48,7 @@ classDiagram
     AIProvider <|.. BaseProvider
     BaseProvider <|-- LMStudioProvider
     BaseProvider <|-- GeminiProvider
+    BaseProvider <|-- OpenAIProvider
     ProviderFactory ..> AIProvider : Creates
 ```
 
@@ -49,8 +57,15 @@ classDiagram
 ### AIProvider
 
 すべてのAIプロバイダーは `AIProvider` インターフェースを実装する必要があります。
+ストリーミング時は単純な文字列ではなく、構造化された `StreamChunk` を返します。
 
 ```typescript
+export interface StreamChunk {
+  type: 'text' | 'thought' | 'tool_call' | 'error';
+  content: string;
+  metadata?: Record<string, any>;
+}
+
 export interface AIProvider {
   /**
    * 使用しているモデルの識別名
@@ -58,24 +73,24 @@ export interface AIProvider {
   readonly modelName: string;
 
   /**
-   * プロンプトに基づいてコンテンツを生成します
+   * 単発のコンテンツ生成
    */
   generateContent(prompt: string, options?: GenerateOptions): Promise<string>;
 
   /**
-   * コンテンツをストリーミング生成します
+   * チャット形式での応答生成
    */
-  streamContent(prompt: string, options?: GenerateOptions): AsyncGenerator<string>;
-}
-```
+  chat(messages: ChatMessage[], options?: GenerateOptions): Promise<string>;
 
-### 共通オプション
-
-```typescript
-export interface GenerateOptions {
-  temperature?: number; // 生成のランダム性 (0.0 - 1.0)
-  maxTokens?: number;   // 最大生成トークン数
-  systemPrompt?: string; // システムプロンプト
+  /**
+   * 構造化チャンクによるストリーミング生成
+   */
+  streamContent(prompt: string, options?: GenerateOptions): AsyncGenerator<StreamChunk>;
+  
+  /**
+   * チャット形式でのストリーミング生成
+   */
+  streamChat(messages: ChatMessage[], options?: GenerateOptions): AsyncGenerator<StreamChunk>;
 }
 ```
 
@@ -86,26 +101,17 @@ export interface GenerateOptions {
 ```typescript
 import { ProviderFactory } from './src/main/ai';
 
-// LMStudioの使用例
-const localProvider = ProviderFactory.createProvider({
-  type: 'lmstudio',
-  modelName: 'local-model',
-  baseUrl: 'http://127.0.0.1:1234'
-});
-
-const response = await localProvider.generateContent('こんにちは');
-
-// Geminiの使用例
-const geminiProvider = ProviderFactory.createProvider({
-  type: 'gemini',
-  apiKey: 'YOUR_API_KEY',
-  modelName: 'gemini-1.5-flash'
+// OpenAI/互換APIの使用例
+const openaiProvider = ProviderFactory.createProvider({
+  type: 'openai',
+  modelName: 'gpt-4',
+  baseUrl: 'https://api.openai.com/v1',
+  apiKey: 'sk-...'
 });
 ```
 
 ## 拡張方法 (新しいプロバイダーの追加)
 
-1.  `src/main/ai/providers` に新しいプロバイダーファイルを作成します (例: `OpenAIProvider.ts`)。
-2.  `BaseProvider` を継承し、`generateContent` と `streamContent` を実装します。
-3.  `src/main/ai/ProviderFactory.ts` の `ProviderType` と `ProviderConfig`、および `createProvider` メソッドを更新して、新しいプロバイダーをサポートします。
-4.  `src/main/ai/index.ts` から新しいプロバイダーをエクスポートします。
+1.  `src/main/ai/providers` に新しいプロバイダーファイルを作成します (例: `ClaudeProvider.ts`)。
+2.  `BaseProvider` を継承し、各メソッドを実装します。
+3.  `src/main/ai/ProviderFactory.ts` を更新して、新しいプロバイダーをサポート候補に追加します。
