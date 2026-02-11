@@ -14,14 +14,20 @@ interface ListConfig {
   tag: string;
 }
 
-export function MetadataListPanel({
-  onFileSelect,
-}: {
+interface MetadataListPanelProps {
   onFileSelect: (path: string, data: any) => void;
-}) {
+  fixedTitle?: string;
+  fixedTag?: string;
+}
+
+export default function MetadataListPanel({
+  onFileSelect,
+  fixedTitle = '',
+  fixedTag = '',
+}: MetadataListPanelProps) {
   const { settings, updateSettings } = useSettings();
   const [lists, setLists] = useState<ListConfig[]>(
-    settings.metadataLists || [],
+    fixedTag ? [] : settings.metadataLists || [],
   );
   const [results, setResults] = useState<Record<string, MetadataEntry[]>>({});
   const [isEditing, setIsEditing] = useState(false);
@@ -32,20 +38,33 @@ export function MetadataListPanel({
 
   const fetchResults = useCallback(async () => {
     const newResults: Record<string, MetadataEntry[]> = {};
-    await Promise.all(
-      lists.map(async (list) => {
-        if (list.tag) {
-          try {
-            const entries = await window.electron.metadata.queryByTag(list.tag);
-            newResults[list.id] = entries;
-          } catch (err) {
-            console.error(`Failed to query tag ${list.tag}`, err);
+
+    if (fixedTag) {
+      try {
+        const entries = await window.electron.metadata.queryByTag(fixedTag);
+        newResults.fixed = entries;
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to query tag ${fixedTag}`, err);
+      }
+    } else {
+      await Promise.all(
+        lists.map(async (list) => {
+          if (list.tag) {
+            try {
+              const entries =
+                await window.electron.metadata.queryByTag(list.tag);
+              newResults[list.id] = entries;
+            } catch (err) {
+              // eslint-disable-next-line no-console
+              console.error(`Failed to query tag ${list.tag}`, err);
+            }
           }
-        }
-      }),
-    );
+        }),
+      );
+    }
     setResults(newResults);
-  }, [lists]);
+  }, [lists, fixedTag]);
 
   useEffect(() => {
     fetchResults();
@@ -56,7 +75,7 @@ export function MetadataListPanel({
   }, [fetchResults]);
 
   const handleAddList = () => {
-    if (!newList.title || !newList.tag) return;
+    if (fixedTag || !newList.title || !newList.tag) return;
     const item: ListConfig = {
       id: Date.now().toString(),
       title: newList.title,
@@ -69,6 +88,7 @@ export function MetadataListPanel({
   };
 
   const handleRemoveList = (id: string) => {
+    if (fixedTag) return;
     const updated = lists.filter((l) => l.id !== id);
     setLists(updated);
     updateSettings({ ...settings, metadataLists: updated });
@@ -94,17 +114,19 @@ export function MetadataListPanel({
 
   return (
     <div className="metadata-list-panel">
-      <div className="panel-header-actions">
-        <button
-          type="button"
-          className="edit-toggle-btn"
-          onClick={() => setIsEditing(!isEditing)}
-        >
-          {isEditing ? '完了' : 'リスト編集'}
-        </button>
-      </div>
+      {!fixedTag && (
+        <div className="panel-header-actions">
+          <button
+            type="button"
+            className="edit-toggle-btn"
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            {isEditing ? '完了' : 'リスト編集'}
+          </button>
+        </div>
+      )}
 
-      {isEditing && (
+      {isEditing && !fixedTag && (
         <div className="edit-list-section">
           <input
             placeholder="タイトル (例: 登場人物)"
@@ -116,27 +138,20 @@ export function MetadataListPanel({
             value={newList.tag}
             onChange={(e) => setNewList({ ...newList, tag: e.target.value })}
           />
-          <button type="button" onClick={handleAddList}>追加</button>
+          <button type="button" onClick={handleAddList}>
+            追加
+          </button>
         </div>
       )}
 
       <div className="bookmark-lists">
-        {lists.map((list) => (
-          <div key={list.id} className="bookmark-section">
+        {fixedTag ? (
+          <div className="bookmark-section">
             <div className="bookmark-header">
-              <span className="bookmark-title">{list.title}</span>
-              {isEditing && (
-                <button
-                  type="button"
-                  className="remove-list-btn"
-                  onClick={() => handleRemoveList(list.id)}
-                >
-                  ✕
-                </button>
-              )}
+              <span className="bookmark-title">{fixedTitle || fixedTag}</span>
             </div>
             <ul className="bookmark-items">
-              {(results[list.id] || []).map((entry) => (
+              {(results.fixed || []).map((entry) => (
                 <li key={entry.path}>
                   <div
                     className="bookmark-item-link"
@@ -150,12 +165,53 @@ export function MetadataListPanel({
                   </div>
                 </li>
               ))}
-              {(!results[list.id] || results[list.id].length === 0) && (
+              {(!results.fixed || results.fixed.length === 0) && (
                 <li className="empty-bookmark-msg">なし</li>
               )}
             </ul>
           </div>
-        ))}
+        ) : (
+          lists.map((list) => (
+            <div key={list.id} className="bookmark-section">
+              <div className="bookmark-header">
+                <span className="bookmark-title">{list.title}</span>
+                {isEditing && (
+                  <button
+                    type="button"
+                    className="remove-list-btn"
+                    onClick={() => handleRemoveList(list.id)}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <ul className="bookmark-items">
+                {(results[list.id] || []).map((entry) => (
+                  <li key={entry.path}>
+                    <div
+                      className="bookmark-item-link"
+                      onClick={() => handleFileClick(entry.path)}
+                      onKeyDown={handleKeyDown(entry.path)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <span className="item-icon">📄</span>
+                      <span className="item-name">{entry.name}</span>
+                    </div>
+                  </li>
+                ))}
+                {(!results[list.id] || results[list.id].length === 0) && (
+                  <li className="empty-bookmark-msg">なし</li>
+                )}
+              </ul>
+            </div>
+          ))
+        )}
+        {!fixedTag && lists.length === 0 && !isEditing && (
+          <div className="empty-panel-msg">
+            「リスト編集」から収集対象を追加してください。
+          </div>
+        )}
       </div>
     </div>
   );

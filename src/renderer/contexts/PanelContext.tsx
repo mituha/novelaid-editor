@@ -13,13 +13,15 @@ import {
   SearchCheck,
   Bookmark,
   Database,
+  Users,
+  MapPin,
 } from 'lucide-react';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import { FileExplorerPanel } from '../components/FileExplorer/FileExplorerPanel';
 import { GitPanel } from '../components/Git/GitPanel';
 import AIChatPanel from '../components/AI/AIChatPanel';
 import AIProofreaderPanel from '../components/AI/AIProofreaderPanel';
-import { MetadataListPanel } from '../components/Metadata/MetadataListPanel';
+import MetadataListPanel from '../components/Metadata/MetadataListPanel';
 import { MetadataPropertyEditor } from '../components/Metadata/MetadataPropertyEditor';
 
 interface PanelContextType extends PanelRegistry {
@@ -60,6 +62,32 @@ const initialPanels: Panel[] = [
     icon: <MessageSquare size={24} strokeWidth={1.5} />,
     component: AIChatPanel,
     defaultLocation: 'right',
+  },
+  {
+    id: 'characters',
+    title: '登場人物',
+    icon: <Users size={24} strokeWidth={1.5} />,
+    component: ({ onFileSelect }: any) => (
+      <MetadataListPanel
+        onFileSelect={onFileSelect}
+        fixedTitle="登場人物一覧"
+        fixedTag="character"
+      />
+    ),
+    defaultLocation: 'left',
+  },
+  {
+    id: 'locations',
+    title: '地名・施設',
+    icon: <MapPin size={24} strokeWidth={1.5} />,
+    component: ({ onFileSelect }: any) => (
+      <MetadataListPanel
+        onFileSelect={onFileSelect}
+        fixedTitle="地名・施設一覧"
+        fixedTag="location"
+      />
+    ),
+    defaultLocation: 'left',
   },
   {
     id: 'metadata-list',
