@@ -32,7 +32,7 @@ export function StatusBar({
           type="button"
           className="status-bar-home-btn"
           onClick={onGoHome}
-          title="保管庫一覧へ戻る"
+          title="書庫一覧へ戻る"
         >
           <Home size={14} />
         </button>

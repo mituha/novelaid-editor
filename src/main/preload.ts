@@ -26,12 +26,12 @@ export type Channels =
   | 'git:init'
   | 'git:status'
   | 'git:log'
-  | 'git:add'
   | 'git:commit'
   | 'window:setTitle'
   | 'recent:get'
   | 'recent:add'
-  | 'recent:remove';
+  | 'recent:remove'
+  | 'menu:go-home';
 
 const electronHandler = {
   ipcRenderer: {

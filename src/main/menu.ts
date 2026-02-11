@@ -210,12 +210,19 @@ export default class MenuBuilder {
           },
           { type: 'separator' },
           {
+            label: '&Library (書庫一覧)',
+            accelerator: 'Ctrl+Shift+L',
+            click: () => {
+              this.mainWindow.webContents.send('menu:go-home');
+            },
+          },
+          {
             label: '&Settings',
             accelerator: 'Ctrl+,',
             click: () => {
-                this.mainWindow.webContents.send('menu:open-settings');
-            }
-          }
+              this.mainWindow.webContents.send('menu:open-settings');
+            },
+          },
         ],
       },
       {

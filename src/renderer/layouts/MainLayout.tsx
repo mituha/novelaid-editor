@@ -299,6 +299,13 @@ export default function MainLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeTabPath, tabContents]);
 
+  useEffect(() => {
+    const unsubscribe = window.electron.ipcRenderer.on('menu:go-home', () => {
+      navigate('/');
+    });
+    return unsubscribe;
+  }, [navigate]);
+
   const getOriginalPath = (path: string | null) =>
     path?.startsWith('preview://') ? path.replace('preview://', '') : path;
 

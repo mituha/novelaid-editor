@@ -60,14 +60,14 @@ export default function ProjectLauncher() {
         <div className="launcher-header">
           <Book size={48} className="logo-icon" />
           <h1>novelaid-editor</h1>
-          <p className="subtitle">小説執筆のための保管庫を選択</p>
+          <p className="subtitle">小説執筆のための書庫を選択</p>
         </div>
 
         <div className="launcher-content">
           <div className="recent-section">
             <div className="section-header">
               <Clock size={16} />
-              <span>最近使った保管庫</span>
+              <span>最近使った書庫</span>
             </div>
             <div className="recent-list">
               {recentProjects.length > 0 ? (
@@ -95,7 +95,7 @@ export default function ProjectLauncher() {
                   </div>
                 ))
               ) : (
-                <div className="empty-recent">最近使った保管庫はありません</div>
+                <div className="empty-recent">最近使った書庫はありません</div>
               )}
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function ProjectLauncher() {
             >
               <Plus size={20} />
               <div className="button-text">
-                <span className="label">新しい保管庫を作成</span>
+                <span className="label">新しい書庫を作成</span>
                 <span className="desc">
                   新しい小説執筆環境をセットアップします
                 </span>

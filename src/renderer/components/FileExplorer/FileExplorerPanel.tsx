@@ -246,14 +246,13 @@ function FileTreeItem({
 
 export function FileExplorerPanel({
   onFileSelect,
-  onProjectOpened,
 }: FileExplorerProps) {
   const [rootFiles, setRootFiles] = useState<FileNode[]>([]);
   const [creatingType, setCreatingType] = useState<'file' | 'folder' | null>(
     null,
   );
   const [newName, setNewName] = useState('');
-  const { currentDir, setCurrentDir } = useGit();
+  const { currentDir } = useGit();
 
   const refreshRoot = useCallback(async () => {
     if (!currentDir) {
@@ -275,23 +274,6 @@ export function FileExplorerPanel({
       console.error(error);
     }
   }, [currentDir]);
-
-  const handleOpenFolder = async () => {
-    try {
-      const path = await window.electron.ipcRenderer.invoke(
-        'dialog:openDirectory',
-      );
-      if (path) {
-        await window.electron.ipcRenderer.invoke('recent:add', path);
-        setCurrentDir(path);
-        if (onProjectOpened) {
-          onProjectOpened(path);
-        }
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   useEffect(() => {
     refreshRoot();
@@ -324,9 +306,6 @@ export function FileExplorerPanel({
   return (
     <div className="file-explorer">
       <div className="explorer-header">
-        <button type="button" className="open-btn" onClick={handleOpenFolder}>
-          フォルダを開く
-        </button>
         {currentDir && (
           <div className="explorer-actions">
             <button
