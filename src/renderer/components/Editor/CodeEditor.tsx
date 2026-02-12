@@ -63,30 +63,52 @@ export default function CodeEditor({
     [selectedText],
   );
 
-  const handleBoutenAction = useCallback((editor: any) => {
-    const selection = editor.getSelection();
-    const model = editor.getModel();
-    if (selection && model) {
+  // 指定記号で選択領域を囲みます
+  const wrapSelection = useCallback(
+    (
+      editor: any,
+      prefix: string,
+      suffix: string,
+      label: string = 'wrap-action',
+    ) => {
+      const selection = editor.getSelection();
+      const model = editor.getModel();
+
+      if (!selection || !model) return;
+
       const text = model.getValueInRange(selection);
-      if (text) {
-        const range = {
-          startLineNumber: selection.startLineNumber,
-          startColumn: selection.startColumn,
-          endLineNumber: selection.endLineNumber,
-          endColumn: selection.endColumn,
-        };
-        const id = { major: 1, minor: 2 };
-        const newText = `《《${text}》》`;
-        const op = {
-          identifier: id,
-          range,
-          text: newText,
-          forceMoveMarkers: true,
-        };
-        editor.executeEdits('bouten-insertion', [op]);
+      const range = {
+        startLineNumber: selection.startLineNumber,
+        startColumn: selection.startColumn,
+        endLineNumber: selection.endLineNumber,
+        endColumn: selection.endColumn,
+      };
+
+      // 選択範囲がある場合：囲む
+      // 選択範囲がない場合：空の記号を挿入する
+      const newText = `${prefix}${text}${suffix}`;
+      const id = { major: 1, minor: 1 };
+      const op = {
+        identifier: id,
+        range,
+        text: newText,
+        forceMoveMarkers: true,
+      };
+
+      editor.executeEdits(label, [op]);
+
+      // 【こだわりポイント】
+      // 選択していなかった場合、カーソルを記号の「中」に戻すと親切だわん！
+      if (text === '') {
+        const newColumn = selection.startColumn + prefix.length;
+        editor.setPosition({
+          lineNumber: selection.startLineNumber,
+          column: newColumn,
+        });
       }
-    }
-  }, []);
+    },
+    [],
+  );
 
   const updateDecorations = useCallback((editor: any) => {
     const model = editor.getModel();
@@ -143,7 +165,27 @@ export default function CodeEditor({
       label: '傍点を振る',
       contextMenuGroupId: 'navigation',
       contextMenuOrder: 1.6,
-      run: () => handleBoutenAction(editor),
+      run: () => wrapSelection(editor, '《《', '》》', 'insert-bouten'),
+    });
+
+    // 補足:コンテキストメニューを標準では多層には出来ない模様。
+
+    // 「」を追加
+    editor.addAction({
+      id: 'insert-corner-brackets',
+      label: '「」を追加',
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 1.7,
+      run: () => wrapSelection(editor, '「', '」', 'insert-corner-brackets'),
+    });
+
+    // 『』を追加
+    editor.addAction({
+      id: 'insert-corner-brackets2',
+      label: '『』を追加',
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 1.8,
+      run: () => wrapSelection(editor, '『', '』', 'insert-corner-brackets2'),
     });
 
     // Initial decorations
