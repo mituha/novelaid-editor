@@ -289,7 +289,9 @@ export default function CodeEditor({
           occurrencesHighlight:
             editorConfig.occurrencesHighlight !== false ? 'singleFile' : 'off',
           renderLineHighlight: 'all',
-          scrollBeyondLastLine: false,
+          scrollBeyondLastLine: true, // 最終行を越えてスクロールを許可
+          smoothScrolling: true, // スクロールを滑らかにする
+          cursorSurroundingLines: 5, // カーソルの上下に常に数行の余白を保つ
           automaticLayout: true,
           padding: { top: 20 },
           fontFamily: "'Yu Gothic', 'Meiryo', sans-serif", // Japanese fonts
