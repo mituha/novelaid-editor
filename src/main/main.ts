@@ -132,29 +132,39 @@ ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
   }
 });
 
-ipcMain.handle('context-menu:show-file-explorer', async (event, isDirectory: boolean) => {
-  const template: any[] = [
-    {
-      label: '名前を変更',
-      click: () => {
-        event.sender.send('file-explorer:action', 'rename');
+ipcMain.handle(
+  'context-menu:show-file-explorer',
+  async (event, isDirectory: boolean, filePath: string) => {
+    const template: any[] = [
+      {
+        label: 'エクスプローラーで表示',
+        click: () => {
+          shell.showItemInFolder(filePath);
+        },
       },
-    },
-    { type: 'separator' },
-    {
-      label: '削除',
-      click: () => {
-        event.sender.send('file-explorer:action', 'delete');
+      { type: 'separator' },
+      {
+        label: '名前を変更',
+        click: () => {
+          event.sender.send('file-explorer:action', 'rename');
+        },
       },
-    },
-  ];
+      { type: 'separator' },
+      {
+        label: '削除',
+        click: () => {
+          event.sender.send('file-explorer:action', 'delete');
+        },
+      },
+    ];
 
-  const menu = Menu.buildFromTemplate(template);
-  menu.popup({
-    window: BrowserWindow.fromWebContents(event.sender) || undefined,
-  });
-  return true;
-});
+    const menu = Menu.buildFromTemplate(template);
+    menu.popup({
+      window: BrowserWindow.fromWebContents(event.sender) || undefined,
+    });
+    return true;
+  },
+);
 
 ipcMain.handle('fs:delete', async (_, targetPath: string) => {
   try {

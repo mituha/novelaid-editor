@@ -167,6 +167,7 @@ function FileTreeItem({
     await window.electron.ipcRenderer.invoke(
       'context-menu:show-file-explorer',
       file.isDirectory,
+      file.path,
     );
     // Note: The actual action is handled by the global listener below,
     // but we need a way to know it was *this* item.
