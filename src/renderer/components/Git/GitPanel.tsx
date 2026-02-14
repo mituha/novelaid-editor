@@ -488,33 +488,25 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
                   >
                     <div className="git-panel-historyContent">
                       <div className="git-panel-historyMessage">
-                        <span
-                          style={{ fontWeight: 'bold', marginRight: '4px' }}
-                        >
+                        <span className="git-panel-message-text">
                           {entry.message}
                         </span>
                         {entry.refs && (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              gap: '4px',
-                              flexWrap: 'wrap',
-                            }}
-                          >
+                          <span className="git-panel-badges">
                             {entry.refs.split(', ').map((ref: string) => {
                               const cleanRef = ref.trim();
-                              let color = '#4caf50'; // default green (local)
+                              let color = '#2e7d32'; // darker green (local)
                               if (cleanRef.includes('HEAD ->')) {
-                                color = '#00bcd4'; // cyan (current branch)
+                                color = '#00838f'; // darker cyan (current branch)
                               } else if (
                                 cleanRef.includes('origin/') ||
                                 cleanRef.includes('/')
                               ) {
-                                color = '#2196f3'; // blue (remote)
+                                color = '#1565c0'; // darker blue (remote)
                               } else if (cleanRef === 'HEAD') {
-                                color = '#ff9800'; // orange (detached HEAD)
+                                color = '#ef6c00'; // darker orange (detached HEAD)
                               } else if (cleanRef.startsWith('tag: ')) {
-                                color = '#9c27b0'; // purple (tag)
+                                color = '#7b1fa2'; // darker purple (tag)
                               }
 
                               return (
@@ -528,6 +520,10 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
                                     color: 'white',
                                     border: '1px solid rgba(255,255,255,0.2)',
                                     whiteSpace: 'nowrap',
+                                    maxWidth: '120px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    verticalAlign: 'middle',
                                   }}
                                 >
                                   {cleanRef}
