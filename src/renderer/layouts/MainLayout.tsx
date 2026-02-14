@@ -461,7 +461,7 @@ export default function MainLayout() {
     if (!activePath) {
       return (
         <div className="empty-editor-state">
-          <p>Select a file to edit ({side === 'left' ? 'Left' : 'Right'})</p>
+          <p>ファイルを選択してください</p>
         </div>
       );
     }

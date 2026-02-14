@@ -23,6 +23,22 @@
   min-width: 0;
 }
 
+.empty-editor-state {
+  display: flex;
+  /* Flexboxを有効にするわん */
+  justify-content: center;
+  /* 左右（水平）の中央寄せ */
+  align-items: center;
+  /* 上下（垂直）の中央寄せ */
+  height: 100%;
+  /* 親要素（エディタエリア）の高さ一杯に広げるわん */
+  width: 100%;
+  /* 横幅も一杯に広げるわん */
+  color: #888;
+  /* ついでに文字色を少し薄くすると雰囲気出るわん */
+  text-align: center;
+}
+
 .editors-container {
   display: flex;
   flex: 1;
