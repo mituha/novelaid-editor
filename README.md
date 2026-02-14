@@ -87,6 +87,17 @@ npm run package
 - 本プロジェクトは [Electron React Boilerplate](https://github.com/electron-react-boilerplate/electron-react-boilerplate) をテンプレートとして使用しています。
 - 生成AIによるバイブコーディング (Vibecoding) を活用して開発されています。
 
-## ライセンス
+## ライセンスと権利帰属 (License & Copyright)
+
+### ソースコード (Source Code)
 
 MIT © [Mizuki Mituha](https://github.com/mituha)
+
+### アセット (Assets)
+以下の各アセットについては、**MITライセンスの適用外**となります。
+
+- **アプリケーションアイコン・ロゴ**
+- **画像・イラスト素材**
+- **「assets」フォルダ内のサンプルコンテンツ**
+
+これらのアセットに関するすべての権利は、各制作者（作者）に帰属します。制作者の許可なく、これらの素材を単体で再配布、複製、または商用利用することは禁止されています。
