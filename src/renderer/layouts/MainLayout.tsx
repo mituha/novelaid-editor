@@ -15,6 +15,7 @@ import NovelPreview from '../components/Preview/NovelPreview';
 import DiffViewer from '../components/Git/DiffViewer';
 import { usePanel } from '../contexts/PanelContext';
 import WebBrowser from '../components/Common/WebBrowser';
+import { FileNameHeader } from '../components/Editor/FileNameHeader';
 import './MainLayout.css';
 
 import { LeftPane } from '../components/LeftPane/LeftPane';
@@ -462,15 +463,64 @@ export default function MainLayout() {
       );
     }
 
+    // Extract filename and extension for header
+    const fileNameWithExt = activePath.split('\\').pop() || '';
+    const lastDotIndex = fileNameWithExt.lastIndexOf('.');
+    const fileName = lastDotIndex !== -1 ? fileNameWithExt.substring(0, lastDotIndex) : fileNameWithExt;
+    const fileExt = lastDotIndex !== -1 ? fileNameWithExt.substring(lastDotIndex) : '';
+
+    const handleRename = async (newName: string) => {
+        if (!newName || newName === fileName) return;
+
+        const dir = activePath.substring(0, activePath.lastIndexOf('\\'));
+        const newPath = `${dir}\\${newName}${fileExt}`;
+
+        try {
+            await window.electron.ipcRenderer.invoke('fs:rename', activePath, newPath);
+            // The file watcher or onFileChange might handle the update,
+            // but we should probably update local state optimistically or wait for event.
+            // Actually, `fs:rename` usually triggers `unlink` (old) and `add` (new) events from watcher.
+            // But we want to keep the tab open and just update its path.
+
+            // Let's update the tab state directly to reflect the new path immediately
+
+            const updateTabs = (tabs: Tab[]) => tabs.map(t => t.path === activePath ? { ...t, path: newPath, name: `${newName}${fileExt}` } : t);
+
+            setLeftTabs(prev => updateTabs(prev));
+            setRightTabs(prev => updateTabs(prev));
+
+            if (leftActivePath === activePath) setLeftActivePath(newPath);
+            if (rightActivePath === activePath) setRightActivePath(newPath);
+
+            setTabContents(prev => {
+                const newContents = { ...prev };
+                newContents[newPath] = newContents[activePath];
+                delete newContents[activePath];
+                return newContents;
+            });
+
+        } catch (error) {
+            console.error('Failed to rename file:', error);
+            // Show error notification?
+        }
+    };
+
     return (
-      <CodeEditor
-        key={`${side}-${activePath}`}
-        value={data.content}
-        onChange={handleContentChange(activePath)}
-        onFocus={() => setActiveSide(side)}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <FileNameHeader
+            fileName={fileName}
+            onRename={handleRename}
+          />
+          <CodeEditor
+            key={`${side}-${activePath}`}
+            value={data.content}
+            onChange={handleContentChange(activePath)}
+            onFocus={() => setActiveSide(side)}
+          />
+      </div>
     );
   };
+
 
   return (
     <div className="layout-wrapper">
