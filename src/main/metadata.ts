@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 export interface DocumentData {
   content: string;
   metadata: Record<string, any>;
+  lineOffset?: number;
 }
 
 const NOVELAID_DIR = '.novelaid';
@@ -42,6 +43,17 @@ async function getSidecarPath(filePath: string): Promise<string | null> {
 }
 
 /**
+ * Calculate line offset from frontmatter
+ */
+export function calculateLineOffset(content: string): number {
+    const { matter: rawFrontmatter } = matter(content);
+    if (rawFrontmatter) {
+        return rawFrontmatter.trim().split('\n').length + 2;
+    }
+    return 0;
+}
+
+/**
  * ドキュメントとメタデータを読み込みます。
  */
 export async function readDocument(filePath: string): Promise<DocumentData> {
@@ -50,9 +62,14 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
 
   if (ext === '.md' || ext === '.markdown') {
     const { data, content: body } = matter(content);
+
+    // Calculate line offset if frontmatter exists
+    const lineOffset = calculateLineOffset(content);
+
     return {
       content: body,
       metadata: data,
+      lineOffset,
     };
   }
 

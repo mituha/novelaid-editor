@@ -16,7 +16,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { loadProject, saveProject } from './project';
-import { readDocument, saveDocument } from './metadata';
+import { readDocument, saveDocument, calculateLineOffset } from './metadata';
 import {
   getRecentProjects,
   addRecentProject,
@@ -568,9 +568,14 @@ ipcMain.handle(
              await searchRecursively(resPath);
           } else if (dirent.isFile()) {
             const ext = path.extname(dirent.name).toLowerCase();
-            if (textExtensions.has(ext)) {
+             if (textExtensions.has(ext)) {
                try {
                  const content = await fs.readFile(resPath, 'utf-8');
+                 let lineOffset = 0;
+                 if (ext === '.md' || ext === '.markdown') {
+                    lineOffset = calculateLineOffset(content);
+                 }
+
                  const matches: any[] = [];
                  const lines = content.split('\n');
 
@@ -597,7 +602,7 @@ ipcMain.handle(
                  }
 
                  if (matches.length > 0) {
-                   results.push({ filePath: resPath, matches });
+                   results.push({ filePath: resPath, matches, lineOffset } as any);
                  }
 
                } catch (err) {
