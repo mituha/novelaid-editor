@@ -28,7 +28,17 @@ export default function MainLayout() {
   const [activeSide, setActiveSide] = useState<'left' | 'right'>('left');
   const [isSplit, setIsSplit] = useState(false);
   const [tabContents, setTabContents] = useState<
-    Record<string, { content: string; metadata: Record<string, any> }>
+    Record<
+      string,
+      {
+        content: string;
+        metadata: Record<string, any>;
+        lastSource?: 'user' | 'external';
+        initialLine?: number;
+        initialColumn?: number;
+        searchQuery?: string;
+      }
+    >
   >({});
   const navigate = useNavigate();
   const { settings, openSettings, registerSettingTab, loadProjectSettings } =
@@ -526,6 +536,21 @@ export default function MainLayout() {
         }
     };
 
+    const handleNavigated = () => {
+        // Clear navigation props to prevent re-triggering on remount/updates
+        setTabContents((current) => {
+            const currentTab = current[activePath];
+            if (!currentTab) return current;
+
+            // Create a new object without the navigation props
+            const { initialLine, initialColumn, searchQuery, ...rest } = currentTab as any;
+            return {
+                ...current,
+                [activePath]: { ...rest }
+            };
+        });
+    };
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <FileNameHeader
@@ -538,6 +563,10 @@ export default function MainLayout() {
             lastSource={data.lastSource}
             onChange={handleContentChange(activePath)}
             onFocus={() => setActiveSide(side)}
+            initialLine={(data as any).initialLine}
+            initialColumn={(data as any).initialColumn}
+            searchQuery={(data as any).searchQuery}
+            onNavigated={handleNavigated}
           />
       </div>
     );

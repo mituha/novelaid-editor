@@ -68,7 +68,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
     });
   };
 
-  const handleMatchClick = async (filePath: string, line: number) => {
+  const handleMatchClick = async (filePath: string, line: number, index: number) => {
     try {
       // Read file content first
       const data = await window.electron.ipcRenderer.invoke(
@@ -77,10 +77,12 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
       );
 
       // onFileSelect will open the tab
-      // To jump to a line, we might need to pass options or handle it in MainLayout/CodeEditor
-      // For now, we just open the file.
-      // Ideally: onFileSelect(filePath, { ...data, initialLine: line })
-      onFileSelect(filePath, { ...data, initialLine: line });
+      onFileSelect(filePath, {
+        ...data,
+        initialLine: line,
+        initialColumn: index + 1, // Monaco is 1-based
+        searchQuery: query,
+      });
     } catch (err) {
       // Ignore errors
     }
@@ -156,9 +158,9 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
                       role="button"
                       tabIndex={0}
                       onClick={() =>
-                        handleMatchClick(result.filePath, match.line)
+                        handleMatchClick(result.filePath, match.line, match.index)
                       }
-                      onKeyDown={(e) => handleKeyDown(e, () => handleMatchClick(result.filePath, match.line))}
+                      onKeyDown={(e) => handleKeyDown(e, () => handleMatchClick(result.filePath, match.line, match.index))}
                     >
                       <span className="line-number">{match.line}:</span>
                       <span className="match-text" title={match.text}>

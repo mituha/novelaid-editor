@@ -14,6 +14,10 @@ interface CodeEditorProps {
   lastSource?: 'user' | 'external';
   onChange: (value: string | undefined) => void;
   onFocus?: () => void;
+  initialLine?: number;
+  initialColumn?: number;
+  searchQuery?: string;
+  onNavigated?: () => void;
 }
 
 export default function CodeEditor({
@@ -21,6 +25,10 @@ export default function CodeEditor({
   lastSource,
   onChange,
   onFocus = () => {},
+  initialLine,
+  initialColumn,
+  searchQuery,
+  onNavigated,
 }: CodeEditorProps) {
   const { settings } = useSettings();
   const editorConfig = settings.editor || {};
@@ -48,6 +56,37 @@ export default function CodeEditor({
   useEffect(() => {
     if (!editorRef.current) return;
 
+    // Handle initial navigation and search query
+    if (initialLine) {
+        const lineNumber = initialLine;
+        const column = initialColumn || 1;
+
+        editorRef.current.setPosition({ lineNumber, column });
+        editorRef.current.revealPositionInCenter({ lineNumber, column });
+        editorRef.current.focus();
+
+        if (searchQuery) {
+            // Calculate selection range for the search query
+            const endColumn = column + searchQuery.length;
+            const range = {
+                startLineNumber: lineNumber,
+                startColumn: column,
+                endLineNumber: lineNumber,
+                endColumn: endColumn
+            };
+            editorRef.current.setSelection(range);
+
+            // Trigger find widget with the query
+            // Using a timeout to ensure editor is ready and context is set logic
+            setTimeout(() => {
+               editorRef.current?.trigger('source', 'actions.find');
+            }, 100);
+        }
+
+        // Notify parent that navigation is handled so it can clear the props
+        onNavigated?.();
+    }
+
     // Monaco doesn't expose onCompositionStart/End directly in simple API,
     // but we can listen on the DOM node or use onDidCompositionStart if available.
     // Checking Monaco API... IStandaloneCodeEditor has onDidCompositionStart/End.
@@ -64,7 +103,7 @@ export default function CodeEditor({
       disposableStart.dispose();
       disposableEnd.dispose();
     };
-  }, []);
+  }, [initialLine, initialColumn, searchQuery, onNavigated]);
 
   // Synchronize external value changes (e.g. file reload, git revert)
   // But ignore updates that we just emitted ourselves (loopback)
@@ -269,11 +308,11 @@ export default function CodeEditor({
           editorRef.current.focus();
       };
 
-      window.addEventListener('calibration-update', handleCalibrationUpdate as EventListener);
-      window.addEventListener('calibration-jump', handleCalibrationJump as EventListener);
+      window.addEventListener('calibration-update', handleCalibrationUpdate as any);
+      window.addEventListener('calibration-jump', handleCalibrationJump as any);
       return () => {
-          window.removeEventListener('calibration-update', handleCalibrationUpdate as EventListener);
-          window.removeEventListener('calibration-jump', handleCalibrationJump as EventListener);
+          window.removeEventListener('calibration-update', handleCalibrationUpdate as any);
+          window.removeEventListener('calibration-jump', handleCalibrationJump as any);
       };
   }, []);
 
