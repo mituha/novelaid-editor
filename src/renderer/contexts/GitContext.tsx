@@ -11,12 +11,15 @@ interface GitContextType {
   status: GitFileStatus[];
   history: GitLogEntry[];
   currentDir: string | null;
+  remotes: string[];
+  currentBranch: string;
   refreshStatus: () => Promise<void>;
   refreshHistory: () => Promise<void>;
   initRepo: () => Promise<void>;
   stageFiles: (files: string[]) => Promise<void>;
   unstageFiles: (files: string[]) => Promise<void>;
   commitChanges: (message: string) => Promise<void>;
+  pushChanges: (remote: string) => Promise<void>;
   setCurrentDir: (dir: string) => void;
 }
 
@@ -38,6 +41,8 @@ export function GitContextProvider({ children }: GitProviderProps) {
   const [status, setStatus] = useState<GitFileStatus[]>([]);
   const [history, setHistory] = useState<GitLogEntry[]>([]);
   const [currentDir, setCurrentDirState] = useState<string | null>(null);
+  const [remotes, setRemotes] = useState<string[]>([]);
+  const [currentBranch, setCurrentBranchState] = useState<string>('');
 
   const setCurrentDir = useCallback((dir: string) => {
     setCurrentDirState(dir);
@@ -53,6 +58,10 @@ export function GitContextProvider({ children }: GitProviderProps) {
     try {
       const newStatus = await window.electron.git.status(currentDir);
       setStatus(newStatus);
+      const branch = await window.electron.git.currentBranch(currentDir);
+      setCurrentBranchState(branch);
+      const remotesList = await window.electron.git.getRemotes(currentDir);
+      setRemotes(remotesList);
     } catch (e) {
       console.error('Failed to refresh status', e);
       setStatus([]);
@@ -105,6 +114,15 @@ export function GitContextProvider({ children }: GitProviderProps) {
     [currentDir, refreshStatus, refreshHistory],
   );
 
+  const pushChanges = useCallback(
+    async (remote: string) => {
+        if (!currentDir || !currentBranch) return;
+        await window.electron.git.push(currentDir, remote, currentBranch);
+        await refreshHistory(); // Refresh history to reflect push status if we tracked it
+    },
+    [currentDir, currentBranch, refreshHistory]
+  );
+
   React.useEffect(() => {
     if (!currentDir) return;
     const cleanup = window.electron.fs.onFileChange(() => {
@@ -120,24 +138,30 @@ export function GitContextProvider({ children }: GitProviderProps) {
       status,
       history,
       currentDir,
+      remotes,
+      currentBranch,
       refreshStatus,
       refreshHistory,
       initRepo,
       stageFiles,
       unstageFiles,
       commitChanges,
+      pushChanges,
       setCurrentDir,
     }),
     [
       status,
       history,
       currentDir,
+      remotes,
+      currentBranch,
       refreshStatus,
       refreshHistory,
       initRepo,
       stageFiles,
       unstageFiles,
       commitChanges,
+      pushChanges,
       setCurrentDir,
     ],
   );

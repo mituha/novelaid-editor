@@ -11,4 +11,5 @@ export interface GitLogEntry {
   message: string;
   author_name: string;
   author_email: string;
+  refs: string;
 }

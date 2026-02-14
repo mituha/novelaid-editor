@@ -403,6 +403,18 @@ ipcMain.handle('git:diff', async (_, dir: string, path: string, staged: boolean)
   return await GitService.getInstance().diff(dir, path, staged);
 });
 
+ipcMain.handle('git:getRemotes', async (_, dir: string) => {
+  return await GitService.getInstance().getRemotes(dir);
+});
+
+ipcMain.handle('git:currentBranch', async (_, dir: string) => {
+  return await GitService.getInstance().currentBranch(dir);
+});
+
+ipcMain.handle('git:push', async (_, dir: string, remote: string, branch: string) => {
+  return await GitService.getInstance().push(dir, remote, branch);
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();

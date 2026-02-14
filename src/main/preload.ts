@@ -82,6 +82,10 @@ const electronHandler = {
       ipcRenderer.invoke('git:commit', dir, message),
     diff: (dir: string, path: string, staged: boolean) =>
       ipcRenderer.invoke('git:diff', dir, path, staged),
+    getRemotes: (dir: string) => ipcRenderer.invoke('git:getRemotes', dir),
+    currentBranch: (dir: string) => ipcRenderer.invoke('git:currentBranch', dir),
+    push: (dir: string, remote: string, branch: string) =>
+      ipcRenderer.invoke('git:push', dir, remote, branch),
   },
   window: {
     setTitle(title: string) {

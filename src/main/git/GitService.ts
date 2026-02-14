@@ -39,6 +39,7 @@ export class GitService {
         message: entry.message,
         author_name: entry.author_name,
         author_email: entry.author_email,
+        refs: entry.refs,
       }));
     } catch (error) {
       // Return empty log if no commits yet (e.g. fresh init)
@@ -88,5 +89,19 @@ export class GitService {
       }
     }
     return diffText;
+  }
+
+  async getRemotes(dir: string): Promise<string[]> {
+    const remotes = await this.getGit(dir).getRemotes();
+    return remotes.map((r) => r.name);
+  }
+
+  async currentBranch(dir: string): Promise<string> {
+    const status = await this.getGit(dir).status();
+    return status.current || '';
+  }
+
+  async push(dir: string, remote: string, branch: string): Promise<void> {
+    await this.getGit(dir).push(remote, branch);
   }
 }

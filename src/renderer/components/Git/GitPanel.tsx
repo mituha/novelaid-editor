@@ -20,15 +20,39 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
     status,
     history,
     currentDir,
+    remotes,
+    currentBranch,
     refreshStatus,
     refreshHistory,
     initRepo,
     stageFiles,
     unstageFiles,
     commitChanges,
+    pushChanges,
   } = useGit();
   const [commitMessage, setCommitMessage] = useState('');
   const [isCommiting, setIsCommiting] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
+  const [selectedRemote, setSelectedRemote] = useState('origin');
+
+  useEffect(() => {
+    if (remotes.length > 0 && !remotes.includes(selectedRemote)) {
+      setSelectedRemote(remotes[0]);
+    }
+  }, [remotes]);
+
+  const handlePush = async () => {
+    if (!selectedRemote) return;
+    setIsPushing(true);
+    try {
+      await pushChanges(selectedRemote);
+    } catch (error) {
+      console.error('Push failed', error);
+      alert('Push failed. Check console for details.');
+    } finally {
+      setIsPushing(false);
+    }
+  };
 
   // 折れ畳み状態の管理
   const [expanded, setExpanded] = useState({
@@ -103,7 +127,35 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
   return (
     <div className="git-panel-container">
       <div className="git-panel-header">
-        <h3>Git 管理</h3>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flex: 1,
+            overflow: 'hidden',
+          }}
+        >
+          <h3 style={{ margin: 0, flexShrink: 0 }}>Git 管理</h3>
+          {currentBranch && (
+            <span
+              style={{
+                fontSize: '11px',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                backgroundColor: 'var(--button-bg)',
+                border: '1px solid var(--border-color)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+              }}
+              title={currentBranch}
+            >
+              {currentBranch}
+            </span>
+          )}
+        </div>
         <button
           className="git-panel-refresh-btn"
           type="button"
@@ -119,30 +171,124 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
 
       {/* コミットセクション (最上部) */}
       <div className="git-panel-section commit-section">
-        <textarea
-          className="git-panel-commitInput"
-          value={commitMessage}
-          onChange={(e) => setCommitMessage(e.target.value)}
-          placeholder="メッセージ (Ctrl+Enter でコミット)"
-          rows={3}
-          onKeyDown={(e) => {
-            if (e.ctrlKey && e.key === 'Enter') handleCommit();
+        <div
+          style={{
+            display: 'flex',
+            gap: '4px',
+            marginBottom: '8px',
+            alignItems: 'center',
           }}
-        />
-        <button
-          className="git-panel-commitBtn"
-          type="button"
-          onClick={handleCommit}
-          disabled={isCommiting || !commitMessage || stagedFiles.length === 0}
         >
-          <GitCommit size={16} />
-          {isCommiting ? 'コミット中...' : 'コミット'}
-        </button>
+          <input
+            type="text"
+            className="git-panel-commitInput"
+            value={commitMessage}
+            onChange={(e) => setCommitMessage(e.target.value)}
+            placeholder="メッセージ (Ctrl+Enter でコミット)"
+            onKeyDown={(e) => {
+              if (e.ctrlKey && e.key === 'Enter') handleCommit();
+            }}
+            style={{ flex: 1, height: '32px', resize: 'none' }}
+          />
+          <button
+            type="button"
+            className="git-panel-iconBtn"
+            title="日時を挿入"
+            onClick={() => {
+              const now = new Date();
+              const dateStr = `${now.getFullYear()}/${String(
+                now.getMonth() + 1,
+              ).padStart(2, '0')}/${String(now.getDate()).padStart(
+                2,
+                '0',
+              )} ${String(now.getHours()).padStart(2, '0')}:${String(
+                now.getMinutes(),
+              ).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+              setCommitMessage((prev) =>
+                prev ? `${prev} ${dateStr}` : dateStr,
+              );
+            }}
+            style={{
+              height: '32px',
+              padding: '0 8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>日時</div>
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            className="git-panel-commitBtn"
+            type="button"
+            onClick={handleCommit}
+            disabled={isCommiting || !commitMessage || stagedFiles.length === 0}
+            style={{ flex: 1 }}
+          >
+            <GitCommit size={16} />
+            {isCommiting ? 'コミット中...' : 'コミット'}
+          </button>
+        </div>
+
+        {/* Push Section */}
+        {remotes.length > 0 && (
+          <div
+            style={{
+              marginTop: '12px',
+              borderTop: '1px solid var(--border-color)',
+              paddingTop: '12px',
+            }}
+          >
+            <div
+              style={{
+                marginBottom: '4px',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              Push to Remote ({currentBranch})
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                style={{
+                  flex: 1,
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '4px',
+                  padding: '4px',
+                }}
+                value={selectedRemote}
+                onChange={(e) => setSelectedRemote(e.target.value)}
+              >
+                {remotes.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="git-panel-commitBtn" // Reuse style
+                onClick={handlePush}
+                disabled={isPushing}
+                style={{ flex: 0.8 }}
+              >
+                {isPushing ? <RefreshCw size={14} className="spin" /> : 'Push'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {history.length === 0 && (
           <button
             type="button"
             onClick={initRepo}
             className="git-panel-initBtn"
+            style={{ marginTop: '12px' }}
           >
             <Database size={14} />
             リポジトリを初期化
@@ -188,7 +334,9 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
                 {stagedFiles.map((file) => (
                   <li key={file.path} className="git-panel-fileItem staged">
                     <span
-                      className={`git-panel-status status-${getStatusLabel(file)}`}
+                      className={`git-panel-status status-${getStatusLabel(
+                        file,
+                      )}`}
                     >
                       {getStatusLabel(file)}
                     </span>
@@ -198,7 +346,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
                       onClick={() => onOpenDiff?.(file.path, true)}
                       style={{ cursor: onOpenDiff ? 'pointer' : 'default' }}
                     >
-
                       {file.path}
                     </span>
                     <button
@@ -253,7 +400,9 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
                 {unstagedFiles.map((file) => (
                   <li key={file.path} className="git-panel-fileItem">
                     <span
-                      className={`git-panel-status status-${getStatusLabel(file)}`}
+                      className={`git-panel-status status-${getStatusLabel(
+                        file,
+                      )}`}
                     >
                       {getStatusLabel(file)}
                     </span>
@@ -263,7 +412,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
                       onClick={() => onOpenDiff?.(file.path, false)}
                       style={{ cursor: onOpenDiff ? 'pointer' : 'default' }}
                     >
-
                       {file.path}
                     </span>
                     <button
@@ -303,10 +451,54 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
               {history.slice(0, 10).map((entry) => (
                 <li key={entry.hash} className="git-panel-historyItem">
                   <div className="git-panel-historyMessage">
-                    {entry.message}
+                    <span style={{ fontWeight: 'bold' }}>{entry.message}</span>
+                    {entry.refs && (
+                      <span
+                        style={{
+                          marginLeft: '8px',
+                          display: 'inline-flex',
+                          gap: '4px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        {entry.refs.split(', ').map((ref: string) => {
+                          const cleanRef = ref.trim();
+                          let color = '#4caf50'; // default green (local)
+                          if (cleanRef.includes('HEAD ->')) {
+                            color = '#00bcd4'; // cyan (current branch)
+                          } else if (
+                            cleanRef.includes('origin/') ||
+                            cleanRef.includes('/')
+                          ) {
+                            color = '#2196f3'; // blue (remote)
+                          } else if (cleanRef === 'HEAD') {
+                            color = '#ff9800'; // orange (detached HEAD)
+                          } else if (cleanRef.startsWith('tag: ')) {
+                            color = '#9c27b0'; // purple (tag)
+                          }
+
+                          return (
+                            <span
+                              key={cleanRef}
+                              style={{
+                                fontSize: '10px',
+                                padding: '1px 4px',
+                                borderRadius: '4px',
+                                backgroundColor: color,
+                                color: 'white',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                              }}
+                            >
+                              {cleanRef}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    )}
                   </div>
                   <div className="git-panel-historyMeta">
-                    {entry.author_name} - {new Date(entry.date).toLocaleDateString()}
+                    {entry.author_name} -{' '}
+                    {new Date(entry.date).toLocaleString()}
                   </div>
                 </li>
               ))}

@@ -17,6 +17,9 @@ declare global {
         reset(dir: string, files: string[]): Promise<void>;
         commit(dir: string, message: string): Promise<void>;
         diff: (dir: string, path: string, staged: boolean) => Promise<string>;
+        getRemotes(dir: string): Promise<string[]>;
+        currentBranch(dir: string): Promise<string>;
+        push(dir: string, remote: string, branch: string): Promise<void>;
       };
       window: {
         setTitle(title: string): Promise<void>;
