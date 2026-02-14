@@ -181,6 +181,40 @@ export default function CodeEditor({
     [],
   );
 
+  const insertWord = useCallback(
+    (
+      editor: any,
+      word: string,
+      label: string = 'insert-word',
+    ) => {
+      const selection = editor.getSelection();
+      const model = editor.getModel();
+
+      if (!selection || !model) return;
+
+      const text = model.getValueInRange(selection);
+      const range = {
+        startLineNumber: selection.startLineNumber,
+        startColumn: selection.startColumn,
+        endLineNumber: selection.endLineNumber,
+        endColumn: selection.endColumn,
+      };
+
+      // 選択範囲がある場合も上書きする形で実行
+      const newText = `${word}`;
+      const id = { major: 1, minor: 1 };
+      const op = {
+        identifier: id,
+        range,
+        text: newText,
+        forceMoveMarkers: true,
+      };
+
+      editor.executeEdits(label, [op]);
+    },
+    [],
+  );
+
   const calibrationDecorationsRef = useRef<string[]>([]);
 
   React.useEffect(() => {
@@ -283,6 +317,8 @@ export default function CodeEditor({
       onFocus?.();
     });
 
+    // 補足:コンテキストメニューを標準では多層には出来ない模様。
+
     // Add Ruby action to context menu
     editor.addAction({
       id: 'insert-ruby',
@@ -301,7 +337,7 @@ export default function CodeEditor({
       run: () => wrapSelection(editor, '《《', '》》', 'insert-bouten'),
     });
 
-    // 補足:コンテキストメニューを標準では多層には出来ない模様。
+    updateDecorations(editor);
 
     // 「」を追加
     editor.addAction({
@@ -319,6 +355,25 @@ export default function CodeEditor({
       contextMenuGroupId: 'navigation',
       contextMenuOrder: 1.8,
       run: () => wrapSelection(editor, '『', '』', 'insert-corner-brackets2'),
+    });
+
+    updateDecorations(editor);
+
+    // ――を追加
+    editor.addAction({
+      id: 'insert-dash',
+      label: '―― を追加',
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 2.1,
+      run: () => insertWord(editor, '――', 'insert-dash'),
+    });
+    // ……を追加
+    editor.addAction({
+      id: 'insert-ellipsis',
+      label: '…… を追加',
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 2.2,
+      run: () => insertWord(editor, '……', 'insert-ellipsis'),
     });
 
     // Initial decorations
