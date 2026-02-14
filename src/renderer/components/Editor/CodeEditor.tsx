@@ -52,18 +52,14 @@ export default function CodeEditor({
     [onChange]
   );
 
-  // Attach composition listeners to the editor instance
-  useEffect(() => {
-    if (!editorRef.current) return;
-
-    // Handle initial navigation and search query
-    if (initialLine) {
+  const performNavigation = useCallback((editor: any) => {
+      if (initialLine) {
         const lineNumber = initialLine;
         const column = initialColumn || 1;
 
-        editorRef.current.setPosition({ lineNumber, column });
-        editorRef.current.revealPositionInCenter({ lineNumber, column });
-        editorRef.current.focus();
+        editor.setPosition({ lineNumber, column });
+        editor.revealPositionInCenter({ lineNumber, column });
+        editor.focus();
 
         if (searchQuery) {
             // Calculate selection range for the search query
@@ -74,18 +70,23 @@ export default function CodeEditor({
                 endLineNumber: lineNumber,
                 endColumn: endColumn
             };
-            editorRef.current.setSelection(range);
+            editor.setSelection(range);
 
             // Trigger find widget with the query
-            // Using a timeout to ensure editor is ready and context is set logic
             setTimeout(() => {
-               editorRef.current?.trigger('source', 'actions.find');
+               editor.trigger('source', 'actions.find');
             }, 100);
         }
 
         // Notify parent that navigation is handled so it can clear the props
         onNavigated?.();
     }
+  }, [initialLine, initialColumn, searchQuery, onNavigated]);
+
+  // Attach composition listeners to the editor instance
+  useEffect(() => {
+    if (!editorRef.current) return;
+    performNavigation(editorRef.current);
 
     // Monaco doesn't expose onCompositionStart/End directly in simple API,
     // but we can listen on the DOM node or use onDidCompositionStart if available.
@@ -103,7 +104,7 @@ export default function CodeEditor({
       disposableStart.dispose();
       disposableEnd.dispose();
     };
-  }, [initialLine, initialColumn, searchQuery, onNavigated]);
+  }, [performNavigation]);
 
   // Synchronize external value changes (e.g. file reload, git revert)
   // But ignore updates that we just emitted ourselves (loopback)
@@ -351,6 +352,9 @@ export default function CodeEditor({
 
   const handleEditorOnMount: OnMount = (editor) => {
     editorRef.current = editor;
+
+    // Handle initial navigation if props are present on mount
+    performNavigation(editor);
 
     editor.onDidFocusEditorText(() => {
       onFocus?.();
