@@ -32,7 +32,30 @@ export class GitService {
 
   async log(dir: string): Promise<GitLogEntry[]> {
     try {
-      const log = await this.getGit(dir).log();
+      // Define custom fields for type safety
+      type CustomLogFields = {
+        hash: string;
+        date: string;
+        message: string;
+        refs: string;
+        author_name: string;
+        author_email: string;
+        parents: string;
+      };
+
+      const log = await this.getGit(dir).log<CustomLogFields>({
+        '--all': null,
+        format: {
+          hash: '%H',
+          date: '%aI',
+          message: '%s',
+          refs: '%D',
+          author_name: '%aN',
+          author_email: '%aE',
+          parents: '%P',
+        },
+      });
+
       return log.all.map((entry) => ({
         hash: entry.hash,
         date: entry.date,
@@ -40,6 +63,7 @@ export class GitService {
         author_name: entry.author_name,
         author_email: entry.author_email,
         refs: entry.refs,
+        parents: entry.parents ? entry.parents.split(' ') : [],
       }));
     } catch (error) {
       // Return empty log if no commits yet (e.g. fresh init)

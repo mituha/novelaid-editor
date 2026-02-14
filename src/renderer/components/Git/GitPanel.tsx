@@ -9,6 +9,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useGit } from '../../contexts/GitContext';
+import { GitGraph } from './GitGraph';
 import './GitPanel.css';
 
 interface GitPanelProps {
@@ -431,7 +432,15 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
       </div>
 
       {/* 履歴 */}
-      <div className="git-panel-section">
+      <div
+        className="git-panel-section"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          overflow: 'hidden',
+        }}
+      >
         <button
           className="section-header"
           type="button"
@@ -446,63 +455,97 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
           <span className="section-count">{history.length}</span>
         </button>
         {expanded.history && (
-          <div className="section-content">
-            <ul className="git-panel-historyList">
-              {history.slice(0, 10).map((entry) => (
-                <li key={entry.hash} className="git-panel-historyItem">
-                  <div className="git-panel-historyMessage">
-                    <span style={{ fontWeight: 'bold' }}>{entry.message}</span>
-                    {entry.refs && (
-                      <span
-                        style={{
-                          marginLeft: '8px',
-                          display: 'inline-flex',
-                          gap: '4px',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        {entry.refs.split(', ').map((ref: string) => {
-                          const cleanRef = ref.trim();
-                          let color = '#4caf50'; // default green (local)
-                          if (cleanRef.includes('HEAD ->')) {
-                            color = '#00bcd4'; // cyan (current branch)
-                          } else if (
-                            cleanRef.includes('origin/') ||
-                            cleanRef.includes('/')
-                          ) {
-                            color = '#2196f3'; // blue (remote)
-                          } else if (cleanRef === 'HEAD') {
-                            color = '#ff9800'; // orange (detached HEAD)
-                          } else if (cleanRef.startsWith('tag: ')) {
-                            color = '#9c27b0'; // purple (tag)
-                          }
+          <div
+            className="section-content"
+            style={{
+              display: 'flex',
+              flex: 1,
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
+            {/* Graph Container */}
+            <div style={{ flexShrink: 0, overflow: 'hidden' }}>
+              <GitGraph
+                history={history}
+                height={40}
+                spacing={12}
+                dotSize={8}
+              />
+            </div>
 
-                          return (
-                            <span
-                              key={cleanRef}
-                              style={{
-                                fontSize: '10px',
-                                padding: '1px 4px',
-                                borderRadius: '4px',
-                                backgroundColor: color,
-                                color: 'white',
-                                border: '1px solid rgba(255,255,255,0.2)',
-                              }}
-                            >
-                              {cleanRef}
-                            </span>
-                          );
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <div className="git-panel-historyMeta">
-                    {entry.author_name} -{' '}
-                    {new Date(entry.date).toLocaleString()}
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {/* Text List */}
+            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+              <ul
+                className="git-panel-historyList"
+                style={{ margin: 0, padding: 0, listStyle: 'none' }}
+              >
+                {history.map((entry) => (
+                  <li
+                    key={entry.hash}
+                    className="git-panel-historyItem"
+                    style={{ height: '40px', boxSizing: 'border-box' }}
+                  >
+                    <div className="git-panel-historyContent">
+                      <div className="git-panel-historyMessage">
+                        <span
+                          style={{ fontWeight: 'bold', marginRight: '4px' }}
+                        >
+                          {entry.message}
+                        </span>
+                        {entry.refs && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              gap: '4px',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            {entry.refs.split(', ').map((ref: string) => {
+                              const cleanRef = ref.trim();
+                              let color = '#4caf50'; // default green (local)
+                              if (cleanRef.includes('HEAD ->')) {
+                                color = '#00bcd4'; // cyan (current branch)
+                              } else if (
+                                cleanRef.includes('origin/') ||
+                                cleanRef.includes('/')
+                              ) {
+                                color = '#2196f3'; // blue (remote)
+                              } else if (cleanRef === 'HEAD') {
+                                color = '#ff9800'; // orange (detached HEAD)
+                              } else if (cleanRef.startsWith('tag: ')) {
+                                color = '#9c27b0'; // purple (tag)
+                              }
+
+                              return (
+                                <span
+                                  key={cleanRef}
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '1px 4px',
+                                    borderRadius: '4px',
+                                    backgroundColor: color,
+                                    color: 'white',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {cleanRef}
+                                </span>
+                              );
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="git-panel-historyMeta">
+                        {entry.author_name} -{' '}
+                        {new Date(entry.date).toLocaleString()}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
       </div>
