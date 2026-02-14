@@ -86,6 +86,29 @@ function FileTreeItem({
     }
   }, [creatingPath, file.path, file.isDirectory, isOpen, loadDirectory]);
 
+  // Listen for file changes in this directory
+  useEffect(() => {
+    if (!file.isDirectory || !isOpen) return;
+
+    const cleanup = window.electron.fs.onFileChange(({ path }) => {
+      // Normalize paths to compare parent directory
+      const normalize = (p: string) => p.replace(/\\/g, '/');
+      const normalizedPath = normalize(path);
+      const normalizedSelf = normalize(file.path);
+
+      const lastSep = normalizedPath.lastIndexOf('/');
+      const parent = normalizedPath.substring(0, lastSep);
+
+      if (parent === normalizedSelf) {
+        loadDirectory();
+      }
+    });
+
+    return () => {
+      cleanup();
+    };
+  }, [file.isDirectory, file.path, isOpen, loadDirectory]);
+
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     onSelect(file.path, file.isDirectory);
@@ -339,6 +362,29 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
 
   useEffect(() => {
     refreshRoot();
+  }, [currentDir, refreshRoot]);
+
+  // Listen for file changes in the root directory
+  useEffect(() => {
+    if (!currentDir) return;
+
+    const cleanup = window.electron.fs.onFileChange(({ path }) => {
+      // Normalize paths to compare parent directory
+      const normalize = (p: string) => p.replace(/\\/g, '/');
+      const normalizedPath = normalize(path);
+      const normalizedRoot = normalize(currentDir);
+
+      const lastSep = normalizedPath.lastIndexOf('/');
+      const parent = normalizedPath.substring(0, lastSep);
+
+      if (parent === normalizedRoot) {
+        refreshRoot();
+      }
+    });
+
+    return () => {
+      cleanup();
+    };
   }, [currentDir, refreshRoot]);
 
   const handleSelect = useCallback((path: string, isDirectory: boolean) => {
