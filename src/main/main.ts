@@ -39,12 +39,17 @@ class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 const fileWatcher = new FileWatcher(null);
 const metadataService = new MetadataService();
+let activeProjectPath: string | null = null; // Added
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
 });
+
+
+
+
 
 ipcMain.handle('dialog:openDirectory', async () => {
   if (!mainWindow) return null;
@@ -178,6 +183,7 @@ ipcMain.handle('fs:delete', async (_, targetPath: string) => {
 });
 
 ipcMain.handle('project:load', async (_, projectPath: string) => {
+  activeProjectPath = projectPath;
   const project = await loadProject(projectPath);
   if (project) {
     fileWatcher.start(projectPath);
@@ -537,6 +543,78 @@ ipcMain.handle('calibration:analyze', async (_, text: string) => {
         throw error;
     }
 });
+
+ipcMain.handle(
+  'search:project',
+  async (_, query: string, rootPath: string, options?: { caseSensitive?: boolean }) => {
+    const targetPath = rootPath || activeProjectPath;
+    if (!query || !targetPath) return [];
+
+    const results: { filePath: string; matches: any[] }[] = [];
+    const ignoreDirs = new Set(['node_modules', 'dist', 'out', 'build', '.git', '.erb', '.idea', '.vscode']);
+    const textExtensions = new Set([
+      '.md', '.txt', '.json', '.js', '.ts', '.tsx', '.jsx', '.css', '.html', '.yml', '.yaml', '.xml'
+    ]);
+
+    const searchRecursively = async (dir: string) => {
+      try {
+        const dirents = await fs.readdir(dir, { withFileTypes: true });
+
+        for (const dirent of dirents) {
+          const resPath = path.join(dir, dirent.name);
+
+          if (dirent.isDirectory()) {
+             if (dirent.name.startsWith('.') || ignoreDirs.has(dirent.name)) continue;
+             await searchRecursively(resPath);
+          } else if (dirent.isFile()) {
+            const ext = path.extname(dirent.name).toLowerCase();
+            if (textExtensions.has(ext)) {
+               try {
+                 const content = await fs.readFile(resPath, 'utf-8');
+                 const matches: any[] = [];
+                 const lines = content.split('\n');
+
+                 for (let i = 0; i < lines.length; i++) {
+                   const line = lines[i];
+                   let matchIndex = -1;
+
+                   if (options?.caseSensitive) {
+                      matchIndex = line.indexOf(query);
+                   } else {
+                      matchIndex = line.toLowerCase().indexOf(query.toLowerCase());
+                   }
+
+                   if (matchIndex !== -1) {
+                     // Simple match finding (first match per line for now)
+                     // Truncate line if too long?
+                     const displayLine = line.length > 200 ? line.substring(0, 200) + '...' : line;
+                     matches.push({
+                       line: i + 1,
+                       text: displayLine.trim(),
+                       index: matchIndex
+                     });
+                   }
+                 }
+
+                 if (matches.length > 0) {
+                   results.push({ filePath: resPath, matches });
+                 }
+
+               } catch (err) {
+                 // Ignore read errors
+               }
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Error searching in ${dir}:`, err);
+      }
+    };
+
+    await searchRecursively(targetPath);
+    return results;
+  }
+);
 
 /**
  * Add event listeners...

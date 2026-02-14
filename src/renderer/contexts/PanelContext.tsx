@@ -11,6 +11,7 @@ import {
   GitGraph,
   MessageSquare,
   SearchCheck,
+  Search, // Added
   Bookmark,
   Database,
   Users,
@@ -21,6 +22,7 @@ import {
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import FileExplorerPanel from '../components/FileExplorer/FileExplorerPanel';
 import { GitPanel } from '../components/Git/GitPanel';
+import { SearchPanel } from '../components/Search/SearchPanel'; // Added
 import AIChatPanel from '../components/AI/AIChatPanel';
 import AIProofreaderPanel from '../components/AI/AIProofreaderPanel';
 import MetadataListPanel from '../components/Metadata/MetadataListPanel';
@@ -44,6 +46,13 @@ const initialPanels: Panel[] = [
     title: 'Files',
     icon: <Files size={24} strokeWidth={1.5} />,
     component: FileExplorerPanel,
+    defaultLocation: 'left',
+  },
+  {
+    id: 'search',
+    title: 'Search',
+    icon: <Search size={24} strokeWidth={1.5} />,
+    component: SearchPanel,
     defaultLocation: 'left',
   },
   {
