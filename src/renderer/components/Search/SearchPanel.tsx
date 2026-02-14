@@ -11,7 +11,6 @@ interface SearchMatch {
 interface SearchResult {
   filePath: string;
   matches: SearchMatch[];
-  lineOffset?: number;
 }
 
 interface SearchPanelProps {
@@ -69,7 +68,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
     });
   };
 
-  const handleMatchClick = async (filePath: string, line: number, index: number, lineOffset: number = 0) => {
+  const handleMatchClick = async (filePath: string, line: number, index: number) => {
     try {
       // Read file content first
       const data = await window.electron.ipcRenderer.invoke(
@@ -78,18 +77,10 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
       );
 
       // onFileSelect will open the tab
-      // line is the raw line number from file
-      // lineOffset is what we need to subtract for display/editor alignment
-      // But wait...
-      // The search results 'line' is 1-based index from the file reading.
-      // If we have frontmatter, the editor hides it.
-      // So editor line 1 is actually file line (offset + 1).
-      // If search returns file line 10, and offset is 3, editor should show it at line 7.
-      // So we subtract offset.
-
+      // line is the relative line number from body (1-based)
       onFileSelect(filePath, {
         ...data,
-        initialLine: line - lineOffset,
+        initialLine: line,
         initialColumn: index + 1, // Monaco is 1-based
         searchQuery: query,
       });
@@ -168,11 +159,11 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
                       role="button"
                       tabIndex={0}
                       onClick={() =>
-                        handleMatchClick(result.filePath, match.line, match.index, result.lineOffset)
+                        handleMatchClick(result.filePath, match.line, match.index)
                       }
-                      onKeyDown={(e) => handleKeyDown(e, () => handleMatchClick(result.filePath, match.line, match.index, result.lineOffset))}
+                      onKeyDown={(e) => handleKeyDown(e, () => handleMatchClick(result.filePath, match.line, match.index))}
                     >
-                      <span className="line-number">{match.line - (result.lineOffset || 0)}:</span>
+                      <span className="line-number">{match.line}:</span>
                       <span className="match-text" title={match.text}>
                         {match.text
                           .split(new RegExp(`(${query})`, 'gi'))

@@ -550,7 +550,7 @@ ipcMain.handle(
     const targetPath = rootPath || activeProjectPath;
     if (!query || !targetPath) return [];
 
-    const results: { filePath: string; matches: any[] }[] = [];
+    const results: { filePath: string; matches: any[]; lineOffset: number }[] = [];
     const ignoreDirs = new Set(['node_modules', 'dist', 'out', 'build', '.git', '.erb', '.idea', '.vscode']);
     const textExtensions = new Set([
       '.md', '.txt', '.json', '.js', '.ts', '.tsx', '.jsx', '.css', '.html', '.yml', '.yaml', '.xml'
@@ -570,12 +570,7 @@ ipcMain.handle(
             const ext = path.extname(dirent.name).toLowerCase();
              if (textExtensions.has(ext)) {
                try {
-                 const content = await fs.readFile(resPath, 'utf-8');
-                 let lineOffset = 0;
-                 if (ext === '.md' || ext === '.markdown') {
-                    lineOffset = calculateLineOffset(content);
-                 }
-
+                 const { content } = await readDocument(resPath);
                  const matches: any[] = [];
                  const lines = content.split('\n');
 
@@ -594,7 +589,7 @@ ipcMain.handle(
                      // Truncate line if too long?
                      const displayLine = line.length > 200 ? line.substring(0, 200) + '...' : line;
                      matches.push({
-                       line: i + 1,
+                       line: i + 1, // Relative to content start check
                        text: displayLine.trim(),
                        index: matchIndex
                      });
@@ -602,7 +597,7 @@ ipcMain.handle(
                  }
 
                  if (matches.length > 0) {
-                   results.push({ filePath: resPath, matches, lineOffset } as any);
+                   results.push({ filePath: resPath, matches, lineOffset: 0 });
                  }
 
                } catch (err) {
