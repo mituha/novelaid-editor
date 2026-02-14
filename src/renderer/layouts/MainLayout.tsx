@@ -130,6 +130,7 @@ export default function MainLayout() {
   // Handle external file changes
   useEffect(() => {
     const cleanup = window.electron.fs.onFileChange(async ({ event, path }) => {
+      console.log(`[MainLayout] FS Event: ${event} ${path}`);
       const { left: currentLeftTabs, right: currentRightTabs } = tabsRef.current;
       const currentTabContents = tabContentsRef.current;
 
@@ -141,7 +142,7 @@ export default function MainLayout() {
 
         if (targetTab) {
           if (savingPaths.current.has(path)) {
-            // This change was triggered by our own save operation
+            console.log(`[MainLayout] Ignoring self-save: ${path}`);
             return;
           }
 

@@ -33,6 +33,7 @@ export default function CodeEditor({
   // Handle value changes from Monaco
   const handleEditorChange = useCallback(
     (newValue: string | undefined) => {
+      // console.log('[CodeEditor] handleEditorChange (Monaco -> React)', newValue?.length);
       lastEmittedValueRef.current = newValue;
       onChange(newValue);
     },
@@ -44,10 +45,15 @@ export default function CodeEditor({
   React.useEffect(() => {
     if (editorRef.current) {
         const currentValue = editorRef.current.getValue();
+        console.log(`[CodeEditor] Prop value changed. Prop: ${value?.length}, Current: ${currentValue?.length}, LastEmitted: ${lastEmittedValueRef.current?.length}`);
+
         // If the coming value is different from what we last emitted AND different from current editor content
         if (value !== lastEmittedValueRef.current && value !== currentValue) {
+            console.log('[CodeEditor] External update applied to editor');
             editorRef.current.setValue(value || '');
             lastEmittedValueRef.current = value;
+        } else {
+            console.log('[CodeEditor] External update ignored (loopback or identical)');
         }
     }
   }, [value]);
