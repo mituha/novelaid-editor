@@ -458,89 +458,91 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
           <div
             className="section-content"
             style={{
-              display: 'flex',
               flex: 1,
-              overflow: 'hidden',
+              overflowY: 'auto',
+              overflowX: 'hidden',
               position: 'relative',
             }}
           >
-            {/* Graph Container */}
-            <div style={{ flexShrink: 0, overflow: 'hidden' }}>
-              <GitGraph
-                history={history}
-                height={40}
-                spacing={12}
-                dotSize={8}
-              />
-            </div>
+            <div style={{ display: 'flex', minHeight: 'min-content' }}>
+              {/* Graph Container */}
+              <div style={{ flexShrink: 0 }}>
+                <GitGraph
+                  history={history}
+                  height={40}
+                  spacing={12}
+                  dotSize={8}
+                />
+              </div>
 
-            {/* Text List */}
-            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-              <ul
-                className="git-panel-historyList"
-                style={{ margin: 0, padding: 0, listStyle: 'none' }}
-              >
-                {history.map((entry) => (
-                  <li
-                    key={entry.hash}
-                    className="git-panel-historyItem"
-                    style={{ height: '40px', boxSizing: 'border-box' }}
-                  >
-                    <div className="git-panel-historyContent">
-                      <div className="git-panel-historyMessage">
-                        <span className="git-panel-message-text">
-                          {entry.message}
-                        </span>
-                        {entry.refs && (
-                          <span className="git-panel-badges">
-                            {entry.refs.split(', ').map((ref: string) => {
-                              const cleanRef = ref.trim();
-                              let color = '#2e7d32'; // darker green (local)
-                              if (cleanRef.includes('HEAD ->')) {
-                                color = '#00838f'; // darker cyan (current branch)
-                              } else if (
-                                cleanRef.includes('origin/') ||
-                                cleanRef.includes('/')
-                              ) {
-                                color = '#1565c0'; // darker blue (remote)
-                              } else if (cleanRef === 'HEAD') {
-                                color = '#ef6c00'; // darker orange (detached HEAD)
-                              } else if (cleanRef.startsWith('tag: ')) {
-                                color = '#7b1fa2'; // darker purple (tag)
-                              }
-
-                              return (
-                                <span
-                                  key={cleanRef}
-                                  style={{
-                                    fontSize: '10px',
-                                    padding: '1px 4px',
-                                    borderRadius: '4px',
-                                    backgroundColor: color,
-                                    color: 'white',
-                                    border: '1px solid rgba(255,255,255,0.2)',
-                                    whiteSpace: 'nowrap',
-                                    maxWidth: '120px',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    verticalAlign: 'middle',
-                                  }}
-                                >
-                                  {cleanRef}
-                                </span>
-                              );
-                            })}
+              {/* Text List */}
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <ul
+                  className="git-panel-historyList"
+                  style={{ margin: 0, padding: 0, listStyle: 'none' }}
+                >
+                  {history.map((entry) => (
+                    <li
+                      key={entry.hash}
+                      className="git-panel-historyItem"
+                      style={{ height: '40px', boxSizing: 'border-box' }}
+                    >
+                      <div className="git-panel-historyContent">
+                        <div className="git-panel-historyMessage">
+                          <span className="git-panel-message-text">
+                            {entry.message}
                           </span>
-                        )}
+                          {entry.refs && (
+                            <span className="git-panel-badges">
+                              {entry.refs.split(', ').map((ref: string) => {
+                                const cleanRef = ref.trim();
+                                let color = '#2e7d32'; // darker green (local)
+                                if (cleanRef.includes('HEAD ->')) {
+                                  color = '#00838f'; // darker cyan (current branch)
+                                } else if (
+                                  cleanRef.includes('origin/') ||
+                                  cleanRef.includes('/')
+                                ) {
+                                  color = '#1565c0'; // darker blue (remote)
+                                } else if (cleanRef === 'HEAD') {
+                                  color = '#ef6c00'; // darker orange (detached HEAD)
+                                } else if (cleanRef.startsWith('tag: ')) {
+                                  color = '#7b1fa2'; // darker purple (tag)
+                                }
+
+                                return (
+                                  <span
+                                    key={cleanRef}
+                                    style={{
+                                      fontSize: '10px',
+                                      padding: '1px 4px',
+                                      borderRadius: '4px',
+                                      backgroundColor: color,
+                                      color: 'white',
+                                      border: '1px solid rgba(255,255,255,0.2)',
+                                      whiteSpace: 'nowrap',
+                                      maxWidth: '120px',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      verticalAlign: 'middle',
+                                    }}
+                                  >
+                                    {cleanRef}
+                                  </span>
+                                );
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        <div className="git-panel-historyMeta">
+                          {entry.author_name} -{' '}
+                          {new Date(entry.date).toLocaleString()}
+                        </div>
                       </div>
-                      <div className="git-panel-historyMeta">
-                        {entry.author_name} -{' '}
-                        {new Date(entry.date).toLocaleString()}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         )}
