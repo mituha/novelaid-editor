@@ -204,35 +204,43 @@ export default function MainLayout() {
 
   const handleFileSelect = useCallback(
     (path: string, data: { content: string; metadata: Record<string, any> }) => {
-      const setTabs =
-        activeSide === 'left' ? setLeftTabs : setRightTabs;
-      const setActivePath =
-        activeSide === 'left' ? setLeftActivePath : setRightActivePath;
+      const fileName =
+        path.split('\\').pop() || path.split('/').pop() || 'Untitled';
 
-      setTabs((prev) => {
-        if (prev.find((tab) => tab.path === path)) {
-          return prev;
-        }
-        const name = path.split('\\').pop() || 'Untitled';
-        return [...prev, { path, name }];
-      });
-      setTabContents((prev) => {
-        return { ...prev, [path]: data };
-      });
+      setTabContents((prev) => ({
+        ...prev,
+        [path]: { ...data, lastSource: 'external' }, // Initial load is external
+      }));
 
-      setActivePath(path);
+      // Check where to open
+      if (activeSide === 'left') {
+        setLeftTabs((prev) => {
+          if (prev.find((t) => t.path === path)) return prev;
+          return [...prev, { name: fileName, path, isDirty: false }];
+        });
+        setLeftActivePath(path);
+      } else {
+        setRightTabs((prev) => {
+          if (prev.find((t) => t.path === path)) return prev;
+          return [...prev, { name: fileName, path, isDirty: false }];
+        });
+        setRightActivePath(path);
+      }
     },
     [activeSide],
   );
 
-  const handleTabClick = (side: 'left' | 'right') => (path: string) => {
-    setActiveSide(side);
-    if (side === 'left') {
-      setLeftActivePath(path);
-    } else {
-      setRightActivePath(path);
-    }
-  };
+  const handleTabClick = useCallback(
+    (side: 'left' | 'right') => (path: string) => {
+      setActiveSide(side);
+      if (side === 'left') {
+        setLeftActivePath(path);
+      } else {
+        setRightActivePath(path);
+      }
+    },
+    [],
+  );
 
   const handleToggleSplit = () => {
     setIsSplit((prev) => {
@@ -263,7 +271,7 @@ export default function MainLayout() {
       if (prev.find((tab) => tab.path === previewPath)) {
         return prev;
       }
-      return [...prev, { path: previewPath, name: previewName }];
+      return [...prev, { path: previewPath, name: previewName, isDirty: false }];
     });
     setActivePath(previewPath);
   };
@@ -281,7 +289,7 @@ export default function MainLayout() {
       if (prev.find((tab) => tab.path === diffPath)) {
         return prev;
       }
-      return [...prev, { path: diffPath, name: diffName }];
+      return [...prev, { path: diffPath, name: diffName, isDirty: false }];
     });
     setActivePath(diffPath);
   };
@@ -297,7 +305,7 @@ export default function MainLayout() {
       if (prev.find((tab) => tab.path === webPath)) {
         return prev;
       }
-      return [...prev, { path: webPath, name: webName }];
+      return [...prev, { path: webPath, name: webName, isDirty: false }];
     });
     setActivePath(webPath);
   };
@@ -321,36 +329,46 @@ export default function MainLayout() {
     }
   }, [isSplit, leftTabs, rightTabs, rightActivePath]);
 
-  const handleTabClose = (side: 'left' | 'right') => (path: string) => {
-    const setTabs = side === 'left' ? setLeftTabs : setRightTabs;
-    const activePath = side === 'left' ? leftActivePath : rightActivePath;
-    const setActivePath = side === 'left' ? setLeftActivePath : setRightActivePath;
+  const handleTabClose = useCallback(
+    (side: 'left' | 'right') => (path: string) => {
+      const setTabs = side === 'left' ? setLeftTabs : setRightTabs;
+      const activePath = side === 'left' ? leftActivePath : rightActivePath;
+      const setActivePath = side === 'left' ? setLeftActivePath : setRightActivePath;
 
-    setTabs((prev) => {
-      const newTabs = prev.filter((tab) => tab.path !== path);
+      setTabs((prev) => {
+        const newTabs = prev.filter((tab) => tab.path !== path);
 
-      if (activePath === path) {
-        const closedTabIndex = prev.findIndex((tab) => tab.path === path);
-        if (newTabs.length > 0) {
-          const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
-          setActivePath(newTabs[nextIndex].path);
-        } else {
-          setActivePath(null);
+        if (activePath === path) {
+          const closedTabIndex = prev.findIndex((tab) => tab.path === path);
+          if (newTabs.length > 0) {
+            const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
+            setActivePath(newTabs[nextIndex].path);
+          } else {
+            setActivePath(null);
+          }
         }
-      }
 
-      return newTabs;
-    });
+        // If the path is not open in the other pane, clear content
+        const otherTabs = side === 'left' ? tabsRef.current.right : tabsRef.current.left;
+        if (!otherTabs.find((t) => t.path === path)) {
+             setTabContents((prev) => {
+                const newContents = { ...prev };
+                delete newContents[path];
+                return newContents;
+             });
+        }
 
-    // Optional: cleanup content memory if closed in BOTH sides
-    // (A bit complex, maybe skip for now or check if it exists in the other side)
-  };
+        return newTabs;
+      });
+    },
+    [leftActivePath, rightActivePath],
+  );
 
   const handleContentChange = (path: string | null) => (value: string | undefined) => {
     if (path) {
       setTabContents((prev) => ({
         ...prev,
-        [path]: { ...prev[path], content: value || '' },
+        [path]: { ...prev[path], content: value || '', lastSource: 'user' }, // Mark as user
       }));
       // Mark as dirty in both lists
       setLeftTabs((prev) =>
@@ -366,7 +384,7 @@ export default function MainLayout() {
     if (path) {
       setTabContents((prev) => ({
         ...prev,
-        [path]: { ...prev[path], metadata },
+        [path]: { ...prev[path], metadata: { ...prev[path]?.metadata, ...metadata } }, // Keep lastSource
       }));
       setLeftTabs((prev) =>
         prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
@@ -377,46 +395,48 @@ export default function MainLayout() {
     }
   }, []);
 
+  const handleSave = useCallback(async () => {
+    if (!activeTabPath || !tabContents[activeTabPath]) return;
+
+    try {
+      savingPaths.current.add(activeTabPath);
+      await window.electron.ipcRenderer.invoke(
+        'fs:saveDocument',
+        activeTabPath,
+        tabContents[activeTabPath],
+      );
+
+      // Update dirty state
+      const updateClean = (tabs: Tab[]) =>
+        tabs.map((tab) =>
+          tab.path === activeTabPath ? { ...tab, isDirty: false } : tab,
+        );
+
+      setLeftTabs(updateClean);
+      setRightTabs(updateClean);
+
+      // Wait a bit to ensure watcher event is ignored
+      setTimeout(() => {
+          savingPaths.current.delete(activeTabPath);
+      }, 500);
+
+    } catch (err) {
+      console.error(err);
+      savingPaths.current.delete(activeTabPath);
+    }
+  }, [activeTabPath, tabContents]);
+
   React.useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        if (activeTabPath) {
-          try {
-            const data = tabContents[activeTabPath];
-            savingPaths.current.add(activeTabPath);
-            await window.electron.ipcRenderer.invoke(
-              'fs:saveDocument',
-              activeTabPath,
-              data,
-            );
-            // console.log('Saved:', activeTabPath);
-            setLeftTabs((prev) =>
-              prev.map((tab) =>
-                tab.path === activeTabPath ? { ...tab, isDirty: false } : tab,
-              ),
-            );
-            setRightTabs((prev) =>
-              prev.map((tab) =>
-                tab.path === activeTabPath ? { ...tab, isDirty: false } : tab,
-              ),
-            );
-
-            // Give chokidar some time to report the event before we stop ignoring it
-            setTimeout(() => {
-              savingPaths.current.delete(activeTabPath);
-            }, 1000);
-          } catch (error) {
-            savingPaths.current.delete(activeTabPath);
-            // console.error('Save failed:', error);
-          }
-        }
+        handleSave();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTabPath, tabContents]);
+  }, [handleSave]);
 
   const getOriginalPath = (path: string | null) =>
     path?.startsWith('preview://') ? path.replace('preview://', '') : path;
@@ -515,6 +535,7 @@ export default function MainLayout() {
           <CodeEditor
             key={`${side}-${activePath}`}
             value={data.content}
+            lastSource={data.lastSource}
             onChange={handleContentChange(activePath)}
             onFocus={() => setActiveSide(side)}
           />

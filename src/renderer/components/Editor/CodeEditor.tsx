@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Editor, { OnMount, BeforeMount } from '@monaco-editor/react';
 import { useSettings } from '../../contexts/SettingsContext';
 import {
@@ -11,12 +11,14 @@ import './CalibrationMarkers.css';
 
 interface CodeEditorProps {
   value: string;
+  lastSource?: 'user' | 'external';
   onChange: (value: string | undefined) => void;
   onFocus?: () => void;
 }
 
 export default function CodeEditor({
   value,
+  lastSource,
   onChange,
   onFocus = () => {},
 }: CodeEditorProps) {
@@ -29,6 +31,8 @@ export default function CodeEditor({
 
   // Track the last value emitted to the parent to avoid loopback cycles
   const lastEmittedValueRef = useRef<string | undefined>(value);
+  // Track IME composition state
+  const isComposingRef = useRef(false);
 
   // Handle value changes from Monaco
   const handleEditorChange = useCallback(
@@ -40,23 +44,58 @@ export default function CodeEditor({
     [onChange]
   );
 
+  // Attach composition listeners to the editor instance
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    // Monaco doesn't expose onCompositionStart/End directly in simple API,
+    // but we can listen on the DOM node or use onDidCompositionStart if available.
+    // Checking Monaco API... IStandaloneCodeEditor has onDidCompositionStart/End.
+
+    const disposableStart = editorRef.current.onDidCompositionStart(() => {
+      isComposingRef.current = true;
+    });
+
+    const disposableEnd = editorRef.current.onDidCompositionEnd(() => {
+      isComposingRef.current = false;
+    });
+
+    return () => {
+      disposableStart.dispose();
+      disposableEnd.dispose();
+    };
+  }, []);
+
   // Synchronize external value changes (e.g. file reload, git revert)
   // But ignore updates that we just emitted ourselves (loopback)
   React.useEffect(() => {
     if (editorRef.current) {
         const currentValue = editorRef.current.getValue();
-        console.log(`[CodeEditor] Prop value changed. Prop: ${value?.length}, Current: ${currentValue?.length}, LastEmitted: ${lastEmittedValueRef.current?.length}`);
+        console.log(`[CodeEditor] Prop value changed. Source: ${lastSource}, Prop: ${value?.length}, Current: ${currentValue?.length}, Composing: ${isComposingRef.current}`);
 
-        // If the coming value is different from what we last emitted AND different from current editor content
-        if (value !== lastEmittedValueRef.current && value !== currentValue) {
-            console.log('[CodeEditor] External update applied to editor');
-            editorRef.current.setValue(value || '');
-            lastEmittedValueRef.current = value;
+        // Only update if the source is external (e.g. file watcher, initial load)
+        // or if it's the very first render and we need to set initial value?
+        // Actually, defaultValue handles initial load.
+        // But what if we switch tabs and remount?
+        // If we remount, useEffect runs. lastSource might be 'user' from previous edits.
+        // But defaultValue={value} handles the start.
+        // So we only care about *updates* while mounted.
+
+        if (lastSource === 'external') {
+            if (value !== currentValue) {
+                if (isComposingRef.current) {
+                    console.log('[CodeEditor] External update ignored (IME composing)');
+                    return;
+                }
+                console.log('[CodeEditor] External update applied to editor');
+                editorRef.current.setValue(value || '');
+                lastEmittedValueRef.current = value;
+            }
         } else {
-            console.log('[CodeEditor] External update ignored (loopback or identical)');
+             // console.log('[CodeEditor] Ignoring user/loopback update');
         }
     }
-  }, [value]);
+  }, [value, lastSource]);
 
   const handleRubyAction = useCallback((editor: any) => {
     const selection = editor.getSelection();
