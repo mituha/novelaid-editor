@@ -43,13 +43,14 @@ export class NovelCountStrategy implements CountStrategy {
 
     return [
       {
-        label: '文字数',
-        value: processed.length,
-      },
-      {
         label: '行数',
         value: text.split('\n').filter((line) => line.trim().length > 0).length,
       },
+      {
+        label: '文字数',
+        value: processed.length,
+      },
+
     ];
   }
 }
