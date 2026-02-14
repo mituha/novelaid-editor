@@ -37,12 +37,6 @@ const configuration: webpack.Configuration = {
     },
   },
 
-  resolve: {
-    alias: {
-      'monaco-editor/esm/vs/nls': 'monaco-editor-nls',
-    },
-  },
-
   module: {
     rules: [
       {
@@ -104,14 +98,6 @@ const configuration: webpack.Configuration = {
   },
 
   plugins: [
-    new webpack.NormalModuleReplacementPlugin(
-      /nls\.js/,
-      (resource: { context: string; request: string }) => {
-        if (resource.context.includes('monaco-editor')) {
-          resource.request = 'monaco-editor-nls';
-        }
-      },
-    ),
     /**
      * Create global constants which can be configured at compile time.
      *
@@ -147,13 +133,13 @@ const configuration: webpack.Configuration = {
       isDevelopment: false,
     }),
 
+    new MonacoWebpackPlugin({
+      languages: ['markdown', 'javascript', 'typescript','css'],
+    }),
+
     new webpack.DefinePlugin({
       'process.type': '"renderer"',
     }),
-
-    new MonacoWebpackPlugin({
-      languages: ['markdown', 'javascript', 'typescript'],
-      }),
   ],
 };
 

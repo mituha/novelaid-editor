@@ -61,8 +61,6 @@ const configuration: webpack.Configuration = {
     },
   },
 
-  resolve: {},
-
   module: {
     rules: [
       {
@@ -167,7 +165,7 @@ const configuration: webpack.Configuration = {
     }),
 
     new MonacoWebpackPlugin({
-      languages: ['markdown', 'javascript', 'typescript'],
+      languages: ['markdown', 'javascript', 'typescript','css'],
     }),
   ],
 

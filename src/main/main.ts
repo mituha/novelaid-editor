@@ -520,7 +520,7 @@ const createWindow = async () => {
 
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
-  new AppUpdater();
+  // TODO:　実際の環境でエラーが出るため、一旦無効とする  new AppUpdater();
 
   // Initialize Calibration Service
   // Note: Kuromoji dictionary path needs to be resolved correctly in prod vs dev
