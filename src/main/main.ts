@@ -32,7 +32,16 @@ class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
-    autoUpdater.checkForUpdatesAndNotify();
+
+    // 1. エラーイベントを登録するわん（呼び出しより先に書くのがコツだわん！）
+    autoUpdater.on('error', (err) => {
+      log.error('Updaterでエラーが発生したけど、無視して続行するわん:', err);
+    });
+
+    // 2. アップデートをチェック。エラーが起きても catch で受け止めるわん
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      log.error('Promise内のエラーをキャッチしたわん:', err);
+    });
   }
 }
 
