@@ -34,23 +34,17 @@ body {
 
 /* Monaco Editor Overrides */
 
-/* Fix for Find Widget "Close (Escape)" tooltip wrapping and flickering */
-/* Fix for Find Widget "Close (Escape)" tooltip wrapping and flickering */
-/* Forces tooltips to be single line, and ensures they can expand to fit text */
-.monaco-hover-content,
-.monaco-hover-content>.hover-row {
-  white-space: nowrap !important;
-  width: auto !important;
-  max-width: none !important;
-  display: block !important;
+/*
+  検索ウィジェット（find-widget）をエディタ中央に配置
+  そのままの場合、右端によっており、ツールチップが点滅する問題が発生した。
+ */
+.monaco-editor .find-widget {
+  /* 右端からの距離を 50% にし、自身の幅の半分だけ右に戻す */
+  right: 50% !important;
+  transform: translateX(50%) !important;
 }
 
-/* Allow normal wrapping for rich content (like validation messages or docs) */
-/* We target p tags and specific content classes to reset this */
-.monaco-hover-content p,
-.monaco-hover-content .updated-text,
-.monaco-hover-content .hover-contents {
-  white-space: normal !important;
-  max-width: 600px !important;
-  /* Restore a reasonable max-width for docs */
+/* ツールチップが点滅する問題の回避策（念のため併記） */
+.monaco-editor .monaco-hover {
+  pointer-events: none !important;
 }
