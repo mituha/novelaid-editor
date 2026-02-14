@@ -67,8 +67,30 @@ export class CalibrationService {
     return this.tokenizer.tokenize(text);
   }
 
+  private prepareAnalysis(text: string) {
+    const cleanText = text.replace(/^\uFEFF/, '');
+    const lineStarts: number[] = [0];
+    for (let i = 0; i < cleanText.length; i++) {
+      if (cleanText[i] === '\n') lineStarts.push(i + 1);
+    }
+
+    const getLineCol = (index: number) => {
+      let line = 0;
+      while (line + 1 < lineStarts.length && lineStarts[line + 1] <= index) {
+        line++;
+      }
+      return {
+        line: line + 1,
+        col: index - lineStarts[line] + 1,
+      };
+    };
+
+    return { cleanText, getLineCol };
+  }
+
   public async getFrequentWords(text: string): Promise<FrequencyResult[]> {
-    const tokens = await this.analyze(text);
+    const cleanText = text.replace(/^\uFEFF/, '');
+    const tokens = await this.analyze(cleanText);
     const frequencyMap = new Map<string, { count: number; pos: string }>();
 
     tokens.forEach((token) => {
@@ -97,25 +119,9 @@ export class CalibrationService {
   }
 
   public async checkParticles(text: string): Promise<CalibrationIssue[]> {
-    const tokens = await this.analyze(text);
+    const { cleanText, getLineCol } = this.prepareAnalysis(text);
+    const tokens = await this.analyze(cleanText);
     const issues: CalibrationIssue[] = [];
-
-    // Helper to map index to line/col
-    const lineStarts: number[] = [0];
-    for (let i = 0; i < text.length; i++) {
-        if (text[i] === '\n') lineStarts.push(i + 1);
-    }
-
-    const getLineCol = (index: number) => {
-        let line = 0;
-        while (line + 1 < lineStarts.length && lineStarts[line + 1] <= index) {
-            line++;
-        }
-        return {
-            line: line + 1,
-            col: index - lineStarts[line] + 1
-        };
-    };
 
     let currentSentenceParticles: {
       token: kuromoji.IpadicFeatures;
@@ -138,7 +144,7 @@ export class CalibrationService {
       ) {
         currentSentenceParticles.push({
             token,
-            index: token.word_position
+            index: token.word_position - 1 // kuromoji index is 1-based
         });
       }
     }
@@ -185,24 +191,9 @@ export class CalibrationService {
   }
 
   public async checkConsistency(text: string): Promise<CalibrationIssue[]> {
-    const tokens = await this.analyze(text);
+    const { cleanText, getLineCol } = this.prepareAnalysis(text);
+    const tokens = await this.analyze(cleanText);
     const issues: CalibrationIssue[] = [];
-
-    const lineStarts: number[] = [0];
-    for (let i = 0; i < text.length; i++) {
-        if (text[i] === '\n') lineStarts.push(i + 1);
-    }
-
-    const getLineCol = (index: number) => {
-        let line = 0;
-        while (line + 1 < lineStarts.length && lineStarts[line + 1] <= index) {
-            line++;
-        }
-        return {
-            line: line + 1,
-            col: index - lineStarts[line] + 1
-        };
-    };
 
     const checkMap: Record<string, string> = {
       '事': 'こと',
@@ -231,11 +222,6 @@ export class CalibrationService {
     tokens.forEach((token) => {
       const surface = token.surface_form;
       if (checkMap[surface]) {
-        // Simple context check:
-        // 形式名詞 check usually requires checking previous token (noun modifier form).
-        // Aux verb check needs previous token (te-form).
-        // For now, simple surface match warnings.
-
         let shouldWarn = true;
 
         // Refine rules:
@@ -246,7 +232,7 @@ export class CalibrationService {
 
         if (shouldWarn) {
              const suggestion = checkMap[surface];
-             const { line, col } = getLineCol(token.word_position);
+             const { line, col } = getLineCol(token.word_position - 1); // kuromoji index is 1-based
 
              issues.push({
                id: `consistency-${token.word_position}`,
