@@ -114,22 +114,42 @@ export default function MainLayout() {
     return () => {};
   }, [registerSettingTab, openSettings]);
 
+  // Refs for accessing latest state in callbacks without re-subscribing
+  const tabsRef = useRef({ left: leftTabs, right: rightTabs });
+  const tabContentsRef = useRef(tabContents);
+
+  useEffect(() => {
+    tabsRef.current = { left: leftTabs, right: rightTabs };
+  }, [leftTabs, rightTabs]);
+
+  useEffect(() => {
+    tabContentsRef.current = tabContents;
+  }, [tabContents]);
+
   // Handle external file changes
   useEffect(() => {
     const cleanup = window.electron.fs.onFileChange(async ({ event, path }) => {
+      const { left: currentLeftTabs, right: currentRightTabs } = tabsRef.current;
+      const currentTabContents = tabContentsRef.current;
+
       if (event === 'change') {
         const findTab = (tabs: Tab[]) => tabs.find((t) => t.path === path);
-        const lTab = findTab(leftTabs);
-        const rTab = findTab(rightTabs);
+        const lTab = findTab(currentLeftTabs);
+        const rTab = findTab(currentRightTabs);
         const targetTab = lTab || rTab;
+
         if (targetTab) {
           if (savingPaths.current.has(path)) {
             // This change was triggered by our own save operation
             return;
           }
 
+          // Check against the latest content implementation if possible,
+          // but relying on isDirty from refs is safer.
+          // Note: isDirty might be true if user typed but haven't saved.
           if (targetTab.isDirty) {
-            const confirmed = await window.electron.ipcRenderer.invoke(
+              // Confirm dialog ...
+             const confirmed = await window.electron.ipcRenderer.invoke(
               'dialog:confirm',
               `${targetTab.name} は外部で変更されました。ローカルの変更を破棄して再読み込みしますか？`,
             );
@@ -141,6 +161,9 @@ export default function MainLayout() {
               'fs:readDocument',
               path,
             );
+
+            // Note: We need to use function updates for state setters to ensure we don't clobber other concurrent updates,
+            // even though we are inside an event handler.
             setTabContents((prev) => ({ ...prev, [path]: data }));
 
             // Mark as not dirty
@@ -155,7 +178,7 @@ export default function MainLayout() {
           }
         }
       } else if (event === 'unlink') {
-        // Handle file deletion? (Maybe close tab or show warning)
+        // Handle file deletion
         setLeftTabs((prev) => prev.filter((t) => t.path !== path));
         setRightTabs((prev) => prev.filter((t) => t.path !== path));
         setTabContents((prev) => {
@@ -169,7 +192,7 @@ export default function MainLayout() {
     return () => {
       cleanup();
     };
-  }, [leftTabs, rightTabs]);
+  }, []); // Run once on mount
 
   // Apply theme to body
   useEffect(() => {

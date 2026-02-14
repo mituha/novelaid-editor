@@ -27,6 +27,31 @@ export default function CodeEditor({
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
 
+  // Track the last value emitted to the parent to avoid loopback cycles
+  const lastEmittedValueRef = useRef<string | undefined>(value);
+
+  // Handle value changes from Monaco
+  const handleEditorChange = useCallback(
+    (newValue: string | undefined) => {
+      lastEmittedValueRef.current = newValue;
+      onChange(newValue);
+    },
+    [onChange]
+  );
+
+  // Synchronize external value changes (e.g. file reload, git revert)
+  // But ignore updates that we just emitted ourselves (loopback)
+  React.useEffect(() => {
+    if (editorRef.current) {
+        const currentValue = editorRef.current.getValue();
+        // If the coming value is different from what we last emitted AND different from current editor content
+        if (value !== lastEmittedValueRef.current && value !== currentValue) {
+            editorRef.current.setValue(value || '');
+            lastEmittedValueRef.current = value;
+        }
+    }
+  }, [value]);
+
   const handleRubyAction = useCallback((editor: any) => {
     const selection = editor.getSelection();
     const model = editor.getModel();
@@ -346,8 +371,8 @@ export default function CodeEditor({
         height="100%"
         defaultLanguage="novel"
         language="novel"
-        value={value}
-        onChange={onChange}
+        defaultValue={value}
+        onChange={handleEditorChange}
         onMount={handleEditorOnMount}
         beforeMount={handleBeforeMount}
         theme={getTheme()}
