@@ -5,6 +5,7 @@
 import path from 'path';
 import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
@@ -33,6 +34,12 @@ const configuration: webpack.Configuration = {
     filename: 'renderer.js',
     library: {
       type: 'umd',
+    },
+  },
+
+  resolve: {
+    alias: {
+      'monaco-editor/esm/vs/nls': 'monaco-editor-nls',
     },
   },
 
@@ -97,6 +104,14 @@ const configuration: webpack.Configuration = {
   },
 
   plugins: [
+    new webpack.NormalModuleReplacementPlugin(
+      /nls\.js/,
+      (resource: { context: string; request: string }) => {
+        if (resource.context.includes('monaco-editor')) {
+          resource.request = 'monaco-editor-nls';
+        }
+      },
+    ),
     /**
      * Create global constants which can be configured at compile time.
      *
@@ -135,6 +150,10 @@ const configuration: webpack.Configuration = {
     new webpack.DefinePlugin({
       'process.type': '"renderer"',
     }),
+
+    new MonacoWebpackPlugin({
+      languages: ['markdown', 'javascript', 'typescript'],
+      }),
   ],
 };
 
