@@ -23,7 +23,7 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
-      inputRef.current.select();
+      // inputRef.current.select(); // User requested to not select all
     }
   }, [isEditing]);
 
