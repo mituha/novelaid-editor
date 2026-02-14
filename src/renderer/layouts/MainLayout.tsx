@@ -271,19 +271,27 @@ export default function MainLayout() {
     });
   };
 
+  // 指定ファイル用のプレビュー画面を開きます
   const handleOpenPreview = (path: string) => {
     const previewPath = `preview://${path}`;
     const previewName = `Preview: ${path.split('\\').pop() || 'Untitled'}`;
-    const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
-    const setActivePath = activeSide === 'left' ? setLeftActivePath : setRightActivePath;
+
+    // プレビュー画面は元となるファイルの逆側に開く事で同時に閲覧可能とします。
+    const setTabs = activeSide === 'left' ? setRightTabs : setLeftTabs;
+    const setActivePath = activeSide === 'left' ? setRightActivePath : setLeftActivePath;
 
     setTabs((prev) => {
       if (prev.find((tab) => tab.path === previewPath)) {
         return prev;
       }
-      return [...prev, { path: previewPath, name: previewName, isDirty: false }];
+      return [
+        ...prev,
+        { path: previewPath, name: previewName, isDirty: false },
+      ];
     });
     setActivePath(previewPath);
+    // 分割画面を表示します
+    setIsSplit(true);
   };
 
   const handleOpenDiff = (path: string, staged: boolean) => {
