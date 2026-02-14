@@ -27,6 +27,9 @@ declare global {
       metadata: {
         queryByTag(tag: string): Promise<any[]>;
       };
+      calibration: {
+        analyze(text: string): Promise<{ frequency: any[]; issues: any[] }>;
+      };
     };
   }
 }

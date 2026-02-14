@@ -7,6 +7,7 @@ import {
 } from '../../../common/constants/novel';
 import RubyDialog from './RubyDialog';
 import './CodeEditor.css';
+import './CalibrationMarkers.css';
 
 interface CodeEditorProps {
   value: string;
@@ -110,6 +111,68 @@ export default function CodeEditor({
     [],
   );
 
+  const calibrationDecorationsRef = useRef<string[]>([]);
+
+  React.useEffect(() => {
+      const handleCalibrationUpdate = (e: CustomEvent<any[]>) => {
+        // Only update if editor is mounted and this editor is the active one?
+        // Actually, the event is global. All editors might receive it.
+        // But usually calibration is for the active document.
+        // If we have multiple split editors, they might be different documents.
+        // The event should probably carry the *path* or ID of the document.
+        // For now, assuming single active document analysis or `CalibrationPanel` re-analyzes on focus.
+        // Current `CalibrationPanel` takes `content` prop which comes from `RightPane` (active tab).
+        // So `CalibrationPanel` analyzes the *active* tab.
+        // If `CodeEditor` displays content effectively, it matches.
+
+        if (!editorRef.current) return;
+
+        // Check if the content matches? Or just trust the event?
+        // Ideally we should check if the model matches the one analyzed.
+        // But for MVP, let's just apply.
+
+        const issues = e.detail;
+        const newDecorations = issues.map((issue) => ({
+            range: {
+                startLineNumber: issue.range.startLine,
+                startColumn: issue.range.startColumn,
+                endLineNumber: issue.range.endLine,
+                endColumn: issue.range.endColumn
+            },
+            options: {
+                inlineClassName: issue.type === 'particle_repetition' ? 'calibration-marker-particle' : 'calibration-marker-consistency',
+                hoverMessage: { value: issue.message }
+            }
+        }));
+
+        calibrationDecorationsRef.current = editorRef.current.deltaDecorations(
+            calibrationDecorationsRef.current,
+            newDecorations
+        );
+      };
+
+      const handleCalibrationJump = (e: CustomEvent<any>) => {
+          if (!editorRef.current) return;
+          const range = e.detail;
+          const monacoRange = {
+              startLineNumber: range.startLine,
+              startColumn: range.startColumn,
+              endLineNumber: range.endLine,
+              endColumn: range.endColumn
+          };
+          editorRef.current.revealRangeInCenter(monacoRange);
+          editorRef.current.setPosition({ lineNumber: range.startLine, column: range.startColumn });
+          editorRef.current.focus();
+      };
+
+      window.addEventListener('calibration-update', handleCalibrationUpdate as EventListener);
+      window.addEventListener('calibration-jump', handleCalibrationJump as EventListener);
+      return () => {
+          window.removeEventListener('calibration-update', handleCalibrationUpdate as EventListener);
+          window.removeEventListener('calibration-jump', handleCalibrationJump as EventListener);
+      };
+  }, []);
+
   const updateDecorations = useCallback((editor: any) => {
     const model = editor.getModel();
     if (!model) return;
@@ -194,6 +257,14 @@ export default function CodeEditor({
     // Update decorations on change
     editor.onDidChangeModelContent(() => {
       updateDecorations(editor);
+      // Clear calibration on edit? Or let them stay?
+      // Usually better to let them stay until re-analyzed, but positions might shift.
+      // Monaco handles position shift if stickiness is set.
+      // But if we edit the text that caused the issue, it might not be an issue anymore.
+      // `CalibrationPanel` will re-analyze (debounced).
+      // If we don't clear, we might have duplicates or stale markers for 1 sec.
+      // Let's keep them, as Monaco moves them.
+      // Reuse calibrationDecorationsRef? No, only `deltaDecorations` modifies it.
     });
   };
 

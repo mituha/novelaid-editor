@@ -16,6 +16,7 @@ import {
   Users,
   MapPin,
   Share2,
+  CheckCircle,
 } from 'lucide-react';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import FileExplorerPanel from '../components/FileExplorer/FileExplorerPanel';
@@ -25,6 +26,7 @@ import AIProofreaderPanel from '../components/AI/AIProofreaderPanel';
 import MetadataListPanel from '../components/Metadata/MetadataListPanel';
 import { MetadataPropertyEditor } from '../components/Metadata/MetadataPropertyEditor';
 import { SubmissionPanel } from '../components/Submission/SubmissionPanel';
+import CalibrationPanel from '../components/Calibration/CalibrationPanel';
 
 interface PanelContextType extends PanelRegistry {
   activeLeftPanelId: string | null;
@@ -113,6 +115,15 @@ const initialPanels: Panel[] = [
       <SubmissionPanel onOpenWeb={onOpenWebBrowser} />
     ),
     defaultLocation: 'left',
+  },
+  {
+    id: 'calibration',
+    title: '文章校正',
+    icon: <CheckCircle size={24} strokeWidth={1.5} />,
+    component: ({ activeContent }: any) => (
+      <CalibrationPanel content={activeContent || ''} />
+    ),
+    defaultLocation: 'right',
   },
 ];
 

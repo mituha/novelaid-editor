@@ -26,6 +26,7 @@ import { ProviderFactory } from './ai/ProviderFactory';
 import { GitService } from './git/GitService';
 import { FileWatcher } from './watcher';
 import { MetadataService } from './metadataService';
+import { CalibrationService } from './calibration/CalibrationService';
 
 class AppUpdater {
   constructor() {
@@ -493,7 +494,37 @@ const createWindow = async () => {
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   new AppUpdater();
+
+  // Initialize Calibration Service
+  // Note: Kuromoji dictionary path needs to be resolved correctly in prod vs dev
+  const isProd = app.isPackaged;
+  // In dev, node_modules/kuromoji/dict
+  // In prod, resources/dict (we need to copy it there)
+  const dictPath = isProd
+    ? path.join(process.resourcesPath, 'dict')
+    : path.resolve(__dirname, '../../node_modules/kuromoji/dict');
+
+  CalibrationService.getInstance().initialize(dictPath).catch(err => {
+      console.error('Failed to initialize calibration service:', err);
+  });
 };
+
+ipcMain.handle('calibration:analyze', async (_, text: string) => {
+    try {
+        const service = CalibrationService.getInstance();
+        const frequency = await service.getFrequentWords(text);
+        const particleIssues = await service.checkParticles(text);
+        const consistencyIssues = await service.checkConsistency(text);
+
+        return {
+            frequency,
+            issues: [...particleIssues, ...consistencyIssues]
+        };
+    } catch (error) {
+        console.error('Calibration error:', error);
+        throw error;
+    }
+});
 
 /**
  * Add event listeners...

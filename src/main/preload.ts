@@ -38,7 +38,8 @@ export type Channels =
   | 'metadata:query'
   | 'context-menu:show-file-explorer'
   | 'file-explorer:action'
-  | 'app:getVersion';
+  | 'app:getVersion'
+  | 'calibration:analyze';
 
 const electronHandler = {
   ipcRenderer: {
@@ -106,6 +107,11 @@ const electronHandler = {
   app: {
     getVersion() {
       return ipcRenderer.invoke('app:getVersion');
+    },
+  },
+  calibration: {
+    analyze(text: string) {
+      return ipcRenderer.invoke('calibration:analyze', text);
     },
   },
 };
