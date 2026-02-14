@@ -278,7 +278,8 @@ export default function MainLayout() {
 
     // プレビュー画面は元となるファイルの逆側に開く事で同時に閲覧可能とします。
     const setTabs = activeSide === 'left' ? setRightTabs : setLeftTabs;
-    const setActivePath = activeSide === 'left' ? setRightActivePath : setLeftActivePath;
+    const setActivePath =
+      activeSide === 'left' ? setRightActivePath : setLeftActivePath;
 
     setTabs((prev) => {
       if (prev.find((tab) => tab.path === previewPath)) {
@@ -312,12 +313,15 @@ export default function MainLayout() {
     setActivePath(diffPath);
   };
 
+  // 投稿用に指定URL用のブラウザ画面を開きます
   const handleOpenWebBrowser = (url: string, title: string) => {
     const webPath = `web-browser://${url}`;
     const webName = `Web: ${title}`;
-    const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
+
+    // ブラウザ画面は投稿、参照用であるためファイルの逆側に開く事で同時に閲覧可能とします。
+    const setTabs = activeSide === 'left' ? setRightTabs : setLeftTabs;
     const setActivePath =
-      activeSide === 'left' ? setLeftActivePath : setRightActivePath;
+      activeSide === 'left' ? setRightActivePath : setLeftActivePath;
 
     setTabs((prev) => {
       if (prev.find((tab) => tab.path === webPath)) {
@@ -326,6 +330,9 @@ export default function MainLayout() {
       return [...prev, { path: webPath, name: webName, isDirty: false }];
     });
     setActivePath(webPath);
+
+    // 分割画面を表示します
+    setIsSplit(true);
   };
 
   // Auto-unsplit when one side becomes empty
