@@ -276,18 +276,24 @@ export default function CodeEditor({
         // But for MVP, let's just apply.
 
         const issues = e.detail;
-        const newDecorations = issues.map((issue) => ({
-            range: {
-                startLineNumber: issue.range.startLine,
-                startColumn: issue.range.startColumn,
-                endLineNumber: issue.range.endLine,
-                endColumn: issue.range.endColumn
-            },
-            options: {
-                inlineClassName: issue.type === 'particle_repetition' ? 'calibration-marker-particle' : 'calibration-marker-consistency',
-                hoverMessage: { value: issue.message }
-            }
-        }));
+        const newDecorations = issues.flatMap((issue: any) => {
+            const ranges = issue.ranges || [issue.range];
+            return ranges.map((r: any) => ({
+                range: {
+                    startLineNumber: r.startLine,
+                    startColumn: r.startColumn,
+                    endLineNumber: r.endLine,
+                    endColumn: r.endColumn,
+                },
+                options: {
+                    inlineClassName:
+                    issue.type === 'particle_repetition'
+                        ? 'calibration-marker-particle'
+                        : 'calibration-marker-consistency',
+                    hoverMessage: { value: issue.message },
+                },
+            }));
+        });
 
         calibrationDecorationsRef.current = editorRef.current.deltaDecorations(
             calibrationDecorationsRef.current,
