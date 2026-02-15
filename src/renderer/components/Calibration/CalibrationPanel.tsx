@@ -29,6 +29,12 @@ interface CalibrationIssue {
     endLine: number;
     endColumn: number;
   };
+  ranges?: {
+    startLine: number;
+    startColumn: number;
+    endLine: number;
+    endColumn: number;
+  }[];
   suggestion?: string;
 }
 
@@ -149,7 +155,10 @@ export default function CalibrationPanel({ content }: CalibrationPanelProps) {
                   >
                     <div className="issue-message">{issue.message}</div>
                     <div className="issue-location">
-                      Line {issue.range.startLine}
+                      Line{' '}
+                      {issue.ranges
+                        ? issue.ranges.map((r) => r.startLine).join(', ')
+                        : issue.range.startLine}
                     </div>
                   </div>
                 ))}

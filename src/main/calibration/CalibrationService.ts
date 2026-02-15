@@ -18,6 +18,12 @@ export interface CalibrationIssue {
     endLine: number;
     endColumn: number;
   };
+  ranges?: {
+    startLine: number;
+    startColumn: number;
+    endLine: number;
+    endColumn: number;
+  }[];
   suggestion?: string;
   source?: string;
 }
@@ -228,20 +234,27 @@ export class CalibrationService {
           (p) => p.token.surface_form === pType,
         );
 
-        relevantParticles.forEach((p) => {
+        const ranges = relevantParticles.map((p) => {
           const { line, col } = getLineCol(p.index);
+          return {
+            startLine: line,
+            startColumn: col,
+            endLine: line,
+            endColumn: col + pType.length,
+          };
+        });
+
+        // Create a single issue for all occurrences
+        // Use the first occurrence as the primary range (for sorting/jumping initially)
+        if (ranges.length > 0) {
           issues.push({
-            id: `particle-${p.index}`,
+            id: `particle-${relevantParticles[0].index}`,
             type: 'particle_repetition',
             message: `助詞「${pType}」が文中で連続しています（${count}回）`,
-            range: {
-              startLine: line,
-              startColumn: col,
-              endLine: line,
-              endColumn: col + pType.length,
-            },
+            range: ranges[0],
+            ranges: ranges,
           });
-        });
+        }
       }
     });
   }
