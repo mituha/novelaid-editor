@@ -31,9 +31,6 @@ export function EditorSettingsTab() {
       </div>
 
       <div className="setting-item">
-        <label className="setting-label" htmlFor="show-line-numbers">
-          Show Line Numbers
-        </label>
         <div className="setting-toggle">
           <input
             id="show-line-numbers"
@@ -41,7 +38,19 @@ export function EditorSettingsTab() {
             checked={!!editorConfig.showLineNumbers}
             onChange={(e) => handleChange('showLineNumbers', e.target.checked)}
           />
-          <span>Enable line numbers</span>
+          <span>行番号表示</span>
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-toggle">
+          <input
+            id="show-minimap"
+            type="checkbox"
+            checked={!!editorConfig.showMinimap}
+            onChange={(e) => handleChange('showMinimap', e.target.checked)}
+          />
+          <span>ミニマップ表示</span>
         </div>
       </div>
 

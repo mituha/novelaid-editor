@@ -13,6 +13,7 @@ export interface ProjectConfig {
   editor?: {
     fontSize?: number;
     showLineNumbers?: boolean;
+    showMinimap?: boolean;
     wordWrap?: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
     selectionHighlight?: boolean;
     occurrencesHighlight?: boolean;
@@ -74,9 +75,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     editor: {
       fontSize: 14,
       showLineNumbers: true,
+      showMinimap: true,
       wordWrap: 'on',
       selectionHighlight: true,
-      occurrencesHighlight: false, //小説執筆としては不要
+      occurrencesHighlight: false, // 小説執筆としては不要
     },
     submission: {
       kakuyomuUrl: 'https://kakuyomu.jp/my',

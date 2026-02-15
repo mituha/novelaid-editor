@@ -6,6 +6,7 @@ export interface ProjectConfig {
   editor?: {
     fontSize?: number;
     showLineNumbers?: boolean;
+    showMinimap?: boolean;
     wordWrap?: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
     [key: string]: any;
   };

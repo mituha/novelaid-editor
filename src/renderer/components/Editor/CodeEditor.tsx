@@ -521,7 +521,7 @@ export default function CodeEditor({
         theme={getTheme()}
         options={{
           wordWrap: editorConfig.wordWrap || 'on',
-          minimap: { enabled: false },
+          minimap: { enabled: editorConfig.showMinimap ?? true },
           fontSize: editorConfig.fontSize || 14,
           lineNumbers: editorConfig.showLineNumbers ? 'on' : 'off',
           selectionHighlight: editorConfig.selectionHighlight !== false,
