@@ -2,6 +2,7 @@ import kuromoji from 'kuromoji';
 import { createLinter, loadTextlintrc } from 'textlint';
 import type { TextlintResult } from '@textlint/kernel';
 import path from 'path';
+import { app } from 'electron';
 
 export interface CalibrationIssue {
   id: string;
@@ -72,13 +73,24 @@ export class CalibrationService {
       // Initialize TextLint
       const textLintPromise = new Promise<void>(async (resolveTextLint) => {
         try {
+          const configPath = app.isPackaged
+            ? path.join(app.getAppPath(), '.textlintrc')
+            : path.resolve(process.cwd(), '.textlintrc');
+
+          console.log(`[Textlint] Initializing with config: ${configPath}`);
+
           const descriptor = await loadTextlintrc({
-            configFilePath: path.resolve(process.cwd(), '.textlintrc'),
+            configFilePath: configPath,
           });
+
+          console.log('[Textlint] Config loaded successfully');
+
           this.linter = createLinter({ descriptor });
+
+          console.log('[Textlint] Linter created successfully');
           resolveTextLint();
         } catch (e) {
-          console.error('TextLint initialization failed:', e);
+          console.error('[Textlint] Initialization failed:', e);
           resolveTextLint();
         }
       });

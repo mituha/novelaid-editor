@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.16.1",
+  "version": "0.16.3",
   "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
@@ -194,7 +194,11 @@
     "appId": "net.restar.novelaid-editor",
     "asar": true,
     "afterSign": ".erb/scripts/notarize.js",
-    "asarUnpack": "**\\*.{node,dll}",
+    "asarUnpack": [
+      "**\\*.{node,dll}",
+      "**/node_modules/textlint/**/*",
+      "**/node_modules/textlint-rule-*/**/*"
+    ],
     "files": [
       "dist",
       "node_modules",
