@@ -174,7 +174,7 @@ export default class MenuBuilder {
       process.env.DEBUG_PROD === 'true'
         ? subMenuViewDev
         : subMenuViewDev; // subMenuViewProd;
-        // TODO:暫定的にexe版でも開発用メニュー表示
+    // TODO: 暫定的にexe版でも開発用メニュー表示
 
     return [subMenuAbout, subMenuEdit, subMenuView, subMenuWindow, subMenuHelp];
   }

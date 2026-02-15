@@ -78,12 +78,15 @@ export class CalibrationService {
             : path.resolve(process.cwd(), '.textlintrc');
 
           console.log(`[Textlint] Initializing with config: ${configPath}`);
+          console.log(`[Textlint] Execution context: ${process.type}, Packaged: ${app.isPackaged}`);
 
           const descriptor = await loadTextlintrc({
             configFilePath: configPath,
           });
 
-          console.log('[Textlint] Config loaded successfully');
+          const ruleIds = descriptor.rule.descriptors.map((r: any) => r.id);
+          const filterRuleIds = descriptor.filterRule.descriptors.map((r: any) => r.id);
+          console.log(`[Textlint] Config loaded. Rules: [${ruleIds.join(', ')}], Filters: [${filterRuleIds.join(', ')}]`);
 
           this.linter = createLinter({ descriptor });
 

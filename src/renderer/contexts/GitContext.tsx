@@ -46,15 +46,10 @@ export function GitContextProvider({ children }: GitProviderProps) {
 
   const setCurrentDir = useCallback((dir: string) => {
     setCurrentDirState(dir);
-    const version = window.electron.app.getVersion();
     // Update window title with folder name
     const folderName = dir.split('\\').pop() || dir;
-    window.electron.window.setTitle(
-      `novelaid-editor ${version} - ${folderName}`,
-    );
+    window.electron.window.setTitle(`novelaid-editor - ${folderName}`);
   }, []);
-
-
 
   const refreshStatus = useCallback(async () => {
     if (!currentDir) return;
