@@ -542,10 +542,11 @@ ipcMain.handle('calibration:analyze', async (_, text: string) => {
         const frequency = await service.getFrequentWords(text);
         const particleIssues = await service.checkParticles(text);
         const consistencyIssues = await service.checkConsistency(text);
+        const textlintIssues = await service.runTextlint(text);
 
         return {
             frequency,
-            issues: [...particleIssues, ...consistencyIssues]
+            issues: [...particleIssues, ...consistencyIssues, ...textlintIssues]
         };
     } catch (error) {
         console.error('Calibration error:', error);

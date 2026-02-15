@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.15.3",
+  "version": "0.16.0",
   "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
@@ -98,6 +98,7 @@
     "@google/genai": "^1.38.0",
     "@lmstudio/sdk": "^1.5.0",
     "@monaco-editor/react": "^4.7.0",
+    "astral-regex": "2.0.0",
     "axios": "^1.13.4",
     "chokidar": "^5.0.0",
     "electron-debug": "^4.1.0",
@@ -115,7 +116,11 @@
     "react-markdown": "^6.0.3",
     "react-router-dom": "^7.3.0",
     "remark-gfm": "^1.0.0",
-    "simple-git": "^3.30.0"
+    "simple-git": "^3.30.0",
+    "textlint": "^15.5.1",
+    "textlint-rule-no-doubled-joshi": "^5.1.1",
+    "textlint-rule-no-dropping-the-ra": "^3.0.0",
+    "textlint-rule-preset-ja-spacing": "^2.4.3"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.2",
@@ -193,7 +198,8 @@
     "files": [
       "dist",
       "node_modules",
-      "package.json"
+      "package.json",
+      ".textlintrc"
     ],
     "mac": {
       "notarize": false,

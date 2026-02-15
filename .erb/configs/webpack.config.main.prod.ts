@@ -22,6 +22,13 @@ const configuration: webpack.Configuration = {
 
   target: 'electron-main',
 
+  externals: [
+    'textlint',
+    'textlint-rule-preset-ja-spacing',
+    'textlint-rule-no-dropping-the-ra',
+    'textlint-rule-no-doubled-joshi',
+  ],
+
   entry: {
     main: path.join(webpackPaths.srcMainPath, 'main.ts'),
     preload: path.join(webpackPaths.srcMainPath, 'preload.ts'),

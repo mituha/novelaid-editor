@@ -1,0 +1,7 @@
+{
+  "rules": {
+    "preset-ja-spacing": true,
+    "no-dropping-the-ra": true,
+    "no-doubled-joshi": true
+  }
+}

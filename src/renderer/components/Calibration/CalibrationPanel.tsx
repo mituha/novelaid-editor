@@ -20,7 +20,8 @@ interface CalibrationIssue {
     | 'particle_repetition'
     | 'word_frequency'
     | 'consistency'
-    | 'kanji_open_close';
+    | 'kanji_open_close'
+    | 'textlint';
   message: string;
   range: {
     startLine: number;
@@ -35,11 +36,11 @@ interface CalibrationPanelProps {
   content: string;
 }
 
-export default function CalibrationPanel({
-  content,
-}: CalibrationPanelProps) {
+export default function CalibrationPanel({ content }: CalibrationPanelProps) {
   const handleIssueClick = (range: any) => {
-      window.dispatchEvent(new CustomEvent('calibration-jump', { detail: range }));
+    window.dispatchEvent(
+      new CustomEvent('calibration-jump', { detail: range }),
+    );
   };
 
   const [activeTab, setActiveTab] = useState<'frequency' | 'issues'>('issues');
@@ -58,9 +59,11 @@ export default function CalibrationPanel({
           setFrequency(result.frequency);
           setIssues(result.issues);
 
-          window.dispatchEvent(new CustomEvent('calibration-update', {
-              detail: result.issues
-          }));
+          window.dispatchEvent(
+            new CustomEvent('calibration-update', {
+              detail: result.issues,
+            }),
+          );
         }
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -74,28 +77,27 @@ export default function CalibrationPanel({
 
     // Debounce
     const timer = setTimeout(() => {
-        analyze();
+      analyze();
     }, 1000);
 
     return () => {
-        isMounted = false;
-        clearTimeout(timer);
+      isMounted = false;
+      clearTimeout(timer);
     };
   }, [content]);
 
-  const particleIssues = issues.filter(
-    (i) => i.type === 'particle_repetition',
-  );
+  const particleIssues = issues.filter((i) => i.type === 'particle_repetition');
   const consistencyIssues = issues.filter(
     (i) => i.type === 'consistency' || i.type === 'kanji_open_close',
   );
+  const textlintIssues = issues.filter((i) => i.type === 'textlint');
 
   return (
     <div className="calibration-panel">
       <div className="calibration-header">
         <div className="calibration-title">
-             <CheckCircle size={16} />
-             <span>文章校正</span>
+          <CheckCircle size={16} />
+          <span>文章校正</span>
         </div>
         <div className="calibration-tabs">
           <button
@@ -123,58 +125,119 @@ export default function CalibrationPanel({
         {!loading && activeTab === 'issues' && (
           <div className="issues-list">
             {issues.length === 0 && (
-                <div className="empty-state">指摘事項はありません</div>
+              <div className="empty-state">指摘事項はありません</div>
             )}
 
             {particleIssues.length > 0 && (
-                <div className="issue-group">
-                    <div className="group-header">
-                        <Repeat size={14} />
-                        <span>助詞の連続</span>
-                    </div>
-                    {particleIssues.map(issue => (
-                        <div key={issue.id} className="issue-item" onClick={() => handleIssueClick(issue.range)}>
-                            <div className="issue-message">{issue.message}</div>
-                            <div className="issue-location">Line {issue.range.startLine}</div>
-                        </div>
-                    ))}
+              <div className="issue-group">
+                <div className="group-header">
+                  <Repeat size={14} />
+                  <span>助詞の連続</span>
                 </div>
+                {particleIssues.map((issue) => (
+                  <div
+                    key={issue.id}
+                    className="issue-item"
+                    onClick={() => handleIssueClick(issue.range)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleIssueClick(issue.range);
+                      }
+                    }}
+                  >
+                    <div className="issue-message">{issue.message}</div>
+                    <div className="issue-location">
+                      Line {issue.range.startLine}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {textlintIssues.length > 0 && (
+              <div className="issue-group">
+                <div className="group-header">
+                  <AlertTriangle size={14} />
+                  <span>文章チェック (textlint)</span>
+                </div>
+                {textlintIssues.map((issue) => (
+                  <div
+                    key={issue.id}
+                    className="issue-item"
+                    onClick={() => handleIssueClick(issue.range)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleIssueClick(issue.range);
+                      }
+                    }}
+                  >
+                    <div className="issue-message">{issue.message}</div>
+                    {issue.suggestion && (
+                      <div className="issue-suggestion">
+                        提案: {issue.suggestion}
+                      </div>
+                    )}
+                    <div className="issue-location">
+                      Line {issue.range.startLine}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
 
             {consistencyIssues.length > 0 && (
-                <div className="issue-group">
-                    <div className="group-header">
-                        <AlertCircle size={14} />
-                        <span>表記ゆれ・漢字</span>
-                    </div>
-                    {consistencyIssues.map(issue => (
-                        <div key={issue.id} className="issue-item" onClick={() => handleIssueClick(issue.range)}>
-                            <div className="issue-message">{issue.message}</div>
-                            {issue.suggestion && (
-                                <div className="issue-suggestion">提案: {issue.suggestion}</div>
-                            )}
-                            <div className="issue-location">Line {issue.range.startLine}</div>
-                        </div>
-                    ))}
+              <div className="issue-group">
+                <div className="group-header">
+                  <AlertCircle size={14} />
+                  <span>表記ゆれ・漢字</span>
                 </div>
+                {consistencyIssues.map((issue) => (
+                  <div
+                    key={issue.id}
+                    className="issue-item"
+                    onClick={() => handleIssueClick(issue.range)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleIssueClick(issue.range);
+                      }
+                    }}
+                  >
+                    <div className="issue-message">{issue.message}</div>
+                    {issue.suggestion && (
+                      <div className="issue-suggestion">
+                        提案: {issue.suggestion}
+                      </div>
+                    )}
+                    <div className="issue-location">
+                      Line {issue.range.startLine}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
 
         {!loading && activeTab === 'frequency' && (
           <div className="frequency-list">
-             <div className="freq-header">
-                 <span>単語</span>
-                 <span>品詞</span>
-                 <span>回数</span>
-             </div>
-             {frequency.slice(0, 100).map((item, index) => (
-                 <div key={`${item.word}-${index}`} className="freq-item">
-                     <span className="freq-word">{item.word}</span>
-                     <span className="freq-pos">{item.pos}</span>
-                     <span className="freq-count">{item.count}</span>
-                 </div>
-             ))}
+            <div className="freq-header">
+              <span>単語</span>
+              <span>品詞</span>
+              <span>回数</span>
+            </div>
+            {frequency.slice(0, 100).map((item) => (
+              <div key={`${item.word}-${item.pos}`} className="freq-item">
+                <span className="freq-word">{item.word}</span>
+                <span className="freq-pos">{item.pos}</span>
+                <span className="freq-count">{item.count}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>

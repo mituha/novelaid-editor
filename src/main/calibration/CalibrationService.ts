@@ -1,4 +1,6 @@
 import kuromoji from 'kuromoji';
+import { createLinter, loadTextlintrc } from 'textlint';
+import type { TextlintResult } from '@textlint/kernel';
 import path from 'path';
 
 export interface CalibrationIssue {
@@ -7,7 +9,8 @@ export interface CalibrationIssue {
     | 'particle_repetition'
     | 'word_frequency'
     | 'consistency'
-    | 'kanji_open_close';
+    | 'kanji_open_close'
+    | 'textlint';
   message: string;
   range: {
     startLine: number;
@@ -16,6 +19,7 @@ export interface CalibrationIssue {
     endColumn: number;
   };
   suggestion?: string;
+  source?: string;
 }
 
 export interface FrequencyResult {
@@ -28,6 +32,7 @@ export class CalibrationService {
   private static instance: CalibrationService;
 
   private tokenizer: kuromoji.Tokenizer<kuromoji.IpadicFeatures> | null = null;
+  private linter: ReturnType<typeof createLinter> | null = null;
 
   private initializationPromise: Promise<void> | null = null;
 
@@ -41,20 +46,40 @@ export class CalibrationService {
   }
 
   public async initialize(dicPath: string): Promise<void> {
-    if (this.tokenizer) return;
+    if (this.tokenizer && this.linter) return;
     if (this.initializationPromise) return this.initializationPromise;
 
     this.initializationPromise = new Promise((resolve, reject) => {
-      kuromoji.builder({ dicPath }).build((err, tokenizer) => {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.error('Kuromoji initialization failed:', err);
-          reject(err);
-        } else {
-          this.tokenizer = tokenizer;
-          resolve();
+      // Initialize Kuromoji
+      const kuromojiPromise = new Promise<void>((resolveKuromoji, rejectKuromoji) => {
+        kuromoji.builder({ dicPath }).build((err, tokenizer) => {
+          if (err) {
+            console.error('Kuromoji initialization failed:', err);
+            rejectKuromoji(err);
+          } else {
+            this.tokenizer = tokenizer;
+            resolveKuromoji();
+          }
+        });
+      });
+
+      // Initialize TextLint
+      const textLintPromise = new Promise<void>(async (resolveTextLint) => {
+        try {
+          const descriptor = await loadTextlintrc({
+            configFilePath: path.resolve(process.cwd(), '.textlintrc'),
+          });
+          this.linter = createLinter({ descriptor });
+          resolveTextLint();
+        } catch (e) {
+          console.error('TextLint initialization failed:', e);
+          resolveTextLint();
         }
       });
+
+      Promise.all([kuromojiPromise, textLintPromise])
+        .then(() => resolve())
+        .catch((err) => reject(err));
     });
 
     return this.initializationPromise;
@@ -118,6 +143,37 @@ export class CalibrationService {
       .sort((a, b) => b.count - a.count);
   }
 
+  public async runTextlint(text: string): Promise<CalibrationIssue[]> {
+    if (!this.linter) {
+      return [];
+    }
+
+    // Dummy filename to apply rules? Or just empty.
+    // textlint rules might rely on extension. Markdown rules need .md.
+    // But we are using basic text rules. .txt should be fine.
+    const result: TextlintResult = await this.linter.lintText(text, 'text.txt');
+    const issues: CalibrationIssue[] = [];
+
+    if (result.messages.length > 0) {
+      result.messages.forEach((msg) => {
+        issues.push({
+          id: `textlint-${msg.line}-${msg.column}-${msg.ruleId}`,
+          type: 'textlint',
+          message: msg.message,
+          range: {
+            startLine: msg.line,
+            startColumn: msg.column,
+            endLine: msg.line,
+            endColumn: msg.column + 1, // Textlint doesn't provide end column/index always
+          },
+          suggestion: msg.fix ? msg.fix.text : undefined,
+          source: msg.ruleId,
+        });
+      });
+    }
+    return issues;
+  }
+
   public async checkParticles(text: string): Promise<CalibrationIssue[]> {
     const { cleanText, getLineCol } = this.prepareAnalysis(text);
     const tokens = await this.analyze(cleanText);
@@ -143,8 +199,8 @@ export class CalibrationService {
         ['の', 'が', 'に', 'を', 'と', 'で', 'や', 'も'].includes(surface)
       ) {
         currentSentenceParticles.push({
-            token,
-            index: token.word_position - 1 // kuromoji index is 1-based
+          token,
+          index: token.word_position - 1, // kuromoji index is 1-based
         });
       }
     }
@@ -231,21 +287,21 @@ export class CalibrationService {
         if (surface === '時' && token.pos === '名詞') shouldWarn = true;
 
         if (shouldWarn) {
-             const suggestion = checkMap[surface];
-             const { line, col } = getLineCol(token.word_position - 1); // kuromoji index is 1-based
+          const suggestion = checkMap[surface];
+          const { line, col } = getLineCol(token.word_position - 1); // kuromoji index is 1-based
 
-             issues.push({
-               id: `consistency-${token.word_position}`,
-               type: 'kanji_open_close',
-               message: `「${surface}」は「${suggestion}」と開くのが一般的です`,
-               range: {
-                 startLine: line,
-                 startColumn: col,
-                 endLine: line,
-                 endColumn: col + surface.length,
-               },
-               suggestion,
-             });
+          issues.push({
+            id: `consistency-${token.word_position}`,
+            type: 'kanji_open_close',
+            message: `「${surface}」は「${suggestion}」と開くのが一般的です`,
+            range: {
+              startLine: line,
+              startColumn: col,
+              endLine: line,
+              endColumn: col + surface.length,
+            },
+            suggestion,
+          });
         }
       }
     });
