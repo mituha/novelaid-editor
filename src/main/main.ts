@@ -536,15 +536,16 @@ const createWindow = async () => {
   });
 };
 
-ipcMain.handle('calibration:analyze', async (_, text: string) => {
+ipcMain.handle('calibration:analyze', async (_, text: string, settings: any) => {
     try {
         const service = CalibrationService.getInstance();
         const frequency = await service.getFrequentWords(text);
-        const particleIssues = await service.checkParticles(text);
-        const consistencyIssues = await service.checkConsistency(text);
-        const textlintIssues = await service.runTextlint(text);
 
-        const allIssues = [...particleIssues, ...consistencyIssues, ...textlintIssues];
+        // Use textlint for particle checks if enabled, internal check is removed
+        const consistencyIssues = await service.checkConsistency(text, settings?.kanjiOpenClose);
+        const textlintIssues = await service.runTextlint(text, settings);
+
+        const allIssues = [...consistencyIssues, ...textlintIssues];
         console.log(`[IPC] calibration:analyze - Derived ${allIssues.length} total issues (textlint: ${textlintIssues.length})`);
 
         return {

@@ -7,6 +7,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { EditorSettingsTab } from '../components/Settings/Tabs/EditorSettingsTab';
 import { AISettingsTab } from '../components/Settings/Tabs/AISettingsTab';
 import { AppearanceSettingsTab } from '../components/Settings/Tabs/AppearanceSettingsTab';
+import { CalibrationSettingsTab } from '../components/Settings/Tabs/CalibrationSettingsTab';
 import { RightPane } from '../components/RightPane/RightPane';
 import { Resizer } from '../components/Common/Resizer';
 import { StatusBar } from '../components/Common/StatusBar';
@@ -106,6 +107,11 @@ export default function MainLayout() {
       id: 'ai',
       name: 'AI',
       render: () => <AISettingsTab />,
+    });
+    registerSettingTab({
+      id: 'calibration',
+      name: '校正',
+      render: () => <CalibrationSettingsTab />,
     });
     registerSettingTab({
       id: 'appearance',

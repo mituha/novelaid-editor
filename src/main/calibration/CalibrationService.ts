@@ -214,38 +214,38 @@ export class CalibrationService {
       .sort((a, b) => b.count - a.count);
   }
 
-  public async runTextlint(text: string): Promise<CalibrationIssue[]> {
-    if (!this.linter) {
-      console.warn('[Textlint] Linter is not initialized, skipping check.');
+  public async runTextlint(
+    text: string,
+    settings: any,
+  ): Promise<CalibrationIssue[]> {
+    if (!this.linter || !settings?.textlint) {
       return [];
     }
 
     try {
       console.log(`[Textlint] Running check on ${text.length} characters.`);
-      // Log bit of text for debugging encoding/content issues
-      console.log(`[Textlint] Text sample: ${text.substring(0, 100)}...`);
-
-      // Dummy filename to apply rules? Or just empty.
-      // textlint rules might rely on extension. Markdown rules need .md.
-      // But we are using basic text rules. .txt should be fine.
       const result: TextlintResult = await this.linter.lintText(text, 'text.txt');
       const issues: CalibrationIssue[] = [];
 
-      console.log(`[Textlint] Check finished. Found ${result.messages.length} messages.`);
-
       if (result.messages.length > 0) {
         result.messages.forEach((msg) => {
-          // Log specific rules that triggered
-          console.log(`[Textlint] Issue: ${msg.ruleId} - ${msg.message} (Line ${msg.line}, Col ${msg.column})`);
+          // Filter based on settings
+          let isEnabled = true;
+          if (msg.ruleId === 'no-dropping-the-ra') isEnabled = !!settings.noDroppingTheRa;
+          else if (msg.ruleId === 'no-doubled-joshi') isEnabled = !!settings.noDoubledJoshi;
+          else if (msg.ruleId.startsWith('preset-ja-spacing')) isEnabled = !!settings.jaSpacing;
+
+          if (!isEnabled) return;
+
           issues.push({
             id: `textlint-${msg.line}-${msg.column}-${msg.ruleId}`,
-            type: 'textlint',
+            type: msg.ruleId === 'no-doubled-joshi' ? 'particle_repetition' : 'textlint',
             message: msg.message,
             range: {
               startLine: msg.line,
               startColumn: msg.column,
               endLine: msg.line,
-              endColumn: msg.column + 1, // Textlint doesn't provide end column/index always
+              endColumn: msg.column + 1,
             },
             suggestion: msg.fix ? msg.fix.text : undefined,
             source: msg.ruleId,
@@ -259,112 +259,38 @@ export class CalibrationService {
     }
   }
 
-  public async checkParticles(text: string): Promise<CalibrationIssue[]> {
-    const { cleanText, getLineCol } = this.prepareAnalysis(text);
-    const tokens = await this.analyze(cleanText);
-    const issues: CalibrationIssue[] = [];
+  public async checkConsistency(
+    text: string,
+    enabled: boolean = true,
+  ): Promise<CalibrationIssue[]> {
+    if (!enabled) return [];
 
-    let currentSentenceParticles: {
-      token: kuromoji.IpadicFeatures;
-      index: number;
-    }[] = [];
-
-    for (let i = 0; i < tokens.length; i += 1) {
-      const token = tokens[i];
-      const surface = token.surface_form;
-
-      if (surface === '。' || surface === '！' || surface === '？' || surface === '\n') {
-        this.checkSentenceIssues(currentSentenceParticles, issues, getLineCol);
-        currentSentenceParticles = [];
-        continue;
-      }
-
-      if (
-        token.pos === '助詞' &&
-        ['の', 'が', 'に', 'を', 'と', 'で', 'や', 'も'].includes(surface)
-      ) {
-        currentSentenceParticles.push({
-          token,
-          index: token.word_position - 1, // kuromoji index is 1-based
-        });
-      }
-    }
-    // Check last sentence
-    this.checkSentenceIssues(currentSentenceParticles, issues, getLineCol);
-
-    return issues;
-  }
-
-  private checkSentenceIssues(
-    particles: { token: kuromoji.IpadicFeatures; index: number }[],
-    issues: CalibrationIssue[],
-    getLineCol: (index: number) => { line: number; col: number },
-  ) {
-    const counts: Record<string, number> = {};
-
-    particles.forEach((p) => {
-      counts[p.token.surface_form] = (counts[p.token.surface_form] || 0) + 1;
-    });
-
-    Object.entries(counts).forEach(([pType, count]) => {
-      if (count >= 3) {
-        // Only mark if 3 or more of same particle in one sentence
-        const relevantParticles = particles.filter(
-          (p) => p.token.surface_form === pType,
-        );
-
-        const ranges = relevantParticles.map((p) => {
-          const { line, col } = getLineCol(p.index);
-          return {
-            startLine: line,
-            startColumn: col,
-            endLine: line,
-            endColumn: col + pType.length,
-          };
-        });
-
-        // Create a single issue for all occurrences
-        // Use the first occurrence as the primary range (for sorting/jumping initially)
-        if (ranges.length > 0) {
-          issues.push({
-            id: `particle-${relevantParticles[0].index}`,
-            type: 'particle_repetition',
-            message: `助詞「${pType}」が文中で連続しています（${count}回）`,
-            range: ranges[0],
-            ranges: ranges,
-          });
-        }
-      }
-    });
-  }
-
-  public async checkConsistency(text: string): Promise<CalibrationIssue[]> {
     const { cleanText, getLineCol } = this.prepareAnalysis(text);
     const tokens = await this.analyze(cleanText);
     const issues: CalibrationIssue[] = [];
 
     const checkMap: Record<string, string> = {
-      '事': 'こと',
-      '時': 'とき',
-      '所': 'ところ',
-      '他': 'ほか',
-      '等': 'など',
-      '為': 'ため',
-      '故': 'ゆえ',
-      '或いは': 'あるいは',
-      '貴方': 'あなた',
-      '何時': 'いつ',
-      '何処': 'どこ',
-      '此処': 'ここ',
-      '其処': 'そこ',
-      '彼処': 'あそこ',
-      '何故': 'なぜ',
-      '殆ど': 'ほとんど',
-      '滅多に': 'めったに',
-      '居る': 'いる', // 補助動詞
-      '或る': 'ある',
-      '無く': 'なく', // 補助形容詞など
-      '無い': 'ない',
+      事: 'こと',
+      時: 'とき',
+      所: 'ところ',
+      他: 'ほか',
+      等: 'など',
+      為: 'ため',
+      故: 'ゆえ',
+      或いは: 'あるいは',
+      貴方: 'あなた',
+      何時: 'いつ',
+      何処: 'どこ',
+      此処: 'ここ',
+      其処: 'そこ',
+      彼処: 'あそこ',
+      何故: 'なぜ',
+      殆ど: 'ほとんど',
+      滅多に: 'めったに',
+      居る: 'いる', // 補助動詞
+      或る: 'ある',
+      無く: 'なく', // 補助形容詞など
+      無い: 'ない',
     };
 
     tokens.forEach((token) => {

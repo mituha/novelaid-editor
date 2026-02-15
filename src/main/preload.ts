@@ -114,8 +114,8 @@ const electronHandler = {
     },
   },
   calibration: {
-    analyze(text: string) {
-      return ipcRenderer.invoke('calibration:analyze', text);
+    analyze(text: string, settings: any) {
+      return ipcRenderer.invoke('calibration:analyze', text, settings);
     },
   },
 };

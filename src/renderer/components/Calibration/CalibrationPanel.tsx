@@ -6,6 +6,7 @@ import {
   BarChart2,
   AlertCircle,
 } from 'lucide-react';
+import { useSettings } from '../../contexts/SettingsContext';
 import './CalibrationPanel.css';
 
 interface FrequencyResult {
@@ -43,6 +44,9 @@ interface CalibrationPanelProps {
 }
 
 export default function CalibrationPanel({ content }: CalibrationPanelProps) {
+  const { settings } = useSettings();
+  const calibration = settings.calibration;
+
   const handleIssueClick = (range: any) => {
     window.dispatchEvent(
       new CustomEvent('calibration-jump', { detail: range }),
@@ -60,7 +64,7 @@ export default function CalibrationPanel({ content }: CalibrationPanelProps) {
       if (!content) return;
       setLoading(true);
       try {
-        const result = await window.electron.calibration.analyze(content);
+        const result = await window.electron.calibration.analyze(content, calibration);
         if (isMounted) {
           setFrequency(result.frequency);
           setIssues(result.issues);
@@ -90,7 +94,7 @@ export default function CalibrationPanel({ content }: CalibrationPanelProps) {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [content]);
+  }, [content, calibration]);
 
   const particleIssues = issues.filter((i) => i.type === 'particle_repetition');
   const consistencyIssues = issues.filter(

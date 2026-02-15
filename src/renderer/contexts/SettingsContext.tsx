@@ -45,6 +45,13 @@ export interface ProjectConfig {
     naroUrl?: string;
     customUrl?: string;
   };
+  calibration?: {
+    textlint?: boolean;
+    noDroppingTheRa?: boolean;
+    noDoubledJoshi?: boolean;
+    jaSpacing?: boolean;
+    kanjiOpenClose?: boolean;
+  };
   [key: string]: any;
 }
 
@@ -83,6 +90,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     submission: {
       kakuyomuUrl: 'https://kakuyomu.jp/my',
       naroUrl: 'https://syosetu.com/usernovel/list/',
+    },
+    calibration: {
+      textlint: true,
+      noDroppingTheRa: true,
+      noDoubledJoshi: true,
+      jaSpacing: true,
+      kanjiOpenClose: true,
     },
   });
   const [settingTabs, setSettingTabs] = useState<SettingsTab[]>([]);
