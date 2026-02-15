@@ -544,9 +544,12 @@ ipcMain.handle('calibration:analyze', async (_, text: string) => {
         const consistencyIssues = await service.checkConsistency(text);
         const textlintIssues = await service.runTextlint(text);
 
+        const allIssues = [...particleIssues, ...consistencyIssues, ...textlintIssues];
+        console.log(`[IPC] calibration:analyze - Derived ${allIssues.length} total issues (textlint: ${textlintIssues.length})`);
+
         return {
             frequency,
-            issues: [...particleIssues, ...consistencyIssues, ...textlintIssues]
+            issues: allIssues
         };
     } catch (error) {
         console.error('Calibration error:', error);

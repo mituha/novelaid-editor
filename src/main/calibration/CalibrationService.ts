@@ -163,33 +163,47 @@ export class CalibrationService {
 
   public async runTextlint(text: string): Promise<CalibrationIssue[]> {
     if (!this.linter) {
+      console.warn('[Textlint] Linter is not initialized, skipping check.');
       return [];
     }
 
-    // Dummy filename to apply rules? Or just empty.
-    // textlint rules might rely on extension. Markdown rules need .md.
-    // But we are using basic text rules. .txt should be fine.
-    const result: TextlintResult = await this.linter.lintText(text, 'text.txt');
-    const issues: CalibrationIssue[] = [];
+    try {
+      console.log(`[Textlint] Running check on ${text.length} characters.`);
+      // Log bit of text for debugging encoding/content issues
+      console.log(`[Textlint] Text sample: ${text.substring(0, 100)}...`);
 
-    if (result.messages.length > 0) {
-      result.messages.forEach((msg) => {
-        issues.push({
-          id: `textlint-${msg.line}-${msg.column}-${msg.ruleId}`,
-          type: 'textlint',
-          message: msg.message,
-          range: {
-            startLine: msg.line,
-            startColumn: msg.column,
-            endLine: msg.line,
-            endColumn: msg.column + 1, // Textlint doesn't provide end column/index always
-          },
-          suggestion: msg.fix ? msg.fix.text : undefined,
-          source: msg.ruleId,
+      // Dummy filename to apply rules? Or just empty.
+      // textlint rules might rely on extension. Markdown rules need .md.
+      // But we are using basic text rules. .txt should be fine.
+      const result: TextlintResult = await this.linter.lintText(text, 'text.txt');
+      const issues: CalibrationIssue[] = [];
+
+      console.log(`[Textlint] Check finished. Found ${result.messages.length} messages.`);
+
+      if (result.messages.length > 0) {
+        result.messages.forEach((msg) => {
+          // Log specific rules that triggered
+          console.log(`[Textlint] Issue: ${msg.ruleId} - ${msg.message} (Line ${msg.line}, Col ${msg.column})`);
+          issues.push({
+            id: `textlint-${msg.line}-${msg.column}-${msg.ruleId}`,
+            type: 'textlint',
+            message: msg.message,
+            range: {
+              startLine: msg.line,
+              startColumn: msg.column,
+              endLine: msg.line,
+              endColumn: msg.column + 1, // Textlint doesn't provide end column/index always
+            },
+            suggestion: msg.fix ? msg.fix.text : undefined,
+            source: msg.ruleId,
+          });
         });
-      });
+      }
+      return issues;
+    } catch (error) {
+      console.error('[Textlint] Error during lintText:', error);
+      return [];
     }
-    return issues;
   }
 
   public async checkParticles(text: string): Promise<CalibrationIssue[]> {
