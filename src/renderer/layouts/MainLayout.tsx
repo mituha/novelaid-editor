@@ -42,8 +42,14 @@ export default function MainLayout() {
     >
   >({});
   const navigate = useNavigate();
-  const { settings, openSettings, registerSettingTab, loadProjectSettings } =
-    useSettings();
+  const {
+    settings,
+    updateSettings,
+    openSettings,
+    registerSettingTab,
+    loadProjectSettings,
+    projectPath,
+  } = useSettings();
 
   const { activeLeftPanelId, activeRightPanelId, setActivePanel, getPanels } =
     usePanel();
@@ -60,6 +66,123 @@ export default function MainLayout() {
 
   const activeTabPath = activeSide === 'left' ? leftActivePath : rightActivePath;
   const savingPaths = useRef<Set<string>>(new Set());
+  const restoredRef = useRef<string | null>(null);
+
+  // Restore open files from settings
+  useEffect(() => {
+    if (
+      !projectPath ||
+      !settings.lastOpenFiles ||
+      restoredRef.current === projectPath
+    ) {
+      return;
+    }
+
+    const restore = async () => {
+      restoredRef.current = projectPath;
+      const {
+        left,
+        right,
+        leftActive,
+        rightActive,
+        isSplit: savedSplit,
+        activeSide: savedSide,
+      } = settings.lastOpenFiles!;
+
+      if (savedSplit !== undefined) setIsSplit(savedSplit);
+      if (savedSide !== undefined) setActiveSide(savedSide);
+
+      const restoreFiles = async (files: { path: string; name: string }[]) => {
+        const results = await Promise.all(
+          files.map(async (t) => {
+            try {
+              const data = await window.electron.ipcRenderer.invoke(
+                'fs:readDocument',
+                t.path,
+              );
+              return { path: t.path, name: t.name, data };
+            } catch (e) {
+              // eslint-disable-next-line no-console
+              console.error(`Failed to restore ${t.path}`, e);
+              return null;
+            }
+          }),
+        );
+        return results.filter(
+          (r): r is { path: string; name: string; data: any } => r !== null,
+        );
+      };
+
+      const [leftResults, rightResults] = await Promise.all([
+        restoreFiles(left),
+        restoreFiles(right),
+      ]);
+
+      const contentsUpdate: any = {};
+      [...leftResults, ...rightResults].forEach((r) => {
+        contentsUpdate[r.path] = { ...r.data, lastSource: 'external' };
+      });
+
+      setTabContents((prevContent) => ({ ...prevContent, ...contentsUpdate }));
+
+      if (leftResults.length > 0) {
+        setLeftTabs(
+          leftResults.map((r) => ({
+            name: r.name,
+            path: r.path,
+            isDirty: false,
+          })),
+        );
+        if (leftActive) setLeftActivePath(leftActive);
+      }
+
+      if (rightResults.length > 0) {
+        setRightTabs(
+          rightResults.map((r) => ({
+            name: r.name,
+            path: r.path,
+            isDirty: false,
+          })),
+        );
+        if (rightActive) setRightActivePath(rightActive);
+      }
+    };
+
+    restore();
+  }, [projectPath, settings.lastOpenFiles]);
+
+  // Persist open files to settings
+  useEffect(() => {
+    // Only save if we have finished restoring for the current project
+    if (!projectPath || restoredRef.current !== projectPath) return;
+
+    const lastOpenFiles = {
+      left: leftTabs.map((t) => ({ path: t.path, name: t.name })),
+      right: rightTabs.map((t) => ({ path: t.path, name: t.name })),
+      leftActive: leftActivePath,
+      rightActive: rightActivePath,
+      activeSide,
+      isSplit,
+    };
+
+    // Deep compare to avoid unnecessary writes
+    const currentSerialized = JSON.stringify(lastOpenFiles);
+    const savedSerialized = JSON.stringify(settings.lastOpenFiles);
+
+    if (currentSerialized !== savedSerialized) {
+      updateSettings({ lastOpenFiles });
+    }
+  }, [
+    leftTabs,
+    rightTabs,
+    leftActivePath,
+    rightActivePath,
+    activeSide,
+    isSplit,
+    projectPath,
+    updateSettings,
+    settings.lastOpenFiles,
+  ]);
 
   const handleLeftResize = useCallback((delta: number) => {
     setLeftPaneWidth((prev) => Math.max(150, Math.min(600, prev + delta)));

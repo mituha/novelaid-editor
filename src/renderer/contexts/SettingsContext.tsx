@@ -52,6 +52,14 @@ export interface ProjectConfig {
     jaSpacing?: boolean;
     kanjiOpenClose?: boolean;
   };
+  lastOpenFiles?: {
+    left: { path: string; name: string }[];
+    right: { path: string; name: string }[];
+    leftActive?: string | null;
+    rightActive?: string | null;
+    activeSide?: 'left' | 'right';
+    isSplit?: boolean;
+  };
   [key: string]: any;
 }
 
@@ -70,6 +78,7 @@ interface SettingsContextType {
   closeSettings: () => void;
   isSettingsOpen: boolean;
   loadProjectSettings: (path: string) => Promise<void>;
+  projectPath: string | null;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -156,6 +165,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       closeSettings,
       isSettingsOpen,
       loadProjectSettings,
+      projectPath,
     }),
     [
       settings,
@@ -166,6 +176,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       closeSettings,
       isSettingsOpen,
       loadProjectSettings,
+      projectPath,
     ],
   );
 
