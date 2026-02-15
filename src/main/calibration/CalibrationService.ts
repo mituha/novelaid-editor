@@ -1,8 +1,17 @@
 import kuromoji from 'kuromoji';
-import { createLinter, loadTextlintrc } from 'textlint';
+import { createLinter } from 'textlint';
 import type { TextlintResult } from '@textlint/kernel';
 import path from 'path';
 import { app } from 'electron';
+
+// Import rules programmatically
+import presetJaSpacing from 'textlint-rule-preset-ja-spacing';
+import noDroppingTheRa from 'textlint-rule-no-dropping-the-ra';
+import noDoubledJoshi from 'textlint-rule-no-doubled-joshi';
+
+// Import plugins programmatically
+import textPlugin from '@textlint/textlint-plugin-text';
+import markdownPlugin from '@textlint/textlint-plugin-markdown';
 
 export interface CalibrationIssue {
   id: string;
@@ -73,27 +82,68 @@ export class CalibrationService {
       // Initialize TextLint
       const textLintPromise = new Promise<void>(async (resolveTextLint) => {
         try {
-          const configPath = app.isPackaged
-            ? path.join(app.getAppPath(), '.textlintrc')
-            : path.resolve(process.cwd(), '.textlintrc');
-
-          console.log(`[Textlint] Initializing with config: ${configPath}`);
+          console.log(`[Textlint] Initializing manually (without .textlintrc)`);
           console.log(`[Textlint] Execution context: ${process.type}, Packaged: ${app.isPackaged}`);
 
-          const descriptor = await loadTextlintrc({
-            configFilePath: configPath,
+          // Helper to handle both ESM and CJS imports
+          const getModule = (mod: any) => (mod && mod.default ? mod.default : mod);
+
+          // Manual rule setup
+          const rules: any[] = [];
+
+          const raRule = getModule(noDroppingTheRa);
+          if (raRule) {
+            rules.push({ ruleId: 'no-dropping-the-ra', rule: raRule });
+          }
+
+          const joshiRule = getModule(noDoubledJoshi);
+          if (joshiRule) {
+            rules.push({ ruleId: 'no-doubled-joshi', rule: joshiRule });
+          }
+
+          const spacingPreset = getModule(presetJaSpacing);
+          if (spacingPreset && spacingPreset.rules) {
+            Object.keys(spacingPreset.rules).forEach((key) => {
+              rules.push({
+                ruleId: `preset-ja-spacing/${key}`,
+                rule: spacingPreset.rules[key],
+                options: spacingPreset.rulesConfig ? spacingPreset.rulesConfig[key] : true,
+              });
+            });
+          }
+
+          // Manual plugin setup
+          const plugins: any[] = [
+            {
+              pluginId: 'text',
+              plugin: getModule(textPlugin),
+            },
+            {
+              pluginId: 'markdown',
+              plugin: getModule(markdownPlugin),
+            },
+          ];
+
+          console.log(`[Textlint] Registering ${rules.length} rules and ${plugins.length} plugins.`);
+
+          const { TextlintKernelDescriptor } = await import('@textlint/kernel');
+
+          const descriptor = new TextlintKernelDescriptor({
+            rules: rules,
+            filterRules: [],
+            plugins: plugins,
           });
 
           const ruleIds = descriptor.rule.descriptors.map((r: any) => r.id);
-          const filterRuleIds = descriptor.filterRule.descriptors.map((r: any) => r.id);
-          console.log(`[Textlint] Config loaded. Rules: [${ruleIds.join(', ')}], Filters: [${filterRuleIds.join(', ')}]`);
+          const pluginIds = descriptor.plugin.descriptors.map((p: any) => p.id);
+          console.log(`[Textlint] Manual config applied. Rules: [${ruleIds.join(', ')}], Plugins: [${pluginIds.join(', ')}]`);
 
           this.linter = createLinter({ descriptor });
 
-          console.log('[Textlint] Linter created successfully');
+          console.log('[Textlint] Linter created successfully (Manual)');
           resolveTextLint();
         } catch (e) {
-          console.error('[Textlint] Initialization failed:', e);
+          console.error('[Textlint] Manual initialization failed:', e);
           resolveTextLint();
         }
       });
