@@ -139,7 +139,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
             overflow: 'hidden',
           }}
         >
-          <h3 style={{ margin: 0, flexShrink: 0 }}>Git 管理</h3>
           {currentBranch && (
             <span
               style={{

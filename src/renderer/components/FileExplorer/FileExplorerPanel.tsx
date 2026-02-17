@@ -443,7 +443,6 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
   return (
     <div className="file-explorer" onClick={() => setSelectedPath(null)}>
       <div className="explorer-header" onClick={(e) => e.stopPropagation()}>
-        <span className="explorer-title">エクスプローラー</span>
         {currentDir && (
           <div className="explorer-actions">
             <button

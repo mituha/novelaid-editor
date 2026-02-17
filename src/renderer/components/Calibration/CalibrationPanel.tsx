@@ -106,10 +106,6 @@ export default function CalibrationPanel({ content }: CalibrationPanelProps) {
   return (
     <div className="calibration-panel">
       <div className="calibration-header">
-        <div className="calibration-title">
-          <CheckCircle size={16} />
-          <span>文章校正</span>
-        </div>
         <div className="calibration-tabs">
           <button
             type="button"

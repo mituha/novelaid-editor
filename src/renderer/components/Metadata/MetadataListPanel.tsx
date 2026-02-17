@@ -149,9 +149,6 @@ export default function MetadataListPanel({
       <div className="bookmark-lists">
         {fixedTag ? (
           <div className="bookmark-section">
-            <div className="bookmark-header">
-              <span className="bookmark-title">{fixedTitle || fixedTag}</span>
-            </div>
             <ul className="bookmark-items">
               {(results.fixed || []).map((entry) => (
                 <li key={entry.path}>

@@ -72,7 +72,12 @@ export const SidePane: React.FC<SidePaneProps> = ({
                 overflow: 'hidden',
               }}
             >
-              <div className="pane-header">{panel.title}</div>
+              <div className="pane-header">
+                {panel.icon && (
+                  <span className="pane-header-icon">{panel.icon}</span>
+                )}
+                <span className="pane-header-title">{panel.title}</span>
+              </div>
               <div className="pane-content">
                 <panel.component {...(componentProps as any)} />
               </div>

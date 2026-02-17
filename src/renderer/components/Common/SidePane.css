@@ -80,6 +80,24 @@
     color: var(--text-secondary);
     border-bottom: 1px solid var(--border-color);
     background-color: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pane-header-icon {
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+}
+
+.pane-header-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.pane-header-title {
+    flex: 1;
 }
 
 .pane-content {
