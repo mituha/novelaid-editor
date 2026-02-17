@@ -18,7 +18,9 @@ interface GitPanelProps {
   onOpenDiff?: (path: string, staged: boolean) => void;
 }
 
-export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
+export const GitPanel: React.FC<GitPanelProps> = ({
+  onOpenDiff = () => {},
+}) => {
   const {
     status,
     history,
@@ -42,7 +44,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
     if (remotes.length > 0 && !remotes.includes(selectedRemote)) {
       setSelectedRemote(remotes[0]);
     }
-  }, [remotes]);
+  }, [remotes, selectedRemote]);
 
   const handlePush = async () => {
     if (!selectedRemote) return;
@@ -299,7 +301,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
       </div>
 
       {/* ステージ済みの変更 */}
-      <div className="git-panel-section">
+      <div className={`git-panel-section ${expanded.staged ? 'expanded' : ''}`}>
         <button
           className="section-header"
           type="button"
@@ -345,8 +347,8 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
                     <span
                       className="git-panel-path"
                       title={file.path}
-                      onClick={() => onOpenDiff?.(file.path, true)}
-                      style={{ cursor: onOpenDiff ? 'pointer' : 'default' }}
+                      onClick={() => onOpenDiff(file.path, true)}
+                      style={{ cursor: 'pointer' }}
                     >
                       {file.path}
                     </span>
@@ -367,7 +369,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
       </div>
 
       {/* 変更 */}
-      <div className="git-panel-section">
+      <div className={`git-panel-section ${expanded.changes ? 'expanded' : ''}`}>
         <button
           className="section-header"
           type="button"
@@ -411,8 +413,8 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
                     <span
                       className="git-panel-path"
                       title={file.path}
-                      onClick={() => onOpenDiff?.(file.path, false)}
-                      style={{ cursor: onOpenDiff ? 'pointer' : 'default' }}
+                      onClick={() => onOpenDiff(file.path, false)}
+                      style={{ cursor: 'pointer' }}
                     >
                       {file.path}
                     </span>
@@ -434,13 +436,9 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
 
       {/* 履歴 */}
       <div
-        className="git-panel-section"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1,
-          overflow: 'hidden',
-        }}
+        className={`git-panel-section history-section ${
+          expanded.history ? 'expanded' : ''
+        }`}
       >
         <button
           className="section-header"
@@ -456,15 +454,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
           <span className="section-count">{history.length}</span>
         </button>
         {expanded.history && (
-          <div
-            className="section-content"
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              position: 'relative',
-            }}
-          >
+          <div className="section-content history-content">
             <div style={{ display: 'flex', minHeight: 'min-content' }}>
               {/* Graph Container */}
               <div style={{ flexShrink: 0 }}>

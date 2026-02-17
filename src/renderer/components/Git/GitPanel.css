@@ -3,7 +3,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
+  /* Disable outer scroll */
   color: var(--text-color, #e0e0e0);
   background: var(--bg-color, #1e1e1e);
 }
@@ -47,6 +48,13 @@
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid #222;
+  min-height: 0;
+  /* Important for flex items to shrink */
+}
+
+/* Expanded section fills available space */
+.git-panel-section.expanded {
+  flex: 1;
 }
 
 /* Section Header (VSCode Style) */
@@ -62,6 +70,8 @@
   border: none;
   text-align: left;
   font-family: inherit;
+  flex-shrink: 0;
+  /* Header should not shrink */
 }
 
 .section-header:hover {
@@ -113,6 +123,10 @@
 
 .section-content {
   background: transparent;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 .git-panel-fileList {
@@ -195,6 +209,8 @@
   padding: 12px;
   background: transparent;
   border-bottom: 1px solid #333;
+  flex-shrink: 0;
+  /* Commit section should not shrink */
 }
 
 .git-panel-commitInput {
@@ -259,6 +275,10 @@
 }
 
 /* History */
+.history-content {
+  position: relative;
+}
+
 .git-panel-historyList {
   list-style: none;
   padding: 0;
@@ -269,7 +289,7 @@
   display: flex;
   align-items: stretch;
   /* Match height */
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color, #333);
   padding: 0;
   /* Remove padding to align with graph */
   min-height: 24px;

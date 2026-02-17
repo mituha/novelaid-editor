@@ -6,7 +6,10 @@ interface ResizerProps {
   orientation?: 'vertical' | 'horizontal';
 }
 
-export function Resizer({ onResize, orientation = 'vertical' }: ResizerProps) {
+export default function Resizer({
+  onResize,
+  orientation = 'vertical',
+}: ResizerProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
