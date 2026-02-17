@@ -48,3 +48,9 @@ body {
 .monaco-editor .monaco-hover {
   pointer-events: none !important;
 }
+
+/* リサイズ操作中に webview や iframe がマウスイベントを奪わないようにするための設定 */
+body.resizing webview,
+body.resizing iframe {
+  pointer-events: none !important;
+}

@@ -12,12 +12,14 @@ export function Resizer({ onResize, orientation = 'vertical' }: ResizerProps) {
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
+    document.body.classList.add('resizing');
     document.body.style.cursor =
       orientation === 'vertical' ? 'col-resize' : 'row-resize';
   };
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+    document.body.classList.remove('resizing');
     document.body.style.cursor = 'default';
   }, []);
 
