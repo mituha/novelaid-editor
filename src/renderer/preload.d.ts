@@ -30,8 +30,11 @@ declare global {
       metadata: {
         queryByTag(tag: string): Promise<any[]>;
       };
+      app: {
+        getVersion(): Promise<string>;
+      };
       calibration: {
-        analyze(text: string): Promise<{ frequency: any[]; issues: any[] }>;
+        analyze(text: string, settings?: any): Promise<{ frequency: any[]; issues: any[] }>;
       };
     };
   }

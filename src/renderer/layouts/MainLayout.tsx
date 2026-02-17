@@ -5,7 +5,7 @@ import { TabBar, Tab } from '../components/TabBar/TabBar';
 import { SettingsModal } from '../components/Settings/SettingsModal';
 import { useSettings } from '../contexts/SettingsContext';
 import { EditorSettingsTab } from '../components/Settings/Tabs/EditorSettingsTab';
-import { AISettingsTab } from '../components/Settings/Tabs/AISettingsTab';
+import AISettingsTab from '../components/Settings/Tabs/AISettingsTab';
 import { AppearanceSettingsTab } from '../components/Settings/Tabs/AppearanceSettingsTab';
 import { CalibrationSettingsTab } from '../components/Settings/Tabs/CalibrationSettingsTab';
 import { RightPane } from '../components/RightPane/RightPane';

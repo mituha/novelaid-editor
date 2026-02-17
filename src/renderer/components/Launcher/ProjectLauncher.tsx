@@ -38,7 +38,7 @@ export default function ProjectLauncher() {
         return;
       }
 
-      await window.electron.ipcRenderer.invoke('recent:add', path);
+      await window.electron?.ipcRenderer.invoke('recent:add', path);
       setCurrentDir(path);
       await loadProjectSettings(path);
       navigate('/editor');
@@ -49,13 +49,13 @@ export default function ProjectLauncher() {
   useEffect(() => {
     loadRecent();
     (async () => {
-      const v = await window.electron.app.getVersion();
-      setVersion(v);
+      const v = await window.electron?.app?.getVersion();
+      if (v) setVersion(v);
     })();
   }, [loadRecent]);
 
   const handleOpenFolder = async () => {
-    const path = await window.electron.ipcRenderer.invoke(
+    const path = await window.electron?.ipcRenderer.invoke(
       'dialog:openDirectory',
     );
     if (path) {
@@ -65,7 +65,7 @@ export default function ProjectLauncher() {
 
   const handleRemoveRecent = async (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
-    await window.electron.ipcRenderer.invoke('recent:remove', path);
+    await window.electron?.ipcRenderer.invoke('recent:remove', path);
     loadRecent();
   };
 

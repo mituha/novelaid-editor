@@ -5,7 +5,9 @@ import React, {
   ReactNode,
   useCallback,
   useMemo,
+  useEffect,
 } from 'react';
+import { useSettings } from './SettingsContext';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import { fileExplorerPanelConfig } from '../components/FileExplorer/FileExplorerPanel';
 import { gitPanelConfig } from '../components/Git/GitPanel';
@@ -48,6 +50,7 @@ const builtInPanels: Panel[] = [
 const initialPanels: Panel[] = builtInPanels;
 
 export function PanelProvider({ children }: { children: ReactNode }) {
+  const { settings } = useSettings();
   const [panels, setPanels] = useState<Panel[]>(initialPanels);
   const [activeLeftPanelId, setActiveLeftPanelId] = useState<string | null>(
     'files',
@@ -57,6 +60,33 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   );
   const [isRightPaneOpen, setIsRightPaneOpen] = useState(true);
 
+  const filteredPanels = useMemo(() => {
+    if (settings.ai?.provider === 'none') {
+      return panels.filter(
+        (p) => p.id !== 'ai-chat' && p.id !== 'ai-proofreader',
+      );
+    }
+    return panels;
+  }, [panels, settings.ai?.provider]);
+
+  // Handle panel visibility changes
+  useEffect(() => {
+    if (settings.ai?.provider === 'none') {
+      if (
+        activeLeftPanelId === 'ai-chat' ||
+        activeLeftPanelId === 'ai-proofreader'
+      ) {
+        setActiveLeftPanelId('files');
+      }
+      if (
+        activeRightPanelId === 'ai-chat' ||
+        activeRightPanelId === 'ai-proofreader'
+      ) {
+        setActiveRightPanelId('calibration');
+      }
+    }
+  }, [settings.ai?.provider, activeLeftPanelId, activeRightPanelId]);
+
   const register = useCallback((panel: Panel) => {
     setPanels((prev) => {
       if (prev.find((p) => p.id === panel.id)) return prev;
@@ -64,11 +94,11 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const getPanels = useCallback(() => panels, [panels]);
+  const getPanels = useCallback(() => filteredPanels, [filteredPanels]);
 
   const getPanel = useCallback(
-    (id: string) => panels.find((p) => p.id === id),
-    [panels],
+    (id: string) => filteredPanels.find((p) => p.id === id),
+    [filteredPanels],
   );
 
   const setActivePanel = useCallback(

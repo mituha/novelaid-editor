@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSettings } from '../../../contexts/SettingsContext';
 
-export function AISettingsTab() {
+export default function AISettingsTab() {
   const { settings, updateSettings } = useSettings();
   const aiConfig = settings.ai || {};
   const [availableModels, setAvailableModels] = React.useState<string[]>([]);
@@ -11,7 +11,7 @@ export function AISettingsTab() {
     updateSettings({
       ai: {
         ...aiConfig,
-        provider: e.target.value as 'lmstudio' | 'gemini' | 'openai',
+        provider: e.target.value as 'lmstudio' | 'gemini' | 'openai' | 'none',
       },
     });
     setAvailableModels([]); // Reset models on provider change
@@ -59,7 +59,10 @@ export function AISettingsTab() {
       // Pass the current AI config to the main process
       // We need to ensure we pass the *latest* settings.
       // aiConfig comes from context, so it should be relatively fresh.
-      const models = await window.electron.ipcRenderer.invoke('ai:listModels', settings.ai || {});
+      const models = await window.electron.ipcRenderer.invoke(
+        'ai:listModels',
+        settings.ai || {},
+      );
       setAvailableModels(models);
     } catch (error) {
       console.error('Failed to fetch models:', error);
@@ -75,10 +78,11 @@ export function AISettingsTab() {
   ) => {
     return (
       <div className="settings-field">
-        <label>Model</label>
+        <label htmlFor="ai-model-input">Model</label>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
             <input
+              id="ai-model-input"
               type="text"
               value={currentModel}
               onChange={(e) => onChange(e.target.value)}
@@ -126,8 +130,9 @@ export function AISettingsTab() {
   return (
     <div className="settings-tab-content">
       <div className="settings-group">
-        <label>AI Provider</label>
+        <label htmlFor="ai-provider-select">AI Provider</label>
         <select
+          id="ai-provider-select"
           value={aiConfig.provider || 'lmstudio'}
           onChange={handleProviderChange}
           className="settings-select"
@@ -135,6 +140,7 @@ export function AISettingsTab() {
           <option value="lmstudio">LMStudio (Local)</option>
           <option value="gemini">Google GenAI (Gemini)</option>
           <option value="openai">OpenAI Compatible (Generic)</option>
+          <option value="none">なし (None) - AI機能を無効にする</option>
         </select>
         <p className="settings-description">
           Select the AI backend to use for generation.
@@ -145,8 +151,9 @@ export function AISettingsTab() {
         <div className="settings-subgroup">
           <h4>LMStudio Settings</h4>
           <div className="settings-field">
-            <label>Base URL</label>
+            <label htmlFor="lmstudio-base-url">Base URL</label>
             <input
+              id="lmstudio-base-url"
               type="text"
               value={aiConfig.lmstudio?.baseUrl || 'http://127.0.0.1:1234'}
               onChange={(e) => handleLMStudioChange('baseUrl', e.target.value)}
@@ -165,8 +172,9 @@ export function AISettingsTab() {
         <div className="settings-subgroup">
           <h4>Gemini Settings</h4>
           <div className="settings-field">
-            <label>API Key</label>
+            <label htmlFor="gemini-api-key">API Key</label>
             <input
+              id="gemini-api-key"
               type="password"
               value={aiConfig.gemini?.apiKey || ''}
               onChange={(e) => handleGeminiChange('apiKey', e.target.value)}
@@ -185,8 +193,9 @@ export function AISettingsTab() {
         <div className="settings-subgroup">
           <h4>OpenAI Compatible Settings</h4>
           <div className="settings-field">
-             <label>Base URL</label>
+             <label htmlFor="openai-base-url">Base URL</label>
              <input
+              id="openai-base-url"
               type="text"
               value={aiConfig.openai?.baseUrl || ''}
               onChange={(e) => handleOpenAIChange('baseUrl', e.target.value)}
@@ -195,8 +204,9 @@ export function AISettingsTab() {
              />
           </div>
           <div className="settings-field">
-            <label>API Key (Optional for local)</label>
+            <label htmlFor="openai-api-key">API Key (Optional for local)</label>
             <input
+              id="openai-api-key"
               type="password"
               value={aiConfig.openai?.apiKey || ''}
               onChange={(e) => handleOpenAIChange('apiKey', e.target.value)}
