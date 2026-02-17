@@ -1,6 +1,7 @@
 import {
   ChevronRight,
   ChevronDown,
+  Files,
   Folder,
   FileText,
   FileJson,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
+import { Panel } from '../../types/panel';
 import './FileExplorerPanel.css';
 
 const BASE_INDENT = 8;
@@ -514,3 +516,11 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     </div>
   );
 }
+
+export const fileExplorerPanelConfig: Panel = {
+  id: 'files',
+  title: 'エクスプローラー',
+  icon: <Files size={24} strokeWidth={1.5} />,
+  component: FileExplorerPanel,
+  defaultLocation: 'left',
+};

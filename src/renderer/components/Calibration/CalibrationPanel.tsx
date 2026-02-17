@@ -7,6 +7,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { Panel } from '../../types/panel';
 import './CalibrationPanel.css';
 
 interface FrequencyResult {
@@ -257,3 +258,13 @@ export default function CalibrationPanel({ content }: CalibrationPanelProps) {
     </div>
   );
 }
+
+export const calibrationPanelConfig: Panel = {
+  id: 'calibration',
+  title: '文章校正',
+  icon: <CheckCircle size={24} strokeWidth={1.5} />,
+  component: ({ activeContent }: any) => (
+    <CalibrationPanel content={activeContent || ''} />
+  ),
+  defaultLocation: 'right',
+};

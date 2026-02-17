@@ -1,4 +1,5 @@
-import React from 'react';
+import { Database } from 'lucide-react';
+import { Panel } from '../../types/panel';
 import './MetadataPropertyEditor.css';
 
 interface MetadataPropertyEditorProps {
@@ -65,3 +66,11 @@ export function MetadataPropertyEditor({
     </div>
   );
 }
+
+export const metadataPropertyEditorPanelConfig: Panel = {
+  id: 'metadata-editor',
+  title: 'プロパティ',
+  icon: <Database size={24} strokeWidth={1.5} />,
+  component: MetadataPropertyEditor,
+  defaultLocation: 'right',
+};

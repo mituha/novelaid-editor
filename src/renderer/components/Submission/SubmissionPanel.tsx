@@ -1,5 +1,6 @@
 import React from 'react';
-import { ExternalLink, BookOpen, Send } from 'lucide-react';
+import { ExternalLink, BookOpen, Send, Share2 } from 'lucide-react';
+import { Panel } from '../../types/panel';
 import { useSettings } from '../../contexts/SettingsContext';
 import './SubmissionPanel.css';
 
@@ -53,5 +54,15 @@ export function SubmissionPanel({ onOpenWeb }: SubmissionPanelProps) {
     </div>
   );
 }
+
+export const submissionPanelConfig: Panel = {
+  id: 'submission',
+  title: '投稿補助',
+  icon: <Share2 size={24} strokeWidth={1.5} />,
+  component: ({ onOpenWebBrowser }: any) => (
+    <SubmissionPanel onOpenWeb={onOpenWebBrowser} />
+  ),
+  defaultLocation: 'left',
+};
 
 export default SubmissionPanel;

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Search, ChevronRight, ChevronDown, FileText } from 'lucide-react';
+import { Panel } from '../../types/panel';
 import './SearchPanel.css';
 
 interface SearchMatch {
@@ -190,4 +191,12 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
       </div>
     </div>
   );
+};
+
+export const searchPanelConfig: Panel = {
+  id: 'search',
+  title: '検索',
+  icon: <Search size={24} strokeWidth={1.5} />,
+  component: SearchPanel,
+  defaultLocation: 'left',
 };

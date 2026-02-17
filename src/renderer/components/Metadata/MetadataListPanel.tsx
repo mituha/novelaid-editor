@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Users, MapPin, Bookmark } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { Panel } from '../../types/panel';
 import './MetadataListPanel.css';
 
 interface MetadataEntry {
@@ -216,3 +218,39 @@ export default function MetadataListPanel({
     </div>
   );
 }
+
+export const charactersPanelConfig: Panel = {
+  id: 'characters',
+  title: '登場人物',
+  icon: <Users size={24} strokeWidth={1.5} />,
+  component: ({ onFileSelect }: any) => (
+    <MetadataListPanel
+      onFileSelect={onFileSelect}
+      fixedTitle="登場人物一覧"
+      fixedTag="character"
+    />
+  ),
+  defaultLocation: 'left',
+};
+
+export const locationsPanelConfig: Panel = {
+  id: 'locations',
+  title: '地名・施設',
+  icon: <MapPin size={24} strokeWidth={1.5} />,
+  component: ({ onFileSelect }: any) => (
+    <MetadataListPanel
+      onFileSelect={onFileSelect}
+      fixedTitle="地名・施設一覧"
+      fixedTag="location"
+    />
+  ),
+  defaultLocation: 'left',
+};
+
+export const metadataListPanelConfig: Panel = {
+  id: 'metadata-list',
+  title: '収集一覧',
+  icon: <Bookmark size={24} strokeWidth={1.5} />,
+  component: MetadataListPanel,
+  defaultLocation: 'left',
+};

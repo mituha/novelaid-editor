@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { SpellCheck, ClipboardCheck, Send } from 'lucide-react';
+import { SpellCheck, ClipboardCheck, Send, SearchCheck } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { Panel } from '../../types/panel';
 import './AIProofreaderPanel.css';
 
 interface MessagePart {
@@ -304,3 +305,11 @@ export default function AIProofreaderPanel({
     </div>
   );
 }
+
+export const aiProofreaderPanelConfig: Panel = {
+  id: 'ai-proofreader',
+  title: 'AI校正',
+  icon: <SearchCheck size={24} strokeWidth={1.5} />,
+  component: AIProofreaderPanel,
+  defaultLocation: 'right',
+};

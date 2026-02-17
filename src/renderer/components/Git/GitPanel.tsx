@@ -7,9 +7,11 @@ import {
   Database,
   ChevronDown,
   ChevronRight,
+  GitGraph as GitGraphIcon,
 } from 'lucide-react';
 import { useGit } from '../../contexts/GitContext';
 import { GitGraph } from './GitGraph';
+import { Panel } from '../../types/panel';
 import './GitPanel.css';
 
 interface GitPanelProps {
@@ -549,4 +551,12 @@ export const GitPanel: React.FC<GitPanelProps> = ({ onOpenDiff }) => {
       </div>
     </div>
   );
+};
+
+export const gitPanelConfig: Panel = {
+  id: 'git',
+  title: 'Git',
+  icon: <GitGraphIcon size={24} strokeWidth={1.5} />,
+  component: GitPanel,
+  defaultLocation: 'left',
 };

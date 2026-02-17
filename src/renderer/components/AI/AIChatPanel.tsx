@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { MessageSquare } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { Panel } from '../../types/panel';
 import './AIChatPanel.css';
 
 interface MessagePart {
@@ -276,3 +278,11 @@ export default function AIChatPanel({
     </div>
   );
 }
+
+export const aiChatPanelConfig: Panel = {
+  id: 'ai-chat',
+  title: 'AIチャット',
+  icon: <MessageSquare size={24} strokeWidth={1.5} />,
+  component: AIChatPanel,
+  defaultLocation: 'right',
+};

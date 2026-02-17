@@ -6,29 +6,20 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
-import {
-  Files,
-  GitGraph,
-  MessageSquare,
-  SearchCheck,
-  Search, // Added
-  Bookmark,
-  Database,
-  Users,
-  MapPin,
-  Share2,
-  CheckCircle,
-} from 'lucide-react';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
-import FileExplorerPanel from '../components/FileExplorer/FileExplorerPanel';
-import { GitPanel } from '../components/Git/GitPanel';
-import { SearchPanel } from '../components/Search/SearchPanel'; // Added
-import AIChatPanel from '../components/AI/AIChatPanel';
-import AIProofreaderPanel from '../components/AI/AIProofreaderPanel';
-import MetadataListPanel from '../components/Metadata/MetadataListPanel';
-import { MetadataPropertyEditor } from '../components/Metadata/MetadataPropertyEditor';
-import { SubmissionPanel } from '../components/Submission/SubmissionPanel';
-import CalibrationPanel from '../components/Calibration/CalibrationPanel';
+import { fileExplorerPanelConfig } from '../components/FileExplorer/FileExplorerPanel';
+import { gitPanelConfig } from '../components/Git/GitPanel';
+import { searchPanelConfig } from '../components/Search/SearchPanel';
+import { aiChatPanelConfig } from '../components/AI/AIChatPanel';
+import { aiProofreaderPanelConfig } from '../components/AI/AIProofreaderPanel';
+import {
+  charactersPanelConfig,
+  locationsPanelConfig,
+  metadataListPanelConfig,
+} from '../components/Metadata/MetadataListPanel';
+import { metadataPropertyEditorPanelConfig } from '../components/Metadata/MetadataPropertyEditor';
+import { submissionPanelConfig } from '../components/Submission/SubmissionPanel';
+import { calibrationPanelConfig } from '../components/Calibration/CalibrationPanel';
 
 interface PanelContextType extends PanelRegistry {
   activeLeftPanelId: string | null;
@@ -40,101 +31,21 @@ interface PanelContextType extends PanelRegistry {
 
 const PanelContext = createContext<PanelContextType | undefined>(undefined);
 
-const initialPanels: Panel[] = [
-  {
-    id: 'files',
-    title: 'Files',
-    icon: <Files size={24} strokeWidth={1.5} />,
-    component: FileExplorerPanel,
-    defaultLocation: 'left',
-  },
-  {
-    id: 'search',
-    title: 'Search',
-    icon: <Search size={24} strokeWidth={1.5} />,
-    component: SearchPanel,
-    defaultLocation: 'left',
-  },
-  {
-    id: 'git',
-    title: 'Git',
-    icon: <GitGraph size={24} strokeWidth={1.5} />,
-    component: GitPanel,
-    defaultLocation: 'left',
-  },
-  {
-    id: 'ai-proofreader',
-    title: 'AI校正',
-    icon: <SearchCheck size={24} strokeWidth={1.5} />,
-    component: AIProofreaderPanel,
-    defaultLocation: 'right',
-  },
-  {
-    id: 'ai-chat',
-    title: 'AI Chat',
-    icon: <MessageSquare size={24} strokeWidth={1.5} />,
-    component: AIChatPanel,
-    defaultLocation: 'right',
-  },
-  {
-    id: 'characters',
-    title: '登場人物',
-    icon: <Users size={24} strokeWidth={1.5} />,
-    component: ({ onFileSelect }: any) => (
-      <MetadataListPanel
-        onFileSelect={onFileSelect}
-        fixedTitle="登場人物一覧"
-        fixedTag="character"
-      />
-    ),
-    defaultLocation: 'left',
-  },
-  {
-    id: 'locations',
-    title: '地名・施設',
-    icon: <MapPin size={24} strokeWidth={1.5} />,
-    component: ({ onFileSelect }: any) => (
-      <MetadataListPanel
-        onFileSelect={onFileSelect}
-        fixedTitle="地名・施設一覧"
-        fixedTag="location"
-      />
-    ),
-    defaultLocation: 'left',
-  },
-  {
-    id: 'metadata-list',
-    title: '収集一覧',
-    icon: <Bookmark size={24} strokeWidth={1.5} />,
-    component: MetadataListPanel,
-    defaultLocation: 'left',
-  },
-  {
-    id: 'metadata-editor',
-    title: 'プロパティ',
-    icon: <Database size={24} strokeWidth={1.5} />,
-    component: MetadataPropertyEditor,
-    defaultLocation: 'right',
-  },
-  {
-    id: 'submission',
-    title: '投稿補助',
-    icon: <Share2 size={24} strokeWidth={1.5} />,
-    component: ({ onOpenWebBrowser }: any) => (
-      <SubmissionPanel onOpenWeb={onOpenWebBrowser} />
-    ),
-    defaultLocation: 'left',
-  },
-  {
-    id: 'calibration',
-    title: '文章校正',
-    icon: <CheckCircle size={24} strokeWidth={1.5} />,
-    component: ({ activeContent }: any) => (
-      <CalibrationPanel content={activeContent || ''} />
-    ),
-    defaultLocation: 'right',
-  },
+const builtInPanels: Panel[] = [
+  fileExplorerPanelConfig,
+  searchPanelConfig,
+  gitPanelConfig,
+  aiProofreaderPanelConfig,
+  aiChatPanelConfig,
+  charactersPanelConfig,
+  locationsPanelConfig,
+  metadataListPanelConfig,
+  metadataPropertyEditorPanelConfig,
+  submissionPanelConfig,
+  calibrationPanelConfig,
 ];
+
+const initialPanels: Panel[] = builtInPanels;
 
 export function PanelProvider({ children }: { children: ReactNode }) {
   const [panels, setPanels] = useState<Panel[]>(initialPanels);
