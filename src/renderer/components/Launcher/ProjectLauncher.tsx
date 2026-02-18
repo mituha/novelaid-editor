@@ -18,6 +18,13 @@ export default function ProjectLauncher() {
   const { loadProjectSettings } = useSettings();
   const navigate = useNavigate();
 
+  // Create project state
+  const [isCreating, setIsCreating] = useState(false);
+  const [parentDir, setParentDir] = useState('');
+  const [projectName, setProjectName] = useState('');
+  const [cloneUrl, setCloneUrl] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const loadRecent = useCallback(async () => {
     if (!window.electron?.ipcRenderer) return;
     try {
@@ -25,14 +32,13 @@ export default function ProjectLauncher() {
       if (Array.isArray(projects)) {
         setRecentProjects(projects);
       }
-    } catch (e) {
-      console.error('Failed to load recent projects', e);
+    } catch {
+      // Ignored
     }
   }, []);
 
   const openProject = useCallback(
     async (path: string) => {
-      // 現在開いているフォルダと同じなら、読み込み処理をスキップしてエディタに戻る
       if (currentDir === path) {
         navigate('/editor');
         return;
@@ -62,6 +68,44 @@ export default function ProjectLauncher() {
       await openProject(path);
     }
   };
+
+  const handlePickParentDir = async () => {
+    const path = await window.electron?.ipcRenderer.invoke(
+      'dialog:openDirectory',
+    );
+    if (path) {
+      setParentDir(path);
+    }
+  };
+
+  const handleCreateProject = async () => {
+    if (!parentDir || !projectName) return;
+    setIsProcessing(true);
+    try {
+      const targetPath = await window.electron?.ipcRenderer.invoke(
+        'project:create',
+        {
+          parentDir,
+          name: projectName,
+          cloneUrl: cloneUrl.trim() || undefined,
+        },
+      );
+      if (targetPath) {
+        await openProject(targetPath);
+      }
+    } catch {
+      // Failed to create project
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  let submitButtonText = '作成';
+  if (isProcessing) {
+    submitButtonText = '処理中...';
+  } else if (cloneUrl.trim()) {
+    submitButtonText = 'クローンして作成';
+  }
 
   const handleRemoveRecent = async (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
@@ -132,32 +176,113 @@ export default function ProjectLauncher() {
           </div>
 
           <div className="actions-section">
-            <button
-              type="button"
-              className="action-button primary"
-              onClick={handleOpenFolder}
-            >
-              <FolderOpen size={20} />
-              <div className="button-text">
-                <span className="label">既存のフォルダを開く</span>
-                <span className="desc">
-                  PC上の既存のプロジェクトを選択します
-                </span>
+            {!isCreating ? (
+              <>
+                <button
+                  type="button"
+                  className="action-button primary"
+                  onClick={handleOpenFolder}
+                >
+                  <FolderOpen size={20} />
+                  <div className="button-text">
+                    <span className="label">既存のフォルダを開く</span>
+                    <span className="desc">
+                      PC上の既存のプロジェクトを選択します
+                    </span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  onClick={() => setIsCreating(true)}
+                >
+                  <Plus size={20} />
+                  <div className="button-text">
+                    <span className="label">新しい書庫を作成</span>
+                    <span className="desc">
+                      新しい小説執筆環境をセットアップします
+                    </span>
+                  </div>
+                </button>
+              </>
+            ) : (
+              <div className="creation-section">
+                <div className="section-header">
+                  <Plus size={16} />
+                  <span>新しい書庫を作成 / クローン</span>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="parent-dir">
+                    保存先フォルダー
+                    <div className="input-with-button">
+                      <input
+                        id="parent-dir"
+                        type="text"
+                        className="launcher-input"
+                        value={parentDir}
+                        readOnly
+                        placeholder="フォルダーを選択してください"
+                      />
+                      <button
+                        type="button"
+                        className="browse-btn"
+                        onClick={handlePickParentDir}
+                      >
+                        参照
+                      </button>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="project-name">
+                    書庫名（フォルダー名）
+                    <input
+                      id="project-name"
+                      type="text"
+                      className="launcher-input"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      placeholder="MyNovel"
+                    />
+                  </label>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="clone-url">
+                    クローンURL（オプション）
+                    <input
+                      id="clone-url"
+                      type="text"
+                      className="launcher-input"
+                      value={cloneUrl}
+                      onChange={(e) => setCloneUrl(e.target.value)}
+                      placeholder="https://github.com/user/repo.git"
+                    />
+                  </label>
+                </div>
+
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="form-btn cancel"
+                    onClick={() => setIsCreating(false)}
+                    disabled={isProcessing}
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="button"
+                    className="form-btn submit"
+                    onClick={handleCreateProject}
+                    disabled={isProcessing || !parentDir || !projectName}
+                  >
+                    {submitButtonText}
+                  </button>
+                </div>
               </div>
-            </button>
-            <button
-              type="button"
-              className="action-button"
-              onClick={handleOpenFolder}
-            >
-              <Plus size={20} />
-              <div className="button-text">
-                <span className="label">新しい書庫を作成</span>
-                <span className="desc">
-                  新しい小説執筆環境をセットアップします
-                </span>
-              </div>
-            </button>
+            )}
           </div>
         </div>
 

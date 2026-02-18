@@ -213,6 +213,22 @@ ipcMain.handle(
   },
 );
 
+ipcMain.handle(
+  'project:create',
+  async (_, { parentDir, name, cloneUrl }: { parentDir: string; name: string; cloneUrl?: string }) => {
+    const targetPath = path.join(parentDir, name);
+
+    if (cloneUrl) {
+      await GitService.getInstance().clone(cloneUrl, targetPath);
+    } else {
+      await fs.mkdir(targetPath, { recursive: true });
+      await GitService.getInstance().init(targetPath);
+    }
+
+    return targetPath;
+  },
+);
+
 ipcMain.handle('recent:get', async () => {
   return await getRecentProjects();
 });

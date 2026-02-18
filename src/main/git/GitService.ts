@@ -21,6 +21,10 @@ export class GitService {
     await this.getGit(dir).init();
   }
 
+  async clone(url: string, dir: string): Promise<void> {
+    await simpleGit().clone(url, dir);
+  }
+
   async status(dir: string): Promise<GitFileStatus[]> {
     const status = await this.getGit(dir).status();
     return status.files.map((file) => ({
