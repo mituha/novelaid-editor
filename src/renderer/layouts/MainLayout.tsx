@@ -13,6 +13,7 @@ import Resizer from '../components/Common/Resizer';
 import { StatusBar } from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
 import NovelPreview from '../components/Preview/NovelPreview';
+import MarkdownPreview from '../components/Preview/MarkdownPreview';
 import DiffViewer from '../components/Git/DiffViewer';
 import { usePanel } from '../contexts/PanelContext';
 import WebBrowser from '../components/Common/WebBrowser';
@@ -506,8 +507,8 @@ export default function MainLayout() {
         // If the path is not open in the other pane, clear content
         const otherTabs = side === 'left' ? tabsRef.current.right : tabsRef.current.left;
         if (!otherTabs.find((t) => t.path === path)) {
-             setTabContents((prev) => {
-                const newContents = { ...prev };
+             setTabContents((prevContents) => {
+                const newContents = { ...prevContents };
                 delete newContents[path];
                 return newContents;
              });
@@ -613,8 +614,12 @@ export default function MainLayout() {
 
     if (activePath.startsWith('preview://')) {
       const originalPath = activePath.replace('preview://', '');
+      const data = tabContents[originalPath];
+      if (data?.language === 'markdown') {
+        return <MarkdownPreview content={data.content || ''} />;
+      }
       return (
-        <NovelPreview content={tabContents[originalPath]?.content || ''} />
+        <NovelPreview content={data?.content || ''} />
       );
     }
 
