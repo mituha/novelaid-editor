@@ -38,6 +38,7 @@ export default function MainLayout() {
         initialLine?: number;
         initialColumn?: number;
         searchQuery?: string;
+        language?: string;
       }
     >
   >({});
@@ -704,6 +705,7 @@ export default function MainLayout() {
           <CodeEditor
             key={`${side}-${activePath}`}
             value={data.content}
+            language={data.language}
             lastSource={data.lastSource}
             onChange={handleContentChange(activePath)}
             onFocus={() => setActiveSide(side)}

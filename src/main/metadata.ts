@@ -6,6 +6,7 @@ export interface DocumentData {
   content: string;
   metadata: Record<string, any>;
   lineOffset?: number;
+  language?: string;
 }
 
 const NOVELAID_DIR = '.novelaid';
@@ -53,14 +54,58 @@ export function calculateLineOffset(content: string): number {
     return 0;
 }
 
+// Cache for .novelignore instances
+const ignoreCache = new Map<string, { mtime: number; instance: any }>();
+
+/**
+ * ファイルの言語を判定します。
+ */
+export async function getLanguageForFile(filePath: string): Promise<string> {
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.txt') return 'novel';
+    if (ext !== '.md' && ext !== '.markdown') return 'markdown';
+
+    // .md / .markdown の場合、.novelignore をチェック
+    const projectRoot = await findProjectRoot(filePath);
+    if (!projectRoot) return 'novel'; // デフォルトは novel
+
+    const ignorePath = path.join(projectRoot, '.novelignore');
+    try {
+        const stats = await fs.stat(ignorePath);
+        let ignoreInstance;
+
+        const cached = ignoreCache.get(projectRoot);
+        if (cached && cached.mtime === stats.mtimeMs) {
+            ignoreInstance = cached.instance;
+        } else {
+            const ignore = require('ignore');
+            const content = await fs.readFile(ignorePath, 'utf-8');
+            ignoreInstance = ignore().add(content);
+            ignoreCache.set(projectRoot, { mtime: stats.mtimeMs, instance: ignoreInstance });
+        }
+
+        const relativePath = path.relative(projectRoot, filePath);
+        // ignore package expects forward slashes
+        const normalizedRelativePath = relativePath.replace(/\\/g, '/');
+
+        if (ignoreInstance.ignores(normalizedRelativePath)) {
+            return 'markdown';
+        }
+    } catch (err) {
+        // .novelignore がない場合は無視してデフォルト(novel)を返す
+    }
+
+    return 'novel';
+}
+
 /**
  * ドキュメントとメタデータを読み込みます。
  */
 export async function readDocument(filePath: string): Promise<DocumentData> {
   const content = await fs.readFile(filePath, 'utf-8');
-  const ext = path.extname(filePath).toLowerCase();
+  const language = await getLanguageForFile(filePath);
 
-  if (ext === '.md' || ext === '.markdown') {
+  if (language === 'markdown') {
     const { data, content: body } = matter(content);
 
     // Calculate line offset if frontmatter exists
@@ -70,6 +115,7 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
       content: body,
       metadata: data,
       lineOffset,
+      language,
     };
   }
 
@@ -81,12 +127,14 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
       return {
         content,
         metadata: JSON.parse(metadataJson),
+        language,
       };
     } catch {
       // メタデータがない場合は空
       return {
         content,
         metadata: {},
+        language,
       };
     }
   }
@@ -94,6 +142,7 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
   return {
     content,
     metadata: {},
+    language,
   };
 }
 
@@ -104,9 +153,9 @@ export async function saveDocument(
   filePath: string,
   data: DocumentData,
 ): Promise<void> {
-  const ext = path.extname(filePath).toLowerCase();
+  const language = data.language || await getLanguageForFile(filePath);
 
-  if (ext === '.md' || ext === '.markdown') {
+  if (language === 'markdown') {
     const fileContent = matter.stringify(data.content, data.metadata);
     await fs.writeFile(filePath, fileContent, 'utf-8');
     return;

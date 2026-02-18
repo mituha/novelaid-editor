@@ -16,7 +16,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { loadProject, saveProject } from './project';
-import { readDocument, saveDocument, calculateLineOffset } from './metadata';
+import { readDocument, saveDocument, calculateLineOffset, getLanguageForFile } from './metadata';
 import {
   getRecentProjects,
   addRecentProject,
@@ -86,10 +86,15 @@ ipcMain.handle('dialog:confirm', async (_, message: string) => {
 ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
   try {
     const dirents = await fs.readdir(dirPath, { withFileTypes: true });
-    return dirents.map((dirent) => ({
-      name: dirent.name,
-      isDirectory: dirent.isDirectory(),
-      path: path.join(dirPath, dirent.name),
+    return await Promise.all(dirents.map(async (dirent) => {
+      const fullPath = path.join(dirPath, dirent.name);
+      const isDirectory = dirent.isDirectory();
+      return {
+        name: dirent.name,
+        isDirectory,
+        path: fullPath,
+        language: isDirectory ? undefined : await getLanguageForFile(fullPath),
+      };
     }));
   } catch (error) {
     console.error('Error reading directory:', error);

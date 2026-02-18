@@ -7,6 +7,7 @@ import {
   FileJson,
   FilePlus,
   FolderPlus,
+  BookText,
 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
@@ -20,6 +21,7 @@ interface FileNode {
   name: string;
   isDirectory: boolean;
   path: string;
+  language?: string;
 }
 
 interface FileExplorerProps {
@@ -222,9 +224,9 @@ function FileTreeItem({
     handleCreateChild(e, loadDirectory);
   };
 
-  const getFileIcon = (fileName: string) => {
-    if (fileName.endsWith('.md')) return <FileText size={16} />;
-    if (fileName.endsWith('.json')) return <FileJson size={16} />;
+  const getFileIcon = (node: FileNode) => {
+    if (node.name.endsWith('.json')) return <FileJson size={16} />;
+    if (node.language === 'novel') return <BookText size={16} />;
     return <FileText size={16} />;
   };
 
@@ -253,7 +255,7 @@ function FileTreeItem({
               className={isOpen ? 'folder-open' : 'folder-closed'}
             />
           ) : (
-            getFileIcon(file.name)
+            getFileIcon(file)
           )}
         </span>
         {isRenaming ? (

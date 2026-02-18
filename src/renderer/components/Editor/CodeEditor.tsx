@@ -18,6 +18,7 @@ interface CodeEditorProps {
   initialColumn?: number;
   searchQuery?: string;
   onNavigated?: () => void;
+  language?: string;
 }
 
 export default function CodeEditor({
@@ -29,6 +30,7 @@ export default function CodeEditor({
   initialColumn,
   searchQuery,
   onNavigated,
+  language = 'novel',
 }: CodeEditorProps) {
   const { settings } = useSettings();
   const editorConfig = settings.editor || {};
@@ -518,8 +520,8 @@ export default function CodeEditor({
     <div className="code-editor-wrapper">
       <Editor
         height="100%"
-        defaultLanguage="novel"
-        language="novel"
+        defaultLanguage={language}
+        language={language}
         defaultValue={value}
         onChange={handleEditorChange}
         onMount={handleEditorOnMount}
