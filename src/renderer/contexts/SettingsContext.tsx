@@ -17,6 +17,9 @@ export interface ProjectConfig {
     wordWrap?: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
     selectionHighlight?: boolean;
     occurrencesHighlight?: boolean;
+    renderWhitespace?: 'none' | 'boundary' | 'selection' | 'trailing' | 'all';
+    renderControlCharacters?: boolean;
+    showFullWidthSpace?: boolean;
     [key: string]: any;
   };
   ai?: {
@@ -95,6 +98,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       wordWrap: 'on',
       selectionHighlight: true,
       occurrencesHighlight: false, // 小説執筆としては不要
+      renderWhitespace: 'all',
+      renderControlCharacters: true,
+      showFullWidthSpace: true,
     },
     submission: {
       kakuyomuUrl: 'https://kakuyomu.jp/my',

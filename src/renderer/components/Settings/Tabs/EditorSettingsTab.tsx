@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSettings } from '../../../contexts/SettingsContext';
 
-export function EditorSettingsTab() {
+export default function EditorSettingsTab() {
   const { settings, updateSettings } = useSettings();
   const editorConfig = settings.editor || {};
 
@@ -26,7 +26,9 @@ export function EditorSettingsTab() {
           type="number"
           className="setting-input"
           value={editorConfig.fontSize || 14}
-          onChange={(e) => handleChange('fontSize', parseInt(e.target.value))}
+          onChange={(e) =>
+            handleChange('fontSize', parseInt(e.target.value, 10))
+          }
         />
       </div>
 
@@ -102,6 +104,52 @@ export function EditorSettingsTab() {
             }
           />
           <span>Highlight symbol occurrences</span>
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <label className="setting-label" htmlFor="render-whitespace">
+          空白の表示
+        </label>
+        <select
+          id="render-whitespace"
+          className="setting-select"
+          value={editorConfig.renderWhitespace || 'all'}
+          onChange={(e) => handleChange('renderWhitespace', e.target.value)}
+        >
+          <option value="none">None</option>
+          <option value="boundary">Boundary</option>
+          <option value="selection">Selection</option>
+          <option value="trailing">Trailing</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-toggle">
+          <input
+            id="render-control-characters"
+            type="checkbox"
+            checked={editorConfig.renderControlCharacters !== false}
+            onChange={(e) =>
+              handleChange('renderControlCharacters', e.target.checked)
+            }
+          />
+          <span>制御文字を表示</span>
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-toggle">
+          <input
+            id="show-full-width-space"
+            type="checkbox"
+            checked={editorConfig.showFullWidthSpace !== false}
+            onChange={(e) =>
+              handleChange('showFullWidthSpace', e.target.checked)
+            }
+          />
+          <span>全角空白を可視化</span>
         </div>
       </div>
     </div>

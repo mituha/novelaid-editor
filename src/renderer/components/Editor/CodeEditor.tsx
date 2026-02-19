@@ -333,30 +333,32 @@ export default function CodeEditor({
     const text = model.getValue();
 
     // Visualize full-width spaces
-    let match;
-    // eslint-disable-next-line no-cond-assign
-    while ((match = NOVEL_PATTERNS.FULL_WIDTH_SPACE.exec(text)) !== null) {
-      const startPos = model.getPositionAt(match.index);
-      const endPos = model.getPositionAt(match.index + 1);
-      newDecorations.push({
-        range: {
-          startLineNumber: startPos.lineNumber,
-          startColumn: startPos.column,
-          endLineNumber: endPos.lineNumber,
-          endColumn: endPos.column,
-        },
-        options: {
-          inlineClassName: 'full-width-space-decoration',
-          stickiness: 1, // NeverGrowsWhenTypingAtEdges
-        },
-      });
+    if (editorConfig.showFullWidthSpace !== false) {
+      let match;
+      // eslint-disable-next-line no-cond-assign
+      while ((match = NOVEL_PATTERNS.FULL_WIDTH_SPACE.exec(text)) !== null) {
+        const startPos = model.getPositionAt(match.index);
+        const endPos = model.getPositionAt(match.index + 1);
+        newDecorations.push({
+          range: {
+            startLineNumber: startPos.lineNumber,
+            startColumn: startPos.column,
+            endLineNumber: endPos.lineNumber,
+            endColumn: endPos.column,
+          },
+          options: {
+            inlineClassName: 'full-width-space-decoration',
+            stickiness: 1, // NeverGrowsWhenTypingAtEdges
+          },
+        });
+      }
     }
 
     decorationsRef.current = editor.deltaDecorations(
       decorationsRef.current,
       newDecorations,
     );
-  }, []);
+  }, [editorConfig.showFullWidthSpace]);
 
   const handleEditorOnMount: OnMount = (editor) => {
     editorRef.current = editor;
@@ -542,7 +544,8 @@ export default function CodeEditor({
           automaticLayout: true,
           padding: { top: 20 },
           fontFamily: "'Yu Gothic', 'Meiryo', sans-serif", // Japanese fonts
-          renderWhitespace: 'all', // Show tabs and spaces
+          renderWhitespace: editorConfig.renderWhitespace || 'all',
+          renderControlCharacters: editorConfig.renderControlCharacters !== false,
           unicodeHighlight: {
             ambiguousCharacters: false,
             invisibleCharacters: false,
