@@ -237,7 +237,7 @@ function FileTreeItem({
         tabIndex={0}
         className={`file-item ${file.isDirectory ? 'directory' : 'file'} ${
           selectedPath === file.path ? 'active' : ''
-        }`}
+        } ${file.name.startsWith('.') ? 'hidden-item' : ''}`}
         style={{ paddingLeft: `${BASE_INDENT + level * INDENT_STEP}px` }}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}

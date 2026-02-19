@@ -86,16 +86,27 @@ ipcMain.handle('dialog:confirm', async (_, message: string) => {
 ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
   try {
     const dirents = await fs.readdir(dirPath, { withFileTypes: true });
-    return await Promise.all(dirents.map(async (dirent) => {
-      const fullPath = path.join(dirPath, dirent.name);
-      const isDirectory = dirent.isDirectory();
-      return {
-        name: dirent.name,
-        isDirectory,
-        path: fullPath,
-        language: isDirectory ? undefined : await getLanguageForFile(fullPath),
-      };
-    }));
+    const filtered = dirents.filter((dirent) => {
+      // Filter out only hidden folders and node_modules, keep hidden files
+      if (dirent.isDirectory()) {
+        return !dirent.name.startsWith('.') && dirent.name !== 'node_modules';
+      }
+      return true;
+    });
+    return await Promise.all(
+      filtered.map(async (dirent) => {
+        const fullPath = path.join(dirPath, dirent.name);
+        const isDirectory = dirent.isDirectory();
+        return {
+          name: dirent.name,
+          isDirectory,
+          path: fullPath,
+          language: isDirectory
+            ? undefined
+            : await getLanguageForFile(fullPath),
+        };
+      }),
+    );
   } catch (error) {
     console.error('Error reading directory:', error);
     throw error;
@@ -599,8 +610,9 @@ ipcMain.handle(
           const resPath = path.join(dir, dirent.name);
 
           if (dirent.isDirectory()) {
-             if (dirent.name.startsWith('.') || ignoreDirs.has(dirent.name)) continue;
-             await searchRecursively(resPath);
+            if (dirent.name.startsWith('.') || dirent.name === 'node_modules')
+              continue;
+            await searchRecursively(resPath);
           } else if (dirent.isFile()) {
             const ext = path.extname(dirent.name).toLowerCase();
              if (textExtensions.has(ext)) {

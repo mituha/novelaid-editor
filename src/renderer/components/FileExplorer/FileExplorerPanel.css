@@ -155,3 +155,11 @@
 .file-item:hover .icon {
   opacity: 1;
 }
+
+.file-item.hidden-item {
+  opacity: 0.5;
+}
+
+.file-item.hidden-item:hover {
+  opacity: 0.8;
+}
