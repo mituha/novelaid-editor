@@ -333,6 +333,7 @@ export default function CodeEditor({
     const text = model.getValue();
 
     // Visualize full-width spaces
+    NOVEL_PATTERNS.FULL_WIDTH_SPACE.lastIndex = 0;
     if (editorConfig.showFullWidthSpace !== false) {
       let match;
       // eslint-disable-next-line no-cond-assign
@@ -359,6 +360,33 @@ export default function CodeEditor({
       newDecorations,
     );
   }, [editorConfig.showFullWidthSpace]);
+
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.updateOptions({
+        renderWhitespace: editorConfig.renderWhitespace || 'all',
+        renderControlCharacters: editorConfig.renderControlCharacters !== false,
+        wordWrap: editorConfig.wordWrap || 'on',
+        minimap: { enabled: editorConfig.showMinimap ?? true },
+        fontSize: editorConfig.fontSize || 14,
+        lineNumbers: editorConfig.showLineNumbers ? 'on' : 'off',
+        selectionHighlight: editorConfig.selectionHighlight !== false,
+        occurrencesHighlight:
+          editorConfig.occurrencesHighlight !== false ? 'singleFile' : 'off',
+      });
+      updateDecorations(editorRef.current);
+    }
+  }, [
+    updateDecorations,
+    editorConfig.renderWhitespace,
+    editorConfig.renderControlCharacters,
+    editorConfig.wordWrap,
+    editorConfig.showMinimap,
+    editorConfig.fontSize,
+    editorConfig.showLineNumbers,
+    editorConfig.selectionHighlight,
+    editorConfig.occurrencesHighlight,
+  ]);
 
   const handleEditorOnMount: OnMount = (editor) => {
     editorRef.current = editor;
