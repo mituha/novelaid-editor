@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
 import './FileExplorerPanel.css';
 
@@ -305,6 +306,7 @@ function FileTreeItem({
                 onKeyDown={handleLocalCreate}
                 onBlur={() => setCreatingPath(null)}
                 onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.target.select()}
               />
             </div>
           )}
@@ -396,9 +398,12 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     setSelectedIsDir(isDirectory);
   }, []);
 
+  const { settings } = useSettings();
+  const defaultExt = settings.editor?.defaultFileExtension || 'md';
+
   const initiateCreate = (type: 'file' | 'folder') => {
     setCreatingType(type);
-    setNewName('');
+    setNewName(type === 'file' ? `untitled.${defaultExt}` : 'untitled');
     if (!selectedPath || !currentDir) {
       setCreatingPath(currentDir);
     } else if (selectedIsDir) {
@@ -419,7 +424,15 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
   ) => {
     if (e.key === 'Enter' && newName && creatingPath) {
       try {
-        const fullPath = `${creatingPath}/${newName}`;
+        let finalName = newName;
+        if (
+          creatingType === 'file' &&
+          !finalName.includes('.') &&
+          !finalName.startsWith('.')
+        ) {
+          finalName = `${finalName}.${defaultExt}`;
+        }
+        const fullPath = `${creatingPath}/${finalName}`;
         if (creatingType === 'file') {
           await window.electron.ipcRenderer.invoke('fs:createFile', fullPath);
         } else {
@@ -494,6 +507,7 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
               onKeyDown={handleCreate}
               onBlur={() => setCreatingPath(null)}
               onClick={(e) => e.stopPropagation()}
+              onFocus={(e) => e.target.select()}
             />
           </div>
         )}

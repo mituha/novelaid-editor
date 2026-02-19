@@ -20,6 +20,7 @@ export interface ProjectConfig {
     renderWhitespace?: 'none' | 'boundary' | 'selection' | 'trailing' | 'all';
     renderControlCharacters?: boolean;
     showFullWidthSpace?: boolean;
+    defaultFileExtension?: 'md' | 'txt';
     [key: string]: any;
   };
   ai?: {
@@ -101,6 +102,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       renderWhitespace: 'all',
       renderControlCharacters: true,
       showFullWidthSpace: true,
+      defaultFileExtension: 'md',
     },
     submission: {
       kakuyomuUrl: 'https://kakuyomu.jp/my',
