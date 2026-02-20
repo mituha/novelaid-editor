@@ -23,6 +23,8 @@ declare global {
       };
       window: {
         setTitle(title: string): Promise<void>;
+        toggleFullScreen(): Promise<boolean>;
+        isFullScreen(): Promise<boolean>;
       };
       fs: {
         onFileChange(func: (payload: any) => void): () => void;

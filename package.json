@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.24.3",
+  "version": "0.24.4",
   "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
@@ -19,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mituha/novelaid-editor/novelaid-editor.git"
+    "url": "git+https://github.com/mituha/novelaid-editor.git"
   },
   "license": "MIT",
   "author": {

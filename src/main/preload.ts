@@ -16,7 +16,9 @@ export type Channels =
   | 'fs:move'
   | 'app:getVersion'
   | 'calibration:analyze'
-  | 'shell:openExternal';
+  | 'shell:openExternal'
+  | 'window:toggleFullScreen'
+  | 'window:isFullScreen';
 
 const electronHandler = {
   ipcRenderer: {
@@ -67,6 +69,12 @@ const electronHandler = {
   window: {
     setTitle(title: string) {
       return ipcRenderer.invoke('window:setTitle', title);
+    },
+    toggleFullScreen() {
+      return ipcRenderer.invoke('window:toggleFullScreen');
+    },
+    isFullScreen() {
+      return ipcRenderer.invoke('window:isFullScreen');
     },
   },
   fs: {

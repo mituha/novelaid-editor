@@ -4,7 +4,10 @@ import {
   PanelRight,
   Home,
   HelpCircle,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import './StatusBar.css';
 import { CountMetric } from '../../utils/CharCounter';
 
@@ -29,6 +32,21 @@ export function StatusBar({
   isLeftPaneVisible,
   isRightPaneVisible,
 }: StatusBarProps) {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  useEffect(() => {
+    const checkFullScreen = async () => {
+      const fs = await window.electron.window.isFullScreen();
+      setIsFullScreen(fs);
+    };
+    checkFullScreen();
+  }, []);
+
+  const handleToggleFullScreen = async () => {
+    const fs = await window.electron.window.toggleFullScreen();
+    setIsFullScreen(fs);
+  };
+
   const fileName = activePath ? activePath.split('\\').pop() : 'No file open';
 
   return (
@@ -81,6 +99,14 @@ export function StatusBar({
           title="Toggle Right Pane"
         >
           <PanelRight size={14} />
+        </button>
+        <button
+          type="button"
+          className="status-bar-fullscreen-btn"
+          onClick={handleToggleFullScreen}
+          title="フルスクリーン切り替え"
+        >
+          {isFullScreen ? <Minimize size={14} /> : <Maximize size={14} />}
         </button>
         <button
           type="button"

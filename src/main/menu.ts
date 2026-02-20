@@ -100,12 +100,17 @@ export default class MenuBuilder {
         },
       ],
     };
-    const subMenuViewDev: MenuItemConstructorOptions = {
+    const isDebug =
+      process.env.NODE_ENV === 'development' ||
+      process.env.DEBUG_PROD === 'true';
+
+    const subMenuView: MenuItemConstructorOptions = {
       label: '表示',
       submenu: [
         {
           label: '再読み込み',
           accelerator: 'Command+R',
+          visible: isDebug,
           click: () => {
             this.mainWindow.webContents.reload();
           },
@@ -120,20 +125,9 @@ export default class MenuBuilder {
         {
           label: '開発者ツール',
           accelerator: 'Alt+Command+I',
+          visible: isDebug,
           click: () => {
             this.mainWindow.webContents.toggleDevTools();
-          },
-        },
-      ],
-    };
-    const subMenuViewProd: MenuItemConstructorOptions = {
-      label: '表示',
-      submenu: [
-        {
-          label: 'フルスクリーン切り替え',
-          accelerator: 'Ctrl+Command+F',
-          click: () => {
-            this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
           },
         },
       ],
@@ -175,14 +169,13 @@ export default class MenuBuilder {
       ],
     };
 
-    const subMenuView =
-      process.env.NODE_ENV === 'development' ||
-      process.env.DEBUG_PROD === 'true'
-        ? subMenuViewDev
-        : subMenuViewDev; // subMenuViewProd;
-    // TODO: 暫定的にexe版でも開発用メニュー表示
-
-    return [subMenuAbout, subMenuEdit, subMenuView, subMenuWindow, subMenuHelp];
+    return [
+      subMenuAbout,
+      subMenuEdit,
+      subMenuView,
+      subMenuWindow,
+      subMenuHelp,
+    ];
   }
 
   buildDefaultTemplate() {
@@ -220,45 +213,35 @@ export default class MenuBuilder {
       },
       {
         label: '表示(&V)',
-        submenu:
-          process.env.NODE_ENV === 'development' ||
-          process.env.DEBUG_PROD === 'true'
-            ? [
-                {
-                  label: '再読み込み(&R)',
-                  accelerator: 'Ctrl+R',
-                  click: () => {
-                    this.mainWindow.webContents.reload();
-                  },
-                },
-                {
-                  label: 'フルスクリーン切り替え(&F)',
-                  accelerator: 'F11',
-                  click: () => {
-                    this.mainWindow.setFullScreen(
-                      !this.mainWindow.isFullScreen(),
-                    );
-                  },
-                },
-                {
-                  label: '開発者ツール(&D)',
-                  accelerator: 'Alt+Ctrl+I',
-                  click: () => {
-                    this.mainWindow.webContents.toggleDevTools();
-                  },
-                },
-              ]
-            : [
-                {
-                  label: 'フルスクリーン切り替え(&F)',
-                  accelerator: 'F11',
-                  click: () => {
-                    this.mainWindow.setFullScreen(
-                      !this.mainWindow.isFullScreen(),
-                    );
-                  },
-                },
-              ],
+        submenu: [
+          {
+            label: '再読み込み(&R)',
+            accelerator: 'Ctrl+R',
+            visible:
+              process.env.NODE_ENV === 'development' ||
+              process.env.DEBUG_PROD === 'true',
+            click: () => {
+              this.mainWindow.webContents.reload();
+            },
+          },
+          {
+            label: 'フルスクリーン切り替え(&F)',
+            accelerator: 'F11',
+            click: () => {
+              this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+            },
+          },
+          {
+            label: '開発者ツール(&D)',
+            accelerator: 'Alt+Ctrl+I',
+            visible:
+              process.env.NODE_ENV === 'development' ||
+              process.env.DEBUG_PROD === 'true',
+            click: () => {
+              this.mainWindow.webContents.toggleDevTools();
+            },
+          },
+        ],
       },
       {
         label: 'ヘルプ',

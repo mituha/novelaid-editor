@@ -40,7 +40,7 @@ class AppUpdater {
 
     // 2. アップデートをチェック。エラーが起きても catch で受け止めるわん
     autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-      log.error('Promise内のエラーをキャッチしたわん:', err);
+      log.error('アップデートの確認中にエラーが発生したわん:', err.message || err);
     });
   }
 }
@@ -399,6 +399,18 @@ ipcMain.handle('window:setTitle', (_, title: string) => {
   }
 });
 
+ipcMain.handle('window:toggleFullScreen', () => {
+  if (mainWindow) {
+    mainWindow.setFullScreen(!mainWindow.isFullScreen());
+    return mainWindow.isFullScreen();
+  }
+  return false;
+});
+
+ipcMain.handle('window:isFullScreen', () => {
+  return mainWindow ? mainWindow.isFullScreen() : false;
+});
+
 ipcMain.handle('app:getVersion', () => {
   return app.getVersion();
 });
@@ -578,7 +590,9 @@ const createWindow = async () => {
 
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
-  new AppUpdater();
+  if (!isDebug) {
+    new AppUpdater();
+  }
 
   // Initialize Calibration Service
   // Note: Kuromoji dictionary path needs to be resolved correctly in prod vs dev
