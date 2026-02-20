@@ -1,4 +1,10 @@
-import { Settings as SettingsIcon, PanelLeft, PanelRight, Home } from 'lucide-react';
+import {
+  Settings as SettingsIcon,
+  PanelLeft,
+  PanelRight,
+  Home,
+  HelpCircle,
+} from 'lucide-react';
 import './StatusBar.css';
 import { CountMetric } from '../../utils/CharCounter';
 
@@ -75,6 +81,18 @@ export function StatusBar({
           title="Toggle Right Pane"
         >
           <PanelRight size={14} />
+        </button>
+        <button
+          type="button"
+          className="status-bar-manual-btn"
+          onClick={() =>
+            window.electron.shell.openExternal(
+              'https://mituha.github.io/novelaid-editor/',
+            )
+          }
+          title="オンラインマニュアルを開く"
+        >
+          <HelpCircle size={14} />
         </button>
       </div>
     </div>

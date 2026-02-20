@@ -36,6 +36,9 @@ declare global {
       calibration: {
         analyze(text: string, settings?: any): Promise<{ frequency: any[]; issues: any[] }>;
       };
+      shell: {
+        openExternal(url: string): Promise<void>;
+      };
     };
   }
 }

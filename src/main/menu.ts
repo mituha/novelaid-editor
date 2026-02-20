@@ -155,6 +155,12 @@ export default class MenuBuilder {
       label: 'ヘルプ',
       submenu: [
         {
+          label: 'オンラインマニュアル',
+          click() {
+            shell.openExternal('https://mituha.github.io/novelaid-editor/');
+          },
+        },
+        {
           label: '詳細',
           click() {
             shell.openExternal('https://github.com/mituha/novelaid-editor');
@@ -257,6 +263,12 @@ export default class MenuBuilder {
       {
         label: 'ヘルプ',
         submenu: [
+          {
+            label: 'オンラインマニュアル',
+            click() {
+              shell.openExternal('https://mituha.github.io/novelaid-editor/');
+            },
+          },
           {
             label: '詳細',
             click() {

@@ -15,7 +15,8 @@ export type Channels =
   | 'fs:copy'
   | 'fs:move'
   | 'app:getVersion'
-  | 'calibration:analyze';
+  | 'calibration:analyze'
+  | 'shell:openExternal';
 
 const electronHandler = {
   ipcRenderer: {
@@ -92,6 +93,11 @@ const electronHandler = {
   calibration: {
     analyze(text: string, settings: any) {
       return ipcRenderer.invoke('calibration:analyze', text, settings);
+    },
+  },
+  shell: {
+    openExternal(url: string) {
+      return ipcRenderer.invoke('shell:openExternal', url);
     },
   },
 };

@@ -77,7 +77,8 @@ npm run package
 
 より詳細な情報は `docs/` ディレクトリを参照してください。
 
-- [マニュアル](docs/マニュアル.md) - 詳しい使い方の説明
+- [オンラインマニュアル](https://mituha.github.io/novelaid-editor/) - Web上で閲覧可能な最新のマニュアル
+- [マニュアル](docs/manual/index.md) - 詳しい使い方の説明
 - [内部仕様書](docs/仕様書.md) - アーキテクチャやIPCの定義
 - [プログラム解説](docs/プログラム解説.md) - コード構造の技術的な解説
 - [AI機能仕様書](docs/AI仕様書.md) - AI連携の実装詳細
