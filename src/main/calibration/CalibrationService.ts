@@ -197,7 +197,12 @@ export class CalibrationService {
         }
 
         if (trimmed.startsWith('!')) {
-          exclusions.push(trimmed.substring(1).trim());
+          const rawTerm = trimmed.substring(1).trim();
+          // Even if they write !word,reading, we only need the word part
+          const term = rawTerm.includes(',')
+            ? rawTerm.split(',')[0].trim()
+            : rawTerm.split(':')[0].trim();
+          exclusions.push(term);
         } else {
           // Format is either word,reading or word:reading (legacy-ish support)
           const parts = trimmed.includes(',') ? trimmed.split(',') : trimmed.split(':');
@@ -210,12 +215,14 @@ export class CalibrationService {
       });
 
       // Apply exclusions last to ensure they take effect
+      console.log(`[Calibration] Processing ${exclusions.length} exclusions:`, exclusions.join(', '));
       exclusions.forEach((word) => {
         delete newRules[word];
       });
 
       this.kanjiRules = newRules;
       console.log(`[Calibration] Loaded ${Object.keys(this.kanjiRules).length} kanji rules.`);
+      console.log(`[Calibration] Final applied rules:`, JSON.stringify(this.kanjiRules));
     } catch (err: any) {
       if (err.code !== 'ENOENT') {
         console.error('Failed to load custom rules:', err);
