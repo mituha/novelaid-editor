@@ -12,32 +12,8 @@ export type Channels =
   | 'fs:createFile'
   | 'fs:createDirectory'
   | 'fs:rename'
-  | 'fs:delete'
-  | 'project:load'
-  | 'project:save-config'
-  | 'ai:generate'
-  | 'ai:stream'
-  | 'ai:listModels'
-  | 'ai:chat'
-  | 'ai:streamChat' // Request channel for streaming
-  | 'ai:streamChat:data' // Response channel for data
-  | 'ai:streamChat:end' // Response channel for end
-  | 'ai:streamChat:error' // Response channel for error
-  | 'git:init'
-  | 'git:status'
-  | 'git:log'
-  | 'git:add'
-  | 'git:reset'
-  | 'git:commit'
-  | 'git:diff'
-  | 'window:setTitle'
-  | 'recent:get'
-  | 'recent:add'
-  | 'menu:go-home'
-  | 'fs:file-changed'
-  | 'metadata:query'
-  | 'context-menu:show-file-explorer'
-  | 'file-explorer:action'
+  | 'fs:copy'
+  | 'fs:move'
   | 'app:getVersion'
   | 'calibration:analyze';
 

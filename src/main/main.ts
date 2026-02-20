@@ -172,6 +172,28 @@ ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
   }
 });
 
+ipcMain.handle('fs:move', async (_, oldPath: string, newPath: string) => {
+  try {
+    await fs.rename(oldPath, newPath);
+    return true;
+  } catch (error) {
+    console.error('Error moving:', error);
+    throw error;
+  }
+});
+
+
+ipcMain.handle('fs:copy', async (_, srcPath: string, destPath: string) => {
+  try {
+    // fs.cp is available in Node.js 16.7.0+
+    await fs.cp(srcPath, destPath, { recursive: true });
+    return true;
+  } catch (error) {
+    console.error('Error copying:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle(
   'context-menu:show-file-explorer',
   async (event, isDirectory: boolean, filePath: string) => {
@@ -552,7 +574,7 @@ const createWindow = async () => {
 
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
-  // TODO:　実際の環境でエラーが出るため、一旦無効とする  new AppUpdater();
+  new AppUpdater();
 
   // Initialize Calibration Service
   // Note: Kuromoji dictionary path needs to be resolved correctly in prod vs dev

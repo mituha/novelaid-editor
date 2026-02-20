@@ -61,6 +61,7 @@ function FileTreeItem({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(file.name);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const loadDirectory = useCallback(async () => {
     try {
@@ -231,18 +232,77 @@ function FileTreeItem({
     return <FileText size={16} />;
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', file.path);
+    e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation();
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (file.isDirectory) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = e.shiftKey ? 'copy' : 'move';
+      setIsDragOver(true);
+    }
+    e.stopPropagation();
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    setIsDragOver(false);
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    if (!file.isDirectory) return;
+    e.preventDefault();
+    setIsDragOver(false);
+    e.stopPropagation();
+
+    const srcPath = e.dataTransfer.getData('text/plain');
+    if (!srcPath || srcPath === file.path) return;
+
+    // Check if dropping onto a subfolder of itself
+    if (srcPath.startsWith(file.path + '/') || srcPath.startsWith(file.path + '\\')) {
+      return;
+    }
+
+    try {
+      const isCopy = e.shiftKey;
+      const fileName = srcPath.split(/[/\\]/).pop();
+      const destPath = `${file.path}/${fileName}`;
+
+      if (srcPath === destPath) return;
+
+      if (isCopy) {
+        await window.electron.ipcRenderer.invoke('fs:copy', srcPath, destPath);
+      } else {
+        await window.electron.ipcRenderer.invoke('fs:move', srcPath, destPath);
+      }
+      onRefresh();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to move/copy file', err);
+    }
+  };
+
   return (
     <div className="file-tree-item-container">
       <div
         role="button"
         tabIndex={0}
-        className={`file-item ${file.isDirectory ? 'directory' : 'file'} ${
-          selectedPath === file.path ? 'active' : ''
-        } ${file.name.startsWith('.') ? 'hidden-item' : ''}`}
-        style={{ paddingLeft: `${BASE_INDENT + level * INDENT_STEP}px` }}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
+        draggable
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`file-item ${file.isDirectory ? 'directory' : 'file'} ${
+          selectedPath === file.path ? 'active' : ''
+        } ${file.name.startsWith('.') ? 'hidden-item' : ''} ${
+          isDragOver ? 'drag-over' : ''
+        }`}
       >
         <span className="chevron">
           {file.isDirectory ? (
