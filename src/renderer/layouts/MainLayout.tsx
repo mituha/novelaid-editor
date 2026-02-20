@@ -68,6 +68,7 @@ export default function MainLayout() {
 
   const activeTabPath = activeSide === 'left' ? leftActivePath : rightActivePath;
   const savingPaths = useRef<Set<string>>(new Set());
+  const autoSaveTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
   const restoredRef = useRef<string | null>(null);
 
   // Restore open files from settings
@@ -533,6 +534,8 @@ export default function MainLayout() {
       setRightTabs((prev) =>
         prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
       );
+
+      triggerAutoSave(path);
     }
   };
 
@@ -548,24 +551,28 @@ export default function MainLayout() {
       setRightTabs((prev) =>
         prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
       );
+
+      triggerAutoSave(path);
     }
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!activeTabPath || !tabContents[activeTabPath]) return;
+  const handleSaveByPath = useCallback(async (path: string) => {
+    const data = tabContentsRef.current[path];
+    if (!path || !data) return;
 
     try {
-      savingPaths.current.add(activeTabPath);
+      console.log(`[MainLayout] Saving ${path}...`);
+      savingPaths.current.add(path);
       await window.electron.ipcRenderer.invoke(
         'fs:saveDocument',
-        activeTabPath,
-        tabContents[activeTabPath],
+        path,
+        data,
       );
 
       // Update dirty state
       const updateClean = (tabs: Tab[]) =>
         tabs.map((tab) =>
-          tab.path === activeTabPath ? { ...tab, isDirty: false } : tab,
+          tab.path === path ? { ...tab, isDirty: false } : tab,
         );
 
       setLeftTabs(updateClean);
@@ -573,14 +580,34 @@ export default function MainLayout() {
 
       // Wait a bit to ensure watcher event is ignored
       setTimeout(() => {
-          savingPaths.current.delete(activeTabPath);
+          savingPaths.current.delete(path);
       }, 500);
 
     } catch (err) {
       console.error(err);
-      savingPaths.current.delete(activeTabPath);
+      savingPaths.current.delete(path);
     }
-  }, [activeTabPath, tabContents]);
+  }, []);
+
+  const triggerAutoSave = useCallback((path: string) => {
+    if (autoSaveTimerRef.current[path]) {
+      clearTimeout(autoSaveTimerRef.current[path]);
+    }
+    autoSaveTimerRef.current[path] = setTimeout(() => {
+      handleSaveByPath(path);
+      delete autoSaveTimerRef.current[path];
+    }, 3000); // 3 seconds idle
+  }, [handleSaveByPath]);
+
+  const handleSave = useCallback(async () => {
+    if (!activeTabPath) return;
+    // Clear any pending auto-save for this path
+    if (autoSaveTimerRef.current[activeTabPath]) {
+      clearTimeout(autoSaveTimerRef.current[activeTabPath]);
+      delete autoSaveTimerRef.current[activeTabPath];
+    }
+    await handleSaveByPath(activeTabPath);
+  }, [activeTabPath, handleSaveByPath]);
 
   React.useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
@@ -714,6 +741,7 @@ export default function MainLayout() {
             lastSource={data.lastSource}
             onChange={handleContentChange(activePath)}
             onFocus={() => setActiveSide(side)}
+            onBlur={() => handleSaveByPath(activePath)}
             initialLine={(data as any).initialLine}
             initialColumn={(data as any).initialColumn}
             searchQuery={(data as any).searchQuery}

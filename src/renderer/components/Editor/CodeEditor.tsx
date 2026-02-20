@@ -14,6 +14,7 @@ interface CodeEditorProps {
   lastSource?: 'user' | 'external';
   onChange: (value: string | undefined) => void;
   onFocus?: () => void;
+  onBlur?: () => void;
   initialLine?: number;
   initialColumn?: number;
   searchQuery?: string;
@@ -26,6 +27,7 @@ export default function CodeEditor({
   lastSource,
   onChange,
   onFocus = () => {},
+  onBlur = () => {},
   initialLine,
   initialColumn,
   searchQuery,
@@ -396,6 +398,10 @@ export default function CodeEditor({
 
     editor.onDidFocusEditorText(() => {
       onFocus?.();
+    });
+
+    editor.onDidBlurEditorText(() => {
+      onBlur?.();
     });
 
     // 補足:コンテキストメニューを標準では多層には出来ない模様。

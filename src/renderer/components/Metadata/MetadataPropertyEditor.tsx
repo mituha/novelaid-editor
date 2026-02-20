@@ -5,11 +5,13 @@ import './MetadataPropertyEditor.css';
 interface MetadataPropertyEditorProps {
   metadata?: Record<string, any>;
   onMetadataChange?: (metadata: Record<string, any>) => void;
+  onBlur?: () => void;
 }
 
 export function MetadataPropertyEditor({
   metadata = {},
   onMetadataChange = () => {},
+  onBlur = () => {},
 }: MetadataPropertyEditorProps) {
   const handleChange = (key: string, value: any) => {
     if (onMetadataChange) {
@@ -34,6 +36,7 @@ export function MetadataPropertyEditor({
           type="text"
           value={metadata.title || ''}
           onChange={(e) => handleChange('title', e.target.value)}
+          onBlur={onBlur}
           placeholder="文書のタイトル"
         />
       </div>
@@ -49,6 +52,7 @@ export function MetadataPropertyEditor({
               : metadata.tags || ''
           }
           onChange={handleTagsChange}
+          onBlur={onBlur}
           placeholder="char, location, etc..."
         />
       </div>
@@ -59,6 +63,7 @@ export function MetadataPropertyEditor({
           id="meta-summary"
           value={metadata.summary || metadata.description || ''}
           onChange={(e) => handleChange('summary', e.target.value)}
+          onBlur={onBlur}
           rows={10}
           placeholder="このファイルに関するメモやあらすじを入力してください"
         />
