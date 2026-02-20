@@ -4,7 +4,40 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    font-size: 14px;
     /* background-color: #252526; Inherited from container ideally */
+}
+
+.ai-chat-header {
+  padding: 10px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #252526;
+}
+
+.persona-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.persona-selector select {
+  background-color: #3c3c3c;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.persona-selector select:focus {
+  outline: none;
+  border-color: #007acc;
 }
 
 .ai-chat-content {
@@ -55,12 +88,28 @@
 }
 
 .message-sender {
-    font-size: 0.75em;
-    font-weight: bold;
-    margin-bottom: 4px;
-    color: #888;
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #9cdcfe;
+  display: flex;
+  align-items: center;
+  gap: 6px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+.persona-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.persona-icon img {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .chat-message.user .message-sender {

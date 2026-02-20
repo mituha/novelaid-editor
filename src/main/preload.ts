@@ -20,7 +20,11 @@ export type Channels =
   | 'window:toggleFullScreen'
   | 'window:isFullScreen'
   | 'calibration:getKanjiRulesPath'
-  | 'calibration:reloadRules';
+  | 'calibration:reloadRules'
+  | 'ai:streamChat'
+  | 'ai:streamChat:data'
+  | 'ai:streamChat:end'
+  | 'ai:streamChat:error';
 
 const electronHandler = {
   ipcRenderer: {

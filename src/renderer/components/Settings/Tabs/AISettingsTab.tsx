@@ -66,7 +66,7 @@ export default function AISettingsTab() {
       setAvailableModels(models);
     } catch (error) {
       console.error('Failed to fetch models:', error);
-      alert('Failed to fetch models. Check console for details.');
+      alert('モデルの取得に失敗しました。詳細はコンソールを確認してください。');
     } finally {
       setIsFetching(false);
     }
@@ -74,11 +74,11 @@ export default function AISettingsTab() {
 
   const renderModelSelection = (
     currentModel: string,
-    onChange: (val: string) => void
+    onChange: (val: string) => void,
   ) => {
     return (
       <div className="settings-field">
-        <label htmlFor="ai-model-input">Model</label>
+        <label htmlFor="ai-model-input">モデル</label>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
             <input
@@ -86,7 +86,7 @@ export default function AISettingsTab() {
               type="text"
               value={currentModel}
               onChange={(e) => onChange(e.target.value)}
-              placeholder="Enter model identifier or select from list"
+              placeholder="モデルIDを入力するか、リストから選択してください"
               className="settings-input"
               style={{ width: '100%' }}
             />
@@ -98,30 +98,34 @@ export default function AISettingsTab() {
             className="settings-button"
             style={{ padding: '8px 12px', height: '38px', marginBottom: '2px' }}
           >
-            {isFetching ? 'Fetching...' : 'Fetch Models'}
+            {isFetching ? '取得中...' : 'モデル一覧を取得'}
           </button>
         </div>
 
         {availableModels.length > 0 && (
           <div style={{ marginTop: '5px' }}>
             <select
-                className="settings-select"
-                onChange={(e) => {
-                    if (e.target.value) {
-                         onChange(e.target.value);
-                    }
-                }}
-                value="" // Always show placeholder so user can re-select same item if they changed text
+              className="settings-select"
+              onChange={(e) => {
+                if (e.target.value) {
+                  onChange(e.target.value);
+                }
+              }}
+              value="" // Always show placeholder so user can re-select same item if they changed text
             >
-                <option value="" disabled>Select a fetched model...</option>
-                {availableModels.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                ))}
+              <option value="" disabled>
+                取得されたモデルを選択...
+              </option>
+              {availableModels.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
             </select>
           </div>
         )}
         <p className="settings-description">
-             Manually enter the model ID or fetch available models from the provider.
+          モデルIDを直接入力するか、プロバイダーから利用可能なモデルを取得します。
         </p>
       </div>
     );
@@ -130,28 +134,28 @@ export default function AISettingsTab() {
   return (
     <div className="settings-tab-content">
       <div className="settings-group">
-        <label htmlFor="ai-provider-select">AI Provider</label>
+        <label htmlFor="ai-provider-select">AIプロバイダー</label>
         <select
           id="ai-provider-select"
           value={aiConfig.provider || 'lmstudio'}
           onChange={handleProviderChange}
           className="settings-select"
         >
-          <option value="lmstudio">LMStudio (Local)</option>
-          <option value="gemini">Google GenAI (Gemini)</option>
-          <option value="openai">OpenAI Compatible (Generic)</option>
-          <option value="none">なし (None) - AI機能を無効にする</option>
+          <option value="lmstudio">LMStudio (ローカル)</option>
+          <option value="gemini">Google GenAI (Gemini)【未検証】</option>
+          <option value="openai">OpenAI互換 (汎用)【未検証】</option>
+          <option value="none">なし - AI機能を無効にする</option>
         </select>
         <p className="settings-description">
-          Select the AI backend to use for generation.
+          生成に使用するAIバックエンドを選択します。
         </p>
       </div>
 
       {aiConfig.provider === 'lmstudio' && (
         <div className="settings-subgroup">
-          <h4>LMStudio Settings</h4>
+          <h4>LMStudio 設定</h4>
           <div className="settings-field">
-            <label htmlFor="lmstudio-base-url">Base URL</label>
+            <label htmlFor="lmstudio-base-url">ベースURL</label>
             <input
               id="lmstudio-base-url"
               type="text"
@@ -161,50 +165,51 @@ export default function AISettingsTab() {
               className="settings-input"
             />
           </div>
-          {renderModelSelection(
-              aiConfig.lmstudio?.model || '',
-              (val) => handleLMStudioChange('model', val)
+          {renderModelSelection(aiConfig.lmstudio?.model || '', (val) =>
+            handleLMStudioChange('model', val),
           )}
         </div>
       )}
 
       {aiConfig.provider === 'gemini' && (
         <div className="settings-subgroup">
-          <h4>Gemini Settings</h4>
+          <h4>Gemini 設定</h4>
           <div className="settings-field">
-            <label htmlFor="gemini-api-key">API Key</label>
+            <label htmlFor="gemini-api-key">APIキー</label>
             <input
               id="gemini-api-key"
               type="password"
               value={aiConfig.gemini?.apiKey || ''}
               onChange={(e) => handleGeminiChange('apiKey', e.target.value)}
-              placeholder="Enter your Google GenAI API Key"
+              placeholder="Google GenAIのAPIキーを入力してください"
               className="settings-input"
             />
           </div>
-           {renderModelSelection(
-              aiConfig.gemini?.model || 'gemini-1.5-flash',
-              (val) => handleGeminiChange('model', val)
+          {renderModelSelection(
+            aiConfig.gemini?.model || 'gemini-1.5-flash',
+            (val) => handleGeminiChange('model', val),
           )}
         </div>
       )}
 
       {aiConfig.provider === 'openai' && (
         <div className="settings-subgroup">
-          <h4>OpenAI Compatible Settings</h4>
+          <h4>OpenAI互換 設定</h4>
           <div className="settings-field">
-             <label htmlFor="openai-base-url">Base URL</label>
-             <input
+            <label htmlFor="openai-base-url">ベースURL</label>
+            <input
               id="openai-base-url"
               type="text"
               value={aiConfig.openai?.baseUrl || ''}
               onChange={(e) => handleOpenAIChange('baseUrl', e.target.value)}
               placeholder="http://localhost:1234/v1"
               className="settings-input"
-             />
+            />
           </div>
           <div className="settings-field">
-            <label htmlFor="openai-api-key">API Key (Optional for local)</label>
+            <label htmlFor="openai-api-key">
+              APIキー (ローカルの場合は任意)
+            </label>
             <input
               id="openai-api-key"
               type="password"
@@ -214,9 +219,9 @@ export default function AISettingsTab() {
               className="settings-input"
             />
           </div>
-           {renderModelSelection(
-              aiConfig.openai?.model || 'gpt-3.5-turbo',
-              (val) => handleOpenAIChange('model', val)
+          {renderModelSelection(
+            aiConfig.openai?.model || 'gpt-3.5-turbo',
+            (val) => handleOpenAIChange('model', val),
           )}
         </div>
       )}

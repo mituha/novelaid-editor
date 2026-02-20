@@ -27,6 +27,7 @@ import { GitService } from './git/GitService';
 import { FileWatcher } from './watcher';
 import { MetadataService } from './metadataService';
 import { CalibrationService } from './calibration/CalibrationService';
+import { PERSONAS, COMMON_SYSTEM_PROMPT } from '../common/constants/personas';
 
 class AppUpdater {
   constructor() {
@@ -434,7 +435,7 @@ ipcMain.handle('shell:openExternal', async (_, url: string) => {
 // If I want to support streaming, I should add `ai:streamChat` using `on` pattern in preload (which I have `on` and `sendMessage`).
 // Let's add `on` handler for streaming.
 
-ipcMain.on('ai:streamChat', async (event, messages: any[], config: any) => {
+ipcMain.on('ai:streamChat', async (event, messages: any[], config: any, personaId?: string) => {
     try {
         const providerType = config.provider || 'lmstudio';
         let factoryConfig: any = {
@@ -455,7 +456,22 @@ ipcMain.on('ai:streamChat', async (event, messages: any[], config: any) => {
         }
 
         const provider = ProviderFactory.createProvider(factoryConfig);
-        const stream = provider.streamChat(messages);
+
+        // Inject system prompts
+        const apiMessages = [...messages];
+
+        // Add common prompt (novel editing context)
+        apiMessages.unshift({ role: 'system', content: COMMON_SYSTEM_PROMPT });
+
+        // Add persona prompt if specified
+        if (personaId) {
+            const persona = PERSONAS.find(p => p.id === personaId);
+            if (persona) {
+                apiMessages.unshift({ role: 'system', content: persona.systemPrompt });
+            }
+        }
+
+        const stream = provider.streamChat(apiMessages);
 
         for await (const chunk of stream) {
             event.reply('ai:streamChat:data', chunk);

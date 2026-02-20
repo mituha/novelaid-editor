@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, User, Bot, Loader2, Sparkles } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
+import { PERSONAS, Persona } from '../../../common/constants/personas';
 import './AIChatPanel.css';
 
 interface MessagePart {
   type: 'text' | 'thought' | 'tool_call' | 'error';
   content: string;
 }
-const grammerContext = `
-なお、文章中の「|漢字《ルビ》」はルビ振りを示す記法、「《《傍点》》」は傍点を示す記法として扱ってください。
-また、これらの記号、|《》等に関する指摘は不要です。
-`;
+const grammerContext = ''; // Retired, handled by system prompt in backend
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   parts: MessagePart[];
   displayContent?: string; // For user message display
+  personaId?: string; // ID of the persona that sent this (if assistant)
 }
 
 interface AIChatPanelProps {
@@ -34,6 +34,7 @@ export default function AIChatPanel({
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [includeContext, setIncludeContext] = useState(true);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>(''); // Empty means "None"
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -41,11 +42,11 @@ export default function AIChatPanel({
       parts: [
         {
           type: 'thought',
-          content: 'I should greet the user and offer help as a novel editing assistant.',
+          content: '小説執筆の助手として、ユーザーに挨拶し、お手伝いを申し出ます。',
         },
         {
           type: 'text',
-          content: 'Hello! I am your AI assistant specialized in novel editing. How can I help you with your story today?',
+          content: 'こんにちは！小説執筆・編集専門のAIアシスタントです。本日はどのようなお手伝いをしましょうか？',
         },
       ],
     },
@@ -78,7 +79,7 @@ export default function AIChatPanel({
 
     // Attach context if enabled and available
     if (includeContext && activeContent && activePath) {
-      finalContent = `Context (File: ${activePath}):\n\`\`\`\n${activeContent}\n\`\`\`\n\n${grammerContext}\n\nUser: ${input}`;
+      finalContent = `Context (File: ${activePath}):\n\`\`\`\n${activeContent}\n\`\`\`\n\nUser: ${input}`;
     }
 
     const userMessage: Message = {
@@ -99,6 +100,7 @@ export default function AIChatPanel({
       id: assistantMsgId,
       role: 'assistant',
       parts: [],
+      personaId: selectedPersonaId,
     };
     setMessages((prev) => [...prev, assistantMessage]);
 
@@ -194,17 +196,73 @@ export default function AIChatPanel({
       'ai:streamChat',
       apiMessages,
       settings.ai || {},
+      selectedPersonaId,
     );
+  };
+
+  const renderPersonaIcon = (persona?: Persona, size = 16) => {
+    if (!persona) return <Bot size={size} />;
+
+    const { icon } = persona;
+    if (icon.type === 'lucide') {
+      const LucideIcon = (LucideIcons as any)[icon.value] || Bot;
+      return <LucideIcon size={size} />;
+    }
+    if (icon.type === 'local') {
+      // For local assets, we might need to resolve the path
+      // In dev, relative to public/ or assets/ might work depending on setup
+      // Usually ERB serves from .erb/dll or similar.
+      // Let's try direct path as it's often served or handled by file protocol if using custom resolver.
+      // But for a simple img, if we are in dev, we might need a better way.
+      // However, the user said "assets/icons/64x64.png".
+      return (
+        <div className="persona-icon">
+          <img src={`../../../../${icon.value}`} alt={persona.name} />
+        </div>
+      );
+    }
+    if (icon.type === 'url') {
+      return (
+        <div className="persona-icon">
+          <img src={icon.value} alt={persona.name} />
+        </div>
+      );
+    }
+    return <Bot size={size} />;
+  };
+
+  const getPersonaName = (pId?: string) => {
+    if (!pId) return 'AI Assistant';
+    const persona = PERSONAS.find((p) => p.id === pId);
+    return persona ? persona.name : 'AI Assistant';
   };
 
   return (
     <div className="ai-chat-panel">
+      <div className="ai-chat-header">
+        <div className="persona-selector">
+          <Sparkles size={14} style={{ color: '#aaa' }} />
+          <select
+            value={selectedPersonaId}
+            onChange={(e) => setSelectedPersonaId(e.target.value)}
+          >
+            <option value="">ペルソナなし</option>
+            {PERSONAS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
       <div className="ai-chat-content">
         {messages.map((msg) => (
           <React.Fragment key={msg.id}>
             {msg.role === 'user' ? (
               <div className={`chat-message ${msg.role}`}>
-                <div className="message-sender">You</div>
+                <div className="message-sender">
+                  <User size={16} /> You
+                </div>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {msg.displayContent ||
                     msg.parts.map((p) => p.content).join('')}
@@ -233,7 +291,12 @@ export default function AIChatPanel({
                       key={`${msg.id}-text-${part.type}-${index}`}
                       className="chat-message assistant"
                     >
-                      <div className="message-sender">AI Assistant</div>
+                      <div className="message-sender">
+                        {renderPersonaIcon(
+                          PERSONAS.find((p) => p.id === msg.personaId),
+                        )}
+                        {getPersonaName(msg.personaId)}
+                      </div>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {part.content}
                       </ReactMarkdown>
@@ -251,7 +314,7 @@ export default function AIChatPanel({
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder={isStreaming ? 'AI is typing...' : 'Ask AI...'}
+          placeholder={isStreaming ? 'AIが入力中...' : 'AIに相談する...'}
           disabled={isStreaming}
         />
         <div className="chat-options" style={{ marginTop: '5px' }}>
@@ -271,7 +334,7 @@ export default function AIChatPanel({
               checked={includeContext}
               onChange={(e) => setIncludeContext(e.target.checked)}
             />
-            Include Editor Context
+            エディターのコンテキストを含める
           </label>
         </div>
       </div>
