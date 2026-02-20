@@ -60,18 +60,21 @@ export class MetadataService {
     this.index.delete(filePath);
   }
 
-  queryByTag(tag: string): MetadataEntry[] {
+  queryByTag(tagOrTags: string | string[]): MetadataEntry[] {
     const results: MetadataEntry[] = [];
+    const targetTags = Array.isArray(tagOrTags) ? tagOrTags : [tagOrTags];
+
     for (const [filePath, metadata] of this.index.entries()) {
-      const tags = metadata.tags;
-      const match = Array.isArray(tags)
-        ? tags.includes(tag)
-        : tags === tag;
+      const fileTags = metadata.tags;
+      if (!fileTags) continue;
+
+      const fileTagArray = Array.isArray(fileTags) ? fileTags : [fileTags];
+      const match = targetTags.some((t) => fileTagArray.includes(t));
 
       if (match) {
         results.push({
           path: filePath,
-          name: path.basename(filePath),
+          name: metadata.name || path.basename(filePath),
           metadata,
         });
       }

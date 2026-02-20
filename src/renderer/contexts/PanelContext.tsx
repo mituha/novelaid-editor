@@ -17,6 +17,7 @@ import { aiProofreaderPanelConfig } from '../components/AI/AIProofreaderPanel';
 import {
   charactersPanelConfig,
   locationsPanelConfig,
+  plotsPanelConfig,
   metadataListPanelConfig,
 } from '../components/Metadata/MetadataListPanel';
 import { metadataPropertyEditorPanelConfig } from '../components/Metadata/MetadataPropertyEditor';
@@ -41,6 +42,7 @@ const builtInPanels: Panel[] = [
   aiChatPanelConfig,
   charactersPanelConfig,
   locationsPanelConfig,
+  plotsPanelConfig,
   metadataListPanelConfig,
   metadataPropertyEditorPanelConfig,
   submissionPanelConfig,

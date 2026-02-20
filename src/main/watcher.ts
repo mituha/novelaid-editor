@@ -6,12 +6,18 @@ export class FileWatcher {
   private currentPath: string | null = null;
   private mainWindow: BrowserWindow | null = null;
 
+  private listeners: ((event: string, path: string) => void)[] = [];
+
   constructor(window: BrowserWindow | null) {
     this.mainWindow = window;
   }
 
   setWindow(window: BrowserWindow) {
     this.mainWindow = window;
+  }
+
+  onFileEvent(callback: (event: string, path: string) => void) {
+    this.listeners.push(callback);
   }
 
   start(projectPath: string) {
@@ -34,11 +40,11 @@ export class FileWatcher {
     });
 
     this.watcher
-      .on('add', (path) => this.sendEvent('add', path))
-      .on('change', (path) => this.sendEvent('change', path))
-      .on('unlink', (path) => this.sendEvent('unlink', path))
-      .on('addDir', (path) => this.sendEvent('addDir', path))
-      .on('unlinkDir', (path) => this.sendEvent('unlinkDir', path))
+      .on('add', (path) => this.handleEvent('add', path))
+      .on('change', (path) => this.handleEvent('change', path))
+      .on('unlink', (path) => this.handleEvent('unlink', path))
+      .on('addDir', (path) => this.handleEvent('addDir', path))
+      .on('unlinkDir', (path) => this.handleEvent('unlinkDir', path))
       .on('error', (error) => console.error(`Watcher error: ${error}`));
 
     console.log(`Started watching project at: ${projectPath}`);
@@ -52,9 +58,10 @@ export class FileWatcher {
     this.currentPath = null;
   }
 
-  private sendEvent(event: string, path: string) {
+  private handleEvent(event: string, path: string) {
     if (this.mainWindow) {
       this.mainWindow.webContents.send('fs:file-changed', { event, path });
     }
+    this.listeners.forEach((listener) => listener(event, path));
   }
 }

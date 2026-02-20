@@ -104,8 +104,8 @@ const electronHandler = {
     },
   },
   metadata: {
-    queryByTag(tag: string) {
-      return ipcRenderer.invoke('metadata:query', tag);
+    queryByTag(tagOrTags: string | string[]) {
+      return ipcRenderer.invoke('metadata:query', tagOrTags);
     },
   },
   app: {

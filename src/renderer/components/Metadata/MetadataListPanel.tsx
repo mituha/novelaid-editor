@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, MapPin, Bookmark } from 'lucide-react';
+import { Users, MapPin, Bookmark, ScrollText } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
 import './MetadataListPanel.css';
@@ -19,7 +19,7 @@ interface ListConfig {
 interface MetadataListPanelProps {
   onFileSelect: (path: string, data: any) => void;
   fixedTitle?: string;
-  fixedTag?: string;
+  fixedTag?: string | string[];
 }
 
 export default function MetadataListPanel({
@@ -43,23 +43,30 @@ export default function MetadataListPanel({
 
     if (fixedTag) {
       try {
-        const entries = await window.electron.metadata.queryByTag(fixedTag);
+        // Support CSV if its a string
+        const tags = typeof fixedTag === 'string'
+          ? fixedTag.split(',').map(t => t.trim()).filter(Boolean)
+          : fixedTag;
+
+        const entries = await window.electron.metadata.queryByTag(tags);
         newResults.fixed = entries;
       } catch (err) {
         // eslint-disable-next-line no-console
-        console.error(`Failed to query tag ${fixedTag}`, err);
+        console.error(`Failed to query tags ${fixedTag}`, err);
       }
     } else {
       await Promise.all(
         lists.map(async (list) => {
           if (list.tag) {
             try {
+              // Support CSV tags in custom lists too
+              const tags = list.tag.split(',').map(t => t.trim()).filter(Boolean);
               const entries =
-                await window.electron.metadata.queryByTag(list.tag);
+                await window.electron.metadata.queryByTag(tags);
               newResults[list.id] = entries;
             } catch (err) {
               // eslint-disable-next-line no-console
-              console.error(`Failed to query tag ${list.tag}`, err);
+              console.error(`Failed to query tags ${list.tag}`, err);
             }
           }
         }),
@@ -224,7 +231,7 @@ export const charactersPanelConfig: Panel = {
     <MetadataListPanel
       onFileSelect={onFileSelect}
       fixedTitle="登場人物一覧"
-      fixedTag="character"
+      fixedTag="character,登場人物,人名,人物,chara"
     />
   ),
   defaultLocation: 'left',
@@ -238,7 +245,21 @@ export const locationsPanelConfig: Panel = {
     <MetadataListPanel
       onFileSelect={onFileSelect}
       fixedTitle="地名・施設一覧"
-      fixedTag="location"
+      fixedTag="places,location,地名,施設,場所,place,geo,geography"
+    />
+  ),
+  defaultLocation: 'left',
+};
+
+export const plotsPanelConfig: Panel = {
+  id: 'plots',
+  title: 'プロット',
+  icon: <ScrollText size={24} strokeWidth={1.5} />,
+  component: ({ onFileSelect }: any) => (
+    <MetadataListPanel
+      onFileSelect={onFileSelect}
+      fixedTitle="プロット・構成案"
+      fixedTag="plot,構成,プロット,案,timeline,時間軸,年表"
     />
   ),
   defaultLocation: 'left',

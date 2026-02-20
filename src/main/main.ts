@@ -50,6 +50,15 @@ const fileWatcher = new FileWatcher(null);
 const metadataService = new MetadataService();
 let activeProjectPath: string | null = null; // Added
 
+// Direct metadata update in main process
+fileWatcher.onFileEvent(async (event, path) => {
+  if (event === 'add' || event === 'change') {
+    await metadataService.updateFileIndex(path);
+  } else if (event === 'unlink') {
+    metadataService.removeFileFromIndex(path);
+  }
+});
+
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
@@ -129,8 +138,8 @@ ipcMain.handle('fs:saveDocument', async (_, filePath: string, data: any) => {
   return await saveDocument(filePath, data);
 });
 
-ipcMain.handle('metadata:query', async (_, tag: string) => {
-  return metadataService.queryByTag(tag);
+ipcMain.handle('metadata:query', async (_, tagOrTags: string | string[]) => {
+  return metadataService.queryByTag(tagOrTags);
 });
 
 ipcMain.handle('fs:createFile', async (_, filePath: string) => {
@@ -514,15 +523,6 @@ const createWindow = async () => {
   });
 
   fileWatcher.setWindow(mainWindow);
-
-  // Link fileWatcher events to metadataService (or other services)
-  ipcMain.on('fs:file-changed', async (_, payload: { event: string; path: string }) => {
-    if (payload.event === 'add' || payload.event === 'change') {
-      await metadataService.updateFileIndex(payload.path);
-    } else if (payload.event === 'unlink') {
-      metadataService.removeFileFromIndex(payload.path);
-    }
-  });
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 
