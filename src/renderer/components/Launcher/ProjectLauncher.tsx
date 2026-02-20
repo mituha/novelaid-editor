@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FolderOpen, Plus, Clock, X, Book } from 'lucide-react';
 import { useGit } from '../../contexts/GitContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useApp } from '../../contexts/AppContext';
 import './ProjectLauncher.css';
 
 interface RecentProject {
@@ -13,9 +14,9 @@ interface RecentProject {
 
 export default function ProjectLauncher() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
-  const [version, setVersion] = useState<string>('');
   const { currentDir, setCurrentDir } = useGit();
   const { loadProjectSettings } = useSettings();
+  const { version, setActiveProject } = useApp();
   const navigate = useNavigate();
 
   // Create project state
@@ -46,18 +47,15 @@ export default function ProjectLauncher() {
 
       await window.electron?.ipcRenderer.invoke('recent:add', path);
       setCurrentDir(path);
+      setActiveProject(path);
       await loadProjectSettings(path);
       navigate('/editor');
     },
-    [currentDir, setCurrentDir, loadProjectSettings, navigate],
+    [currentDir, setCurrentDir, setActiveProject, loadProjectSettings, navigate],
   );
 
   useEffect(() => {
     loadRecent();
-    (async () => {
-      const v = await window.electron?.app?.getVersion();
-      if (v) setVersion(v);
-    })();
   }, [loadRecent]);
 
   const handleOpenFolder = async () => {

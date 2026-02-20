@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import MainLayout from './layouts/MainLayout';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { GitContextProvider } from './contexts/GitContext';
+import { AppProvider } from './contexts/AppContext';
 import './App.css';
 
 import { PanelProvider } from './contexts/PanelContext';
@@ -34,13 +35,15 @@ function AppRoutes() {
 export default function App() {
   return (
     <Router>
-      <SettingsProvider>
-        <GitContextProvider>
-          <PanelProvider>
-            <AppRoutes />
-          </PanelProvider>
-        </GitContextProvider>
-      </SettingsProvider>
+      <AppProvider>
+        <SettingsProvider>
+          <GitContextProvider>
+            <PanelProvider>
+              <AppRoutes />
+            </PanelProvider>
+          </GitContextProvider>
+        </SettingsProvider>
+      </AppProvider>
     </Router>
   );
 }
