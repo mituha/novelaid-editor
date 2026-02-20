@@ -88,20 +88,7 @@
 .file-item.active {
   background-color: var(--bg-active);
   color: var(--text-primary);
-  border-left: 2px solid var(--accent-color);
-  padding-left: -2px;
-}
-
-.file-item .name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Specific handling for active padding adjustment if necessary */
-.file-item.active {
-  padding-left: calc(var(--item-padding-left, 10px) - 2px);
+  box-shadow: inset 2px 0 0 var(--accent-color);
 }
 
 .icon {

@@ -303,6 +303,7 @@ function FileTreeItem({
         } ${file.name.startsWith('.') ? 'hidden-item' : ''} ${
           isDragOver ? 'drag-over' : ''
         }`}
+        style={{ paddingLeft: `${BASE_INDENT + level * INDENT_STEP}px` }}
       >
         <span className="chevron">
           {file.isDirectory ? (
