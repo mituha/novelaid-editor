@@ -4,17 +4,19 @@
 
 ## 目次
 
-1. [クイックスタート](getting-started.md)
+1. [作者の執筆環境と活用例](author-setup.md)
+   - 開発背景と推奨ワークフロー・設定
+2. [クイックスタート](getting-started.md)
    - インストールとプロジェクトの開始方法
-2. [エディターの使い方](editor-guide.md)
+3. [エディターの使い方](editor-guide.md)
    - 基本操作・執筆支援機能
-3. [Gitによる履歴管理](git-guide.md)
+4. [Gitによる履歴管理](git-guide.md)
    - 執筆履歴の保存と管理
-4. [AIアシスタントの活用](ai-guide.md)
+5. [AIアシスタントの活用](ai-guide.md)
    - チャットと校閲機能
-5. [設定ガイド](settings-guide.md)
+6. [設定ガイド](settings-guide.md)
    - エディターのカスタマイズ
 
 ---
 
-[リポジトリに戻る](../)
+[トップに戻る](../)
