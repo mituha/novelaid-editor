@@ -126,6 +126,25 @@
   font-family: inherit;
 }
 
+.icon .lucide-folder {
+  color: var(--accent-color);
+}
+
+.file-custom-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.file-custom-icon img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
 .folder-open {
   color: var(--accent-color);
 }

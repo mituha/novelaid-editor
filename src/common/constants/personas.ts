@@ -11,6 +11,8 @@ export interface Persona {
   name: string;
   systemPrompt: string;
   icon: PersonaIcon;
+  isDynamic?: boolean;
+  filePath?: string;
 }
 
 export const COMMON_SYSTEM_PROMPT = `

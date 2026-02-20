@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { MessageSquare, User, Bot, Loader2, Sparkles } from 'lucide-react';
+import { MessageSquare, Bot, Sparkles } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
@@ -12,13 +12,18 @@ interface MessagePart {
   type: 'text' | 'thought' | 'tool_call' | 'error';
   content: string;
 }
-const grammerContext = ''; // Retired, handled by system prompt in backend
+// grammerContext removed, handled by system prompt in backend
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   parts: MessagePart[];
   displayContent?: string; // For user message display
   personaId?: string; // ID of the persona that sent this (if assistant)
+}
+
+interface DynamicPersona extends Persona {
+  path: string;
+  metadata: Record<string, any>;
 }
 
 interface AIChatPanelProps {
@@ -35,6 +40,7 @@ export default function AIChatPanel({
   const [isStreaming, setIsStreaming] = useState(false);
   const [includeContext, setIncludeContext] = useState(true);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>(''); // Empty means "None"
+  const [dynamicPersonas, setDynamicPersonas] = useState<DynamicPersona[]>([]);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -42,11 +48,13 @@ export default function AIChatPanel({
       parts: [
         {
           type: 'thought',
-          content: '小説執筆の助手として、ユーザーに挨拶し、お手伝いを申し出ます。',
+          content:
+            '小説執筆の助手として、ユーザーに挨拶し、お手伝いを申し出ます。',
         },
         {
           type: 'text',
-          content: 'こんにちは！小説執筆・編集専門のAIアシスタントです。本日はどのようなお手伝いをしましょうか？',
+          content:
+            'こんにちは！小説執筆・編集専門のAIアシスタントです。本日はどのようなお手伝いをしましょうか？',
         },
       ],
     },
@@ -61,15 +69,43 @@ export default function AIChatPanel({
     scrollToBottom();
   }, [messages]);
 
+  const fetchDynamicPersonas = useCallback(async () => {
+    try {
+      const results = await window.electron.metadata.queryChatEnabled();
+      const mapped: DynamicPersona[] = results.map((entry: any) => {
+        const { metadata, path: p } = entry;
+        const id =
+          metadata.id ||
+          metadata.name ||
+          p.split(/[/\\]/).pop()!.split('.')[0];
+        return {
+          id,
+          name: metadata.name || id,
+          systemPrompt: metadata.chat?.persona || '',
+          icon: metadata.icon || { type: 'lucide', value: 'User' },
+          isDynamic: true,
+          filePath: p,
+          path: p,
+          metadata,
+        };
+      });
+      setDynamicPersonas(mapped);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch dynamic personas', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDynamicPersonas();
+    const cleanup = window.electron.fs.onFileChange(() => {
+      fetchDynamicPersonas();
+    });
+    return () => cleanup();
+  }, [fetchDynamicPersonas]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
   };
 
   const handleSend = () => {
@@ -188,7 +224,7 @@ export default function AIChatPanel({
       const content = m.parts.map((p) => p.content).join(''); // This is simplified, context might need specialized handling
       return {
         role: m.role,
-        content: content,
+        content,
       };
     });
 
@@ -200,6 +236,15 @@ export default function AIChatPanel({
     );
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const allPersonas = [...PERSONAS, ...dynamicPersonas];
+
   const renderPersonaIcon = (persona?: Persona, size = 16) => {
     if (!persona) return <Bot size={size} />;
 
@@ -209,21 +254,15 @@ export default function AIChatPanel({
       return <LucideIcon size={size} />;
     }
     if (icon.type === 'local') {
-      // For local assets, we might need to resolve the path
-      // In dev, relative to public/ or assets/ might work depending on setup
-      // Usually ERB serves from .erb/dll or similar.
-      // Let's try direct path as it's often served or handled by file protocol if using custom resolver.
-      // But for a simple img, if we are in dev, we might need a better way.
-      // However, the user said "assets/icons/64x64.png".
       return (
-        <div className="persona-icon">
+        <div className="persona-icon" style={{ width: size, height: size }}>
           <img src={`../../../../${icon.value}`} alt={persona.name} />
         </div>
       );
     }
     if (icon.type === 'url') {
       return (
-        <div className="persona-icon">
+        <div className="persona-icon" style={{ width: size, height: size }}>
           <img src={icon.value} alt={persona.name} />
         </div>
       );
@@ -233,7 +272,7 @@ export default function AIChatPanel({
 
   const getPersonaName = (pId?: string) => {
     if (!pId) return 'AI Assistant';
-    const persona = PERSONAS.find((p) => p.id === pId);
+    const persona = allPersonas.find((p) => p.id === pId);
     return persona ? persona.name : 'AI Assistant';
   };
 
@@ -247,65 +286,70 @@ export default function AIChatPanel({
             onChange={(e) => setSelectedPersonaId(e.target.value)}
           >
             <option value="">ペルソナなし</option>
-            {PERSONAS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
+            <optgroup label="システムペルソナ">
+              {PERSONAS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </optgroup>
+            {dynamicPersonas.length > 0 && (
+              <optgroup label="キャラクター">
+                {dynamicPersonas.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
       </div>
-      <div className="ai-chat-content">
+      <div className="ai-chat-messages">
         {messages.map((msg) => (
-          <React.Fragment key={msg.id}>
-            {msg.role === 'user' ? (
-              <div className={`chat-message ${msg.role}`}>
+          <div key={msg.id} className={`message-bubble ${msg.role}`}>
+            <div className="message-content-wrapper">
+              {msg.role === 'assistant' && (
                 <div className="message-sender">
-                  <User size={16} /> You
+                  {renderPersonaIcon(
+                    allPersonas.find((p) => p.id === msg.personaId),
+                  )}
+                  {getPersonaName(msg.personaId)}
                 </div>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.displayContent ||
-                    msg.parts.map((p) => p.content).join('')}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              <>
-                {msg.parts.map((part, index) =>
-                  part.type === 'thought' ? (
-                    <div
-                      key={`${msg.id}-thought-${part.type}-${index}`}
-                      className="chat-message assistant thought-bubble"
-                    >
-                      <div className="message-sender">AI Thought</div>
-                      <details className="thought-container">
-                        <summary>Thinking...</summary>
-                        <div className="thought-content">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {part.content}
-                          </ReactMarkdown>
-                        </div>
-                      </details>
-                    </div>
-                  ) : (
-                    <div
-                      key={`${msg.id}-text-${part.type}-${index}`}
-                      className="chat-message assistant"
-                    >
-                      <div className="message-sender">
-                        {renderPersonaIcon(
-                          PERSONAS.find((p) => p.id === msg.personaId),
-                        )}
-                        {getPersonaName(msg.personaId)}
+              )}
+              {msg.role === 'user' ? (
+                <div className="message-text">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.displayContent ||
+                      msg.parts.map((p) => p.content).join('')}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="message-parts">
+                  {msg.parts.map((part, index) =>
+                    part.type === 'thought' ? (
+                      <div key={`part-thought-${msg.id}-${index}`} className="thought-bubble">
+                        <details className="thought-container">
+                          <summary>Thinking...</summary>
+                          <div className="thought-content">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {part.content}
+                            </ReactMarkdown>
+                          </div>
+                        </details>
                       </div>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {part.content}
-                      </ReactMarkdown>
-                    </div>
-                  ),
-                )}
-              </>
-            )}
-          </React.Fragment>
+                    ) : (
+                      <div key={`part-text-${msg.id}-${index}`} className="message-text">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {part.content}
+                        </ReactMarkdown>
+                      </div>
+                    ),
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
@@ -348,4 +392,9 @@ export const aiChatPanelConfig: Panel = {
   icon: <MessageSquare size={24} strokeWidth={1.5} />,
   component: AIChatPanel,
   defaultLocation: 'right',
+};
+
+AIChatPanel.defaultProps = {
+  activeContent: '',
+  activePath: null,
 };

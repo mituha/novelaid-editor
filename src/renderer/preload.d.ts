@@ -31,6 +31,7 @@ declare global {
       };
       metadata: {
         queryByTag(tagOrTags: string | string[]): Promise<any[]>;
+        queryChatEnabled(): Promise<any[]>;
       };
       app: {
         getVersion(): Promise<string>;

@@ -114,6 +114,7 @@ ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
           language: isDirectory
             ? undefined
             : await getLanguageForFile(fullPath),
+          metadata: isDirectory ? undefined : metadataService.queryByPath?.(fullPath),
         };
       }),
     );
@@ -435,6 +436,10 @@ ipcMain.handle('shell:openExternal', async (_, url: string) => {
 // If I want to support streaming, I should add `ai:streamChat` using `on` pattern in preload (which I have `on` and `sendMessage`).
 // Let's add `on` handler for streaming.
 
+ipcMain.handle('metadata:queryChatEnabled', async () => {
+    return metadataService.queryChatEnabled();
+});
+
 ipcMain.on('ai:streamChat', async (event, messages: any[], config: any, personaId?: string) => {
     try {
         const providerType = config.provider || 'lmstudio';
@@ -465,9 +470,28 @@ ipcMain.on('ai:streamChat', async (event, messages: any[], config: any, personaI
 
         // Add persona prompt if specified
         if (personaId) {
-            const persona = PERSONAS.find(p => p.id === personaId);
-            if (persona) {
-                apiMessages.unshift({ role: 'system', content: persona.systemPrompt });
+            const staticPersona = PERSONAS.find(p => p.id === personaId);
+            if (staticPersona) {
+                apiMessages.unshift({ role: 'system', content: staticPersona.systemPrompt });
+            } else {
+                // Try dynamic persona from metadata
+                const character = await metadataService.findCharacterById(personaId);
+                if (character) {
+                    // Inject file content as background info
+                    const doc = await readDocument(character.path);
+                    if (doc.content) {
+                        apiMessages.unshift({
+                            role: 'system',
+                            content: `以下のキャラクター設定を参考にしてロールプレイしてください：\n\n${doc.content}`
+                        });
+                    }
+                    if (character.metadata.chat?.persona) {
+                        apiMessages.unshift({
+                            role: 'system',
+                            content: `口調設定：\n${character.metadata.chat.persona}`
+                        });
+                    }
+                }
             }
         }
 

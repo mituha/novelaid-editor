@@ -9,6 +9,7 @@ import {
   FolderPlus,
   BookText,
 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -23,6 +24,7 @@ interface FileNode {
   isDirectory: boolean;
   path: string;
   language?: string;
+  metadata?: Record<string, any>;
 }
 
 interface FileExplorerProps {
@@ -227,6 +229,22 @@ function FileTreeItem({
   };
 
   const getFileIcon = (node: FileNode) => {
+    if (node.metadata?.icon) {
+      const { icon } = node.metadata;
+      if (icon.type === 'lucide') {
+        const LucideIcon = (LucideIcons as any)[icon.value];
+        if (LucideIcon) return <LucideIcon size={16} />;
+      }
+      if (icon.type === 'local' || icon.type === 'url') {
+        const src =
+          icon.type === 'local' ? `../../../../${icon.value}` : icon.value;
+        return (
+          <div className="file-custom-icon">
+            <img src={src} alt="" />
+          </div>
+        );
+      }
+    }
     if (node.name.endsWith('.json')) return <FileJson size={16} />;
     if (node.language === 'novel') return <BookText size={16} />;
     return <FileText size={16} />;
@@ -518,7 +536,7 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
 
   return (
     <div className="file-explorer" onClick={() => setSelectedPath(null)}>
-      <div className="explorer-header" onClick={(e) => e.stopPropagation()}>
+      <div className="explorer-header" role="presentation" onClick={(e) => e.stopPropagation()}>
         {currentDir && (
           <div className="explorer-actions">
             <button
@@ -592,6 +610,10 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     </div>
   );
 }
+
+FileTreeItem.defaultProps = {
+  level: 0,
+};
 
 export const fileExplorerPanelConfig: Panel = {
   id: 'files',

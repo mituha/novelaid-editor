@@ -24,7 +24,8 @@ export type Channels =
   | 'ai:streamChat'
   | 'ai:streamChat:data'
   | 'ai:streamChat:end'
-  | 'ai:streamChat:error';
+  | 'ai:streamChat:error'
+  | 'metadata:queryChatEnabled';
 
 const electronHandler = {
   ipcRenderer: {
@@ -97,6 +98,9 @@ const electronHandler = {
   metadata: {
     queryByTag(tagOrTags: string | string[]) {
       return ipcRenderer.invoke('metadata:query', tagOrTags);
+    },
+    queryChatEnabled() {
+      return ipcRenderer.invoke('metadata:queryChatEnabled');
     },
   },
   app: {

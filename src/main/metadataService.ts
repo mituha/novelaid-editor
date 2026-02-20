@@ -12,6 +12,10 @@ export class MetadataService {
   private index: Map<string, Record<string, any>> = new Map();
   private projectRoot: string | null = null;
 
+  queryByPath(filePath: string): Record<string, any> | undefined {
+    return this.index.get(filePath);
+  }
+
   async scanProject(rootPath: string) {
     this.projectRoot = rootPath;
     this.index.clear();
@@ -84,7 +88,42 @@ export class MetadataService {
         });
       }
     }
-    console.log(`[MetadataService] Found ${results.length} results`);
     return results;
+  }
+
+  queryChatEnabled(): MetadataEntry[] {
+    const results: MetadataEntry[] = [];
+    for (const [filePath, metadata] of this.index.entries()) {
+      if (metadata.chat?.enabled === true) {
+        results.push({
+          path: filePath,
+          name: metadata.name || path.basename(filePath, path.extname(filePath)),
+          metadata,
+        });
+      }
+    }
+    return results;
+  }
+
+  async findCharacterById(id: string): Promise<MetadataEntry | null> {
+    // 1. Search by ID
+    for (const [filePath, metadata] of this.index.entries()) {
+      if (metadata.id === id) {
+        return { path: filePath, name: metadata.name || id, metadata };
+      }
+    }
+    // 2. Search by Name
+    for (const [filePath, metadata] of this.index.entries()) {
+      if (metadata.name === id) {
+        return { path: filePath, name: metadata.name, metadata };
+      }
+    }
+    // 3. Search by Filename
+    for (const [filePath, metadata] of this.index.entries()) {
+      if (path.basename(filePath, path.extname(filePath)) === id) {
+        return { path: filePath, name: metadata.name || id, metadata };
+      }
+    }
+    return null;
   }
 }
