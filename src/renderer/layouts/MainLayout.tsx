@@ -223,39 +223,6 @@ export default function MainLayout() {
     }
   }, [isRightPaneNarrow, getPanels, setActivePanel]);
 
-  useEffect(() => {
-    registerSettingTab({
-      id: 'editor',
-      name: 'Editor',
-      render: () => <EditorSettingsTab />,
-    });
-    registerSettingTab({
-      id: 'ai',
-      name: 'AI',
-      render: () => <AISettingsTab />,
-    });
-    registerSettingTab({
-      id: 'calibration',
-      name: '校正',
-      render: () => <CalibrationSettingsTab />,
-    });
-    registerSettingTab({
-      id: 'appearance',
-      name: 'Appearance',
-      render: () => <AppearanceSettingsTab />,
-    });
-
-    const ipcRenderer = window.electron?.ipcRenderer;
-    if (ipcRenderer) {
-        const removeListener = ipcRenderer.on('menu:open-settings', () => {
-            openSettings();
-        });
-        return () => {
-            if (removeListener) removeListener();
-        };
-    }
-    return () => {};
-  }, [registerSettingTab, openSettings]);
 
   // Refs for accessing latest state in callbacks without re-subscribing
   const tabsRef = useRef({ left: leftTabs, right: rightTabs });
@@ -371,6 +338,52 @@ export default function MainLayout() {
     },
     [activeSide],
   );
+
+  useEffect(() => {
+    registerSettingTab({
+      id: 'editor',
+      name: 'Editor',
+      render: () => <EditorSettingsTab />,
+    });
+    registerSettingTab({
+      id: 'ai',
+      name: 'AI',
+      render: () => <AISettingsTab />,
+    });
+    registerSettingTab({
+      id: 'calibration',
+      name: '校正',
+      render: () => <CalibrationSettingsTab />,
+    });
+    registerSettingTab({
+      id: 'appearance',
+      name: 'Appearance',
+      render: () => <AppearanceSettingsTab />,
+    });
+
+    const ipcRenderer = window.electron?.ipcRenderer;
+    if (ipcRenderer) {
+      const removeSettingsListener = ipcRenderer.on('menu:open-settings', () => {
+        openSettings();
+      });
+      const removeOpenListener = ipcRenderer.on('app:open-file', async (path: any) => {
+        try {
+          const data = await window.electron.ipcRenderer.invoke(
+            'fs:readDocument',
+            path,
+          );
+          handleFileSelect(path, data);
+        } catch (error) {
+          console.error('Failed to open file via app:open-file:', error);
+        }
+      });
+      return () => {
+        if (removeSettingsListener) removeSettingsListener();
+        if (removeOpenListener) removeOpenListener();
+      };
+    }
+    return () => {};
+  }, [registerSettingTab, openSettings, handleFileSelect]);
 
   const handleTabClick = useCallback(
     (side: 'left' | 'right') => (path: string) => {
@@ -521,6 +534,50 @@ export default function MainLayout() {
     [leftActivePath, rightActivePath],
   );
 
+  const handleSaveByPath = useCallback(async (path: string) => {
+    const data = tabContentsRef.current[path];
+    if (!path || !data) return;
+
+    try {
+      console.log(`[MainLayout] Saving ${path}...`);
+      savingPaths.current.add(path);
+      await window.electron.ipcRenderer.invoke('fs:saveDocument', path, data);
+
+      // Update dirty state
+      const updateClean = (tabs: Tab[]) =>
+        tabs.map((tab) => (tab.path === path ? { ...tab, isDirty: false } : tab));
+
+      setLeftTabs(updateClean);
+      setRightTabs(updateClean);
+
+      // Wait a bit to ensure watcher event is ignored
+      setTimeout(() => {
+        savingPaths.current.delete(path);
+      }, 500);
+
+      // If the rules file was saved, reload rules in CalibrationService
+      if (path.endsWith('kanji-rules.txt')) {
+        await window.electron.calibration.reloadRules();
+      }
+    } catch (err) {
+      console.error(err);
+      savingPaths.current.delete(path);
+    }
+  }, []);
+
+  const triggerAutoSave = useCallback(
+    (path: string) => {
+      if (autoSaveTimerRef.current[path]) {
+        clearTimeout(autoSaveTimerRef.current[path]);
+      }
+      autoSaveTimerRef.current[path] = setTimeout(() => {
+        handleSaveByPath(path);
+        delete autoSaveTimerRef.current[path];
+      }, 3000); // 3 seconds idle
+    },
+    [handleSaveByPath],
+  );
+
   const handleContentChange = (path: string | null) => (value: string | undefined) => {
     if (path) {
       setTabContents((prev) => ({
@@ -539,65 +596,32 @@ export default function MainLayout() {
     }
   };
 
-  const handleMetadataChange = useCallback((path: string | null, metadata: Record<string, any>) => {
-    if (path) {
-      setTabContents((prev) => ({
-        ...prev,
-        [path]: { ...prev[path], metadata: { ...prev[path]?.metadata, ...metadata } }, // Keep lastSource
-      }));
-      setLeftTabs((prev) =>
-        prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
-      );
-      setRightTabs((prev) =>
-        prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
-      );
-
-      triggerAutoSave(path);
-    }
-  }, []);
-
-  const handleSaveByPath = useCallback(async (path: string) => {
-    const data = tabContentsRef.current[path];
-    if (!path || !data) return;
-
-    try {
-      console.log(`[MainLayout] Saving ${path}...`);
-      savingPaths.current.add(path);
-      await window.electron.ipcRenderer.invoke(
-        'fs:saveDocument',
-        path,
-        data,
-      );
-
-      // Update dirty state
-      const updateClean = (tabs: Tab[]) =>
-        tabs.map((tab) =>
-          tab.path === path ? { ...tab, isDirty: false } : tab,
+  const handleMetadataChange = useCallback(
+    (path: string | null, metadata: Record<string, any>) => {
+      if (path) {
+        setTabContents((prev) => ({
+          ...prev,
+          [path]: {
+            ...prev[path],
+            metadata: { ...prev[path]?.metadata, ...metadata },
+          }, // Keep lastSource
+        }));
+        setLeftTabs((prev) =>
+          prev.map((tab) =>
+            tab.path === path ? { ...tab, isDirty: true } : tab,
+          ),
+        );
+        setRightTabs((prev) =>
+          prev.map((tab) =>
+            tab.path === path ? { ...tab, isDirty: true } : tab,
+          ),
         );
 
-      setLeftTabs(updateClean);
-      setRightTabs(updateClean);
-
-      // Wait a bit to ensure watcher event is ignored
-      setTimeout(() => {
-          savingPaths.current.delete(path);
-      }, 500);
-
-    } catch (err) {
-      console.error(err);
-      savingPaths.current.delete(path);
-    }
-  }, []);
-
-  const triggerAutoSave = useCallback((path: string) => {
-    if (autoSaveTimerRef.current[path]) {
-      clearTimeout(autoSaveTimerRef.current[path]);
-    }
-    autoSaveTimerRef.current[path] = setTimeout(() => {
-      handleSaveByPath(path);
-      delete autoSaveTimerRef.current[path];
-    }, 3000); // 3 seconds idle
-  }, [handleSaveByPath]);
+        triggerAutoSave(path);
+      }
+    },
+    [],
+  );
 
   const handleSave = useCallback(async () => {
     if (!activeTabPath) return;

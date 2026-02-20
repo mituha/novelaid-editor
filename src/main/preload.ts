@@ -18,7 +18,9 @@ export type Channels =
   | 'calibration:analyze'
   | 'shell:openExternal'
   | 'window:toggleFullScreen'
-  | 'window:isFullScreen';
+  | 'window:isFullScreen'
+  | 'calibration:getKanjiRulesPath'
+  | 'calibration:reloadRules';
 
 const electronHandler = {
   ipcRenderer: {
@@ -101,6 +103,12 @@ const electronHandler = {
   calibration: {
     analyze(text: string, settings: any) {
       return ipcRenderer.invoke('calibration:analyze', text, settings);
+    },
+    getKanjiRulesPath() {
+      return ipcRenderer.invoke('calibration:getKanjiRulesPath');
+    },
+    reloadRules() {
+      return ipcRenderer.invoke('calibration:reloadRules');
     },
   },
   shell: {

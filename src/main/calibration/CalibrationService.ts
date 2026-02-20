@@ -44,11 +44,36 @@ export interface FrequencyResult {
   pos: string;
 }
 
+export const DEFAULT_KANJI_RULES: Record<string, string> = {
+  事: 'こと',
+  時: 'とき',
+  所: 'ところ',
+  他: 'ほか',
+  等: 'など',
+  為: 'ため',
+  故: 'ゆえ',
+  或いは: 'あるいは',
+  貴方: 'あなた',
+  何時: 'いつ',
+  何処: 'どこ',
+  此処: 'ここ',
+  其処: 'そこ',
+  彼処: 'あそこ',
+  何故: 'なぜ',
+  殆ど: 'ほとんど',
+  滅多に: 'めったに',
+  居る: 'いる', // 補助動詞
+  或る: 'ある',
+  無く: 'なく', // 補助形容詞など
+  無い: 'ない',
+};
+
 export class CalibrationService {
   private static instance: CalibrationService;
 
   private tokenizer: kuromoji.Tokenizer<kuromoji.IpadicFeatures> | null = null;
   private linter: ReturnType<typeof createLinter> | null = null;
+  private kanjiRules: Record<string, string> = { ...DEFAULT_KANJI_RULES };
 
   private initializationPromise: Promise<void> | null = null;
 
@@ -154,6 +179,82 @@ export class CalibrationService {
     });
 
     return this.initializationPromise;
+  }
+
+  public async loadCustomRules(projectPath: string): Promise<void> {
+    const rulesPath = path.join(projectPath, '.novelaid', 'kanji-rules.txt');
+    try {
+      const fs = require('fs/promises');
+      const content = await fs.readFile(rulesPath, 'utf-8');
+      const lines = content.split('\n');
+      const newRules = { ...DEFAULT_KANJI_RULES };
+      const exclusions: string[] = [];
+
+      lines.forEach((line: string) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) {
+          return;
+        }
+
+        if (trimmed.startsWith('!')) {
+          exclusions.push(trimmed.substring(1).trim());
+        } else {
+          // Format is either word,reading or word:reading (legacy-ish support)
+          const parts = trimmed.includes(',') ? trimmed.split(',') : trimmed.split(':');
+          if (parts.length >= 2) {
+            const word = parts[0].trim();
+            const reading = parts[1].trim();
+            newRules[word] = reading;
+          }
+        }
+      });
+
+      // Apply exclusions last to ensure they take effect
+      exclusions.forEach((word) => {
+        delete newRules[word];
+      });
+
+      this.kanjiRules = newRules;
+      console.log(`[Calibration] Loaded ${Object.keys(this.kanjiRules).length} kanji rules.`);
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') {
+        console.error('Failed to load custom rules:', err);
+      } else {
+        // Use default if file not found
+        this.kanjiRules = { ...DEFAULT_KANJI_RULES };
+      }
+    }
+  }
+
+  public async createDefaultRulesFile(projectPath: string): Promise<string> {
+    const novelaidDir = path.join(projectPath, '.novelaid');
+    const rulesPath = path.join(novelaidDir, 'kanji-rules.txt');
+    const fs = require('fs/promises');
+
+    try {
+      await fs.access(novelaidDir);
+    } catch {
+      await fs.mkdir(novelaidDir, { recursive: true });
+    }
+
+    try {
+      await fs.access(rulesPath);
+    } catch {
+      const header = `# 漢字の開きルール設定
+# 形式: 漢字,よみ
+# 除外する場合: !漢字
+# // や # で始まる行はコメントです
+
+# --- 現在のデフォルト設定 ---
+`;
+      const defaultLines = Object.entries(DEFAULT_KANJI_RULES)
+        .map(([word, reading]) => `${word},${reading}`)
+        .join('\n');
+
+      await fs.writeFile(rulesPath, header + defaultLines, 'utf-8');
+    }
+
+    return rulesPath;
   }
 
   public async analyze(text: string): Promise<kuromoji.IpadicFeatures[]> {
@@ -269,29 +370,7 @@ export class CalibrationService {
     const tokens = await this.analyze(cleanText);
     const issues: CalibrationIssue[] = [];
 
-    const checkMap: Record<string, string> = {
-      事: 'こと',
-      時: 'とき',
-      所: 'ところ',
-      他: 'ほか',
-      等: 'など',
-      為: 'ため',
-      故: 'ゆえ',
-      或いは: 'あるいは',
-      貴方: 'あなた',
-      何時: 'いつ',
-      何処: 'どこ',
-      此処: 'ここ',
-      其処: 'そこ',
-      彼処: 'あそこ',
-      何故: 'なぜ',
-      殆ど: 'ほとんど',
-      滅多に: 'めったに',
-      居る: 'いる', // 補助動詞
-      或る: 'ある',
-      無く: 'なく', // 補助形容詞など
-      無い: 'ない',
-    };
+    const checkMap = this.kanjiRules;
 
     tokens.forEach((token) => {
       const surface = token.surface_form;
@@ -300,9 +379,13 @@ export class CalibrationService {
 
         // Refine rules:
         // '事' -> warn if noun (usually formal noun)
-        if (surface === '事' && token.pos === '名詞') shouldWarn = true;
+        if (surface === '事') shouldWarn = token.pos === '名詞';
         // '時' -> warn if noun
-        if (surface === '時' && token.pos === '名詞') shouldWarn = true;
+        else if (surface === '時') shouldWarn = token.pos === '名詞';
+        // '居る' '或る' '無い' etc -> warn if auxiliary (usually pos_detail_1 is '非自立')
+        else if (['居る', '居た', '居て', '或る', '無い', 'ない', '無く', 'なく'].includes(surface)) {
+          shouldWarn = token.pos_detail_1 === '非自立';
+        }
 
         if (shouldWarn) {
           const suggestion = checkMap[surface];

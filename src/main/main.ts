@@ -244,6 +244,7 @@ ipcMain.handle('project:load', async (_, projectPath: string) => {
   if (project) {
     fileWatcher.start(projectPath);
     await metadataService.scanProject(projectPath);
+    await CalibrationService.getInstance().loadCustomRules(projectPath);
   }
   return project;
 });
@@ -702,6 +703,20 @@ ipcMain.handle(
     return results;
   }
 );
+
+ipcMain.handle('calibration:getKanjiRulesPath', async () => {
+    if (!activeProjectPath) throw new Error('No active project');
+    return await CalibrationService.getInstance().createDefaultRulesFile(activeProjectPath);
+});
+
+ipcMain.handle('calibration:reloadRules', async () => {
+    if (!activeProjectPath) return;
+    await CalibrationService.getInstance().loadCustomRules(activeProjectPath);
+});
+
+ipcMain.on('app:open-file', (event, filePath: string) => {
+    event.sender.send('app:open-file', filePath);
+});
 
 /**
  * Add event listeners...

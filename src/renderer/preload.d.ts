@@ -37,6 +37,8 @@ declare global {
       };
       calibration: {
         analyze(text: string, settings?: any): Promise<{ frequency: any[]; issues: any[] }>;
+        getKanjiRulesPath(): Promise<string>;
+        reloadRules(): Promise<void>;
       };
       shell: {
         openExternal(url: string): Promise<void>;
