@@ -16,7 +16,7 @@ export class FileWatcher {
     this.mainWindow = window;
   }
 
-  onFileEvent(callback: (event: string, path: string) => void) {
+  onFileEvent(callback: (event: string, path: string) => Promise<void> | void) {
     this.listeners.push(callback);
   }
 
@@ -40,11 +40,11 @@ export class FileWatcher {
     });
 
     this.watcher
-      .on('add', (path) => this.handleEvent('add', path))
-      .on('change', (path) => this.handleEvent('change', path))
-      .on('unlink', (path) => this.handleEvent('unlink', path))
-      .on('addDir', (path) => this.handleEvent('addDir', path))
-      .on('unlinkDir', (path) => this.handleEvent('unlinkDir', path))
+      .on('add', (filePath: string) => this.handleEvent('add', filePath))
+      .on('change', (filePath: string) => this.handleEvent('change', filePath))
+      .on('unlink', (filePath: string) => this.handleEvent('unlink', filePath))
+      .on('addDir', (filePath: string) => this.handleEvent('addDir', filePath))
+      .on('unlinkDir', (filePath: string) => this.handleEvent('unlinkDir', filePath))
       .on('error', (error) => console.error(`Watcher error: ${error}`));
 
     console.log(`Started watching project at: ${projectPath}`);
@@ -58,10 +58,13 @@ export class FileWatcher {
     this.currentPath = null;
   }
 
-  private handleEvent(event: string, path: string) {
+  private async handleEvent(event: string, filePath: string) {
+    // 1. Wait for all internal (main process) listeners to finish updating their state
+    await Promise.all(this.listeners.map((listener) => listener(event, filePath)));
+
+    // 2. Only then notify the renderer process that it's safe to reload data
     if (this.mainWindow) {
-      this.mainWindow.webContents.send('fs:file-changed', { event, path });
+      this.mainWindow.webContents.send('fs:file-changed', { event, path: filePath });
     }
-    this.listeners.forEach((listener) => listener(event, path));
   }
 }
