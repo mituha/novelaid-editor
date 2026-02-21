@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MessageSquare, Bot } from 'lucide-react';
@@ -19,7 +25,7 @@ interface MessagePart {
 // grammerContext removed, handled by system prompt in backend
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system'; // 'system' for UI markers
   parts: MessagePart[];
   displayContent?: string;
   personaId?: string;
@@ -113,25 +119,47 @@ export default function AIChatPanel({
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>(''); // Empty means "None"
   const [selectedRoleId, setSelectedRoleId] = useState<string>('assistant');
   const [dynamicPersonas, setDynamicPersonas] = useState<DynamicPersona[]>([]);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      parts: [
-        {
-          type: 'thought',
-          content:
-            '小説執筆の助手として、ユーザーに挨拶し、お手伝いを申し出ます。',
-        },
-        {
-          type: 'text',
-          content:
-            'こんにちは！小説執筆・編集専門のAIアシスタントです。本日はどのようなお手伝いをしましょうか？',
-        },
-      ],
-      timestamp: Date.now(),
-    },
-  ]);
+  const getInitialMessages = useCallback(
+    () => [
+      {
+        id: '1',
+        role: 'assistant' as const,
+        parts: [
+          {
+            type: 'thought' as const,
+            content:
+              '小説執筆の助手として、ユーザーに挨拶し、お手伝いを申し出ます。',
+          },
+          {
+            type: 'text' as const,
+            content:
+              'こんにちは！小説執筆・編集専門のAIアシスタントです。本日はどのようなお手伝いをしましょうか？',
+          },
+        ],
+        timestamp: Date.now(),
+      },
+    ],
+    [],
+  );
+
+  const [messages, setMessages] = useState<Message[]>(getInitialMessages());
+  const [contextStartIndex, setContextStartIndex] = useState(0);
+  const [pendingContextReset, setPendingContextReset] = useState(false);
+
+  const allPersonas = useMemo(
+    () => [...PERSONAS, ...dynamicPersonas],
+    [dynamicPersonas],
+  );
+
+  // Mark context break when persona or role changes
+  useEffect(() => {
+    // If we have history beyond the initial greeting, mark for reset on next send
+    if (messages.length > 1) {
+      setPendingContextReset(true);
+    }
+    setInput('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPersonaId, selectedRoleId]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -202,7 +230,38 @@ export default function AIChatPanel({
       timestamp: Date.now(),
     };
 
-    const newMessages = [...messages, userMessage];
+    let newMessages = [...messages];
+    let newContextStartIndex = contextStartIndex;
+
+    // Inject separator if context reset is pending
+    if (pendingContextReset) {
+      const roleName =
+        CHAT_ROLES.find((r) => r.id === selectedRoleId)?.name || selectedRoleId;
+      const persona = allPersonas.find(
+        (p: Persona) => p.id === selectedPersonaId,
+      );
+      const personaName = persona?.name || 'なし';
+
+      const separatorMessage: Message = {
+        id: `sep-${Date.now()}`,
+        role: 'system',
+        parts: [
+          {
+            type: 'text',
+            content: `${roleName} / ${personaName}`,
+          },
+        ],
+        timestamp: Date.now(),
+      };
+
+      newContextStartIndex = newMessages.length + 1; // Index after separator
+      newMessages = [...newMessages, separatorMessage, userMessage];
+      setPendingContextReset(false);
+      setContextStartIndex(newContextStartIndex);
+    } else {
+      newMessages = [...newMessages, userMessage];
+    }
+
     setMessages(newMessages);
     setInput('');
     setIsStreaming(true);
@@ -295,16 +354,17 @@ export default function AIChatPanel({
       },
     );
 
-    // Send request
-    const apiMessages = newMessages.map((m) => {
-      // For API, we merge parts back into a string or handle as structured (future-proof)
-      // For existing providers, we still expect content as a string
-      const content = m.parts.map((p) => p.content).join(''); // This is simplified, context might need specialized handling
-      return {
-        role: m.role,
-        content,
-      };
-    });
+    // Send request (only messages after newContextStartIndex)
+    const apiMessages = newMessages
+      .slice(newContextStartIndex)
+      .filter((m) => m.role !== 'system')
+      .map((m) => {
+        const content = m.parts.map((p) => p.content).join('');
+        return {
+          role: m.role,
+          content,
+        };
+      });
 
     window.electron.ipcRenderer.sendMessage(
       'ai:streamChat',
@@ -314,7 +374,6 @@ export default function AIChatPanel({
       selectedRoleId,
     );
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -322,7 +381,6 @@ export default function AIChatPanel({
     }
   };
 
-  const allPersonas = [...PERSONAS, ...dynamicPersonas];
 
   const formatTime = (timestamp: number) => {
     const d = new Date(timestamp);
@@ -391,62 +449,71 @@ export default function AIChatPanel({
       <div className="ai-chat-messages">
         {messages.map((msg) => (
           <div key={msg.id} className={`message-row ${msg.role}`}>
-            {msg.role === 'assistant' && (
-              <div className="message-avatar">
-                <PersonaIcon
-                  persona={allPersonas.find((p) => p.id === msg.personaId)}
-                />
+            {msg.role === 'system' ? (
+              <div className="system-separator">
+                <div className="line" />
+                <span>{msg.parts[0].content}</span>
+                <div className="line" />
               </div>
-            )}
-            <div className="message-content-col">
-              {/* Participant name removed for both user and assistant as requested */}
-              <div className="message-bubble-group">
-                <div className={`message-bubble ${msg.role}`}>
-                  {msg.role === 'user' ? (
-                    <div className="message-text">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {msg.displayContent ||
-                          msg.parts.map((p) => p.content).join('')}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <div className="message-parts">
-                      {msg.parts.map((part, index) =>
-                        part.type === 'thought' ? (
-                          <div
-                            /* eslint-disable-next-line react/no-array-index-key */
-                            key={`part-thought-${msg.id}-${part.type}-${index}`}
-                            className="thought-bubble"
-                          >
-                            <details className="thought-container">
-                              <summary>Thinking...</summary>
-                              <div className="thought-content">
+            ) : (
+              <>
+                {msg.role === 'assistant' && (
+                  <div className="message-avatar">
+                    <PersonaIcon
+                      persona={allPersonas.find((p) => p.id === msg.personaId)}
+                    />
+                  </div>
+                )}
+                <div className="message-content-col">
+                  <div className="message-bubble-group">
+                    <div className={`message-bubble ${msg.role}`}>
+                      {msg.role === 'user' ? (
+                        <div className="message-text">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {msg.displayContent ||
+                              msg.parts.map((p) => p.content).join('')}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div className="message-parts">
+                          {msg.parts.map((part, index) =>
+                            part.type === 'thought' ? (
+                              <div
+                                /* eslint-disable-next-line react/no-array-index-key */
+                                key={`part-thought-${msg.id}-${part.type}-${index}`}
+                                className="thought-bubble"
+                              >
+                                <details className="thought-container">
+                                  <summary>Thinking...</summary>
+                                  <div className="thought-content">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                      {part.content}
+                                    </ReactMarkdown>
+                                  </div>
+                                </details>
+                              </div>
+                            ) : (
+                              <div
+                                /* eslint-disable-next-line react/no-array-index-key */
+                                key={`part-text-${msg.id}-${part.type}-${index}`}
+                                className="message-text"
+                              >
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {part.content}
                                 </ReactMarkdown>
                               </div>
-                            </details>
-                          </div>
-                        ) : (
-                          <div
-                            /* eslint-disable-next-line react/no-array-index-key */
-                            key={`part-text-${msg.id}-${part.type}-${index}`}
-                            className="message-text"
-                          >
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {part.content}
-                            </ReactMarkdown>
-                          </div>
-                        ),
+                            ),
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                    <div className="message-timestamp">
+                      {formatTime(msg.timestamp)}
+                    </div>
+                  </div>
                 </div>
-                <div className="message-timestamp">
-                  {formatTime(msg.timestamp)}
-                </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
