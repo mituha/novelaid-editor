@@ -6,12 +6,14 @@ import './MetadataPropertyEditor.css';
 
 interface MetadataPropertyEditorProps {
   metadata?: Record<string, any>;
+  activePath?: string | null;
   onMetadataChange?: (metadata: Record<string, any>) => void;
   onBlur?: () => void;
 }
 
 export function MetadataPropertyEditor({
   metadata = {},
+  activePath = null,
   onMetadataChange = () => {},
   onBlur = () => {},
 }: MetadataPropertyEditorProps) {
@@ -217,18 +219,25 @@ export function MetadataPropertyEditor({
               }
               if (icon.value && (icon.type === 'local' || icon.type === 'url')) {
                 let src = icon.value;
-                if (icon.value && (icon.type === 'local' || icon.type === 'url' || icon.value.includes(':') || icon.value.startsWith('/'))) {
+                const isAbsolute =
+                  icon.value.startsWith('/') ||
+                  /^[a-zA-Z]:/.test(icon.value) ||
+                  icon.value.startsWith('http');
 
-                  const normalized = icon.value.replace(/\\/g, '/');
+                if (icon.type === 'local' || !isAbsolute) {
+                  let fullPath = icon.value;
+                  if (!isAbsolute && activePath) {
+                    const dir = activePath.replace(/[\\/][^\\/]+$/, '');
+                    const separator = activePath.includes('\\') ? '\\' : '/';
+                    fullPath = `${dir}${separator}${icon.value}`;
+                  }
+
+                  const normalized = fullPath.replace(/\\/g, '/');
                   const encodedPath = normalized
                     .split('/')
                     .map((segment: string) => encodeURIComponent(segment))
                     .join('/');
                   src = `nvfs://local/${encodedPath}`;
-
-
-                } else {
-                  src = `../../../../${icon.value}`;
                 }
                 return <img src={src} alt="" className="icon-preview-img" />;
               }
@@ -291,6 +300,7 @@ export function MetadataPropertyEditor({
 // though destructuring with defaults is usually enough for modern React
 MetadataPropertyEditor.defaultProps = {
   metadata: {},
+  activePath: null,
   onMetadataChange: () => {},
   onBlur: () => {},
 };

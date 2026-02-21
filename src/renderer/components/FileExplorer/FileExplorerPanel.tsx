@@ -217,21 +217,25 @@ function FileTreeItem({
       }
       if (icon.value && (icon.type === 'local' || icon.type === 'url')) {
         let src = icon.value;
-        if (icon.type === 'local') {
-          const isAbsolute =
-            icon.value.startsWith('/') || /^[a-zA-Z]:/.test(icon.value);
-          if (isAbsolute) {
-            // Convert backslashes to forward slashes and encode segments
-            const normalized = icon.value.replace(/\\/g, '/');
-            const encodedPath = normalized
-              .split('/')
-              .map((segment: string) => encodeURIComponent(segment))
-              .join('/');
-            src = `nvfs://local/${encodedPath}`;
+        const isAbsolute =
+          icon.value.startsWith('/') ||
+          /^[a-zA-Z]:/.test(icon.value) ||
+          icon.value.startsWith('http');
 
-          } else {
-            src = `../../../../${icon.value}`;
+        if (icon.type === 'local' || !isAbsolute) {
+          let fullPath = icon.value;
+          if (!isAbsolute && node.path) {
+            const dir = node.path.replace(/[\\/][^\\/]+$/, '');
+            const separator = node.path.includes('\\') ? '\\' : '/';
+            fullPath = `${dir}${separator}${icon.value}`;
           }
+
+          const normalized = fullPath.replace(/\\/g, '/');
+          const encodedPath = normalized
+            .split('/')
+            .map((segment: string) => encodeURIComponent(segment))
+            .join('/');
+          src = `nvfs://local/${encodedPath}`;
         }
 
         return (
