@@ -56,6 +56,8 @@ function PersonaIcon({
   if (!persona || imgError) return fallback;
 
   const { icon } = persona;
+  if (!icon || !icon.value) return fallback;
+
   if (icon.type === 'lucide') {
     const LucideIcon = (LucideIcons as any)[icon.value] || Bot;
     return (
@@ -70,34 +72,49 @@ function PersonaIcon({
 
   let src = icon.value;
   if (icon.type === 'local-asset') {
-    // app-asset プロトコルを使用
+    // app-asset プロトコルを使用 (内部アセット)
     src = `app-asset://${icon.value}`;
-  } else if (icon.type === 'local-file') {
-    // ユーザーファイル: ../../../../ などの相対パスを付与
-    if (!src.startsWith('http') && !src.startsWith('data:')) {
-      if (!src.startsWith('../')) {
-        src = `../../../../${src}`;
+  } else if (
+    icon.type === 'local-file' ||
+    (icon.type as string) === 'local' ||
+    icon.type === 'url'
+  ) {
+    const isAbsolute =
+      icon.value.startsWith('/') ||
+      /^[a-zA-Z]:/.test(icon.value) ||
+      icon.value.startsWith('http');
+
+    if (icon.type === 'url' && isAbsolute) {
+      src = icon.value;
+    } else {
+      // ローカルファイルまたは相対パスのURL
+      let fullPath = icon.value;
+      if (!isAbsolute && persona.filePath) {
+        // キャラクターファイルの場所を基準に解決
+        const dir = persona.filePath.replace(/[\\/][^\\/]+$/, '');
+        const separator = persona.filePath.includes('\\') ? '\\' : '/';
+        fullPath = `${dir}${separator}${icon.value}`;
       }
+
+      const normalized = fullPath.replace(/\\/g, '/');
+      const encodedPath = normalized
+        .split('/')
+        .map((segment: string) => encodeURIComponent(segment))
+        .join('/');
+      src = `nvfs://local/${encodedPath}`;
     }
   }
 
-  if (
-    icon.type === 'url' ||
-    icon.type === 'local-asset' ||
-    icon.type === 'local-file'
-  ) {
-    return (
-      <div className="persona-icon-img" style={{ width: size, height: size }}>
-        <img
-          src={src}
-          alt=""
-          aria-hidden="true"
-          onError={() => setImgError(true)}
-        />
-      </div>
-    );
-  }
-  return fallback;
+  return (
+    <div className="persona-icon-img" style={{ width: size, height: size }}>
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        onError={() => setImgError(true)}
+      />
+    </div>
+  );
 }
 PersonaIcon.defaultProps = {
   persona: undefined,
