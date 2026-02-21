@@ -71,14 +71,17 @@ export class MetadataService {
   queryByTag(tagOrTags: string | string[]): MetadataEntry[] {
     const results: MetadataEntry[] = [];
     const targetTags = Array.isArray(tagOrTags) ? tagOrTags : [tagOrTags];
-    console.log(`[MetadataService] Querying by tags: ${targetTags.join(', ')}`);
+    const normalizedTargets = targetTags.map((t) => t.toLowerCase());
 
     for (const [filePath, metadata] of this.index.entries()) {
       const fileTags = metadata.tags;
       if (!fileTags) continue;
 
-      const fileTagArray = Array.isArray(fileTags) ? fileTags : [fileTags];
-      const match = targetTags.some((t) => fileTagArray.includes(t));
+      const fileTagArray = (Array.isArray(fileTags) ? fileTags : [fileTags])
+        .filter((t): t is string => typeof t === 'string')
+        .map((t) => t.toLowerCase());
+
+      const match = normalizedTargets.some((t) => fileTagArray.includes(t));
 
       if (match) {
         results.push({

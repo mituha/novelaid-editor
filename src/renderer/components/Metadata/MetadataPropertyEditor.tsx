@@ -69,12 +69,15 @@ export function MetadataPropertyEditor({
     const group = tagGroups.find((g) => g.id === groupId);
     if (!group) return;
 
-    const hasAny = group.tags.some((t) => currentTags.includes(t));
+    const hasAny = group.tags.some((t) =>
+      currentTags.some((ct) => ct.toLowerCase() === t.toLowerCase()),
+    );
     let newTags: string[];
 
     if (hasAny) {
-      // Remove all tags associated with this group
-      newTags = currentTags.filter((t) => !group.tags.includes(t));
+      // Remove all tags associated with this group (case-insensitive)
+      const groupLower = group.tags.map((t) => t.toLowerCase());
+      newTags = currentTags.filter((t) => !groupLower.includes(t.toLowerCase()));
     } else {
       // Add primary tag
       newTags = [...currentTags, group.primary];
@@ -103,7 +106,9 @@ export function MetadataPropertyEditor({
         <span className="field-label">クイックタグ</span>
         <div className="tag-toggle-buttons">
           {tagGroups.map((group) => {
-            const isActive = group.tags.some((t) => currentTags.includes(t));
+            const isActive = group.tags.some((t) =>
+              currentTags.some((ct) => ct.toLowerCase() === t.toLowerCase()),
+            );
             return (
               <button
                 key={group.id}
