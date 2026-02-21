@@ -147,6 +147,112 @@ export function MetadataPropertyEditor({
           />
         </label>
       </div>
+
+      <div className="editor-section-divider">詳細設定 / キャラクター設定</div>
+
+      <div className="editor-row">
+        <div className="editor-field">
+          <label htmlFor="meta-id">
+            <span className="field-label">ID (識別子)</span>
+            <input
+              id="meta-id"
+              type="text"
+              value={metadata.id || ''}
+              onChange={(e) => handleChange('id', e.target.value)}
+              onBlur={onBlur}
+              placeholder="Unique ID"
+            />
+          </label>
+        </div>
+        <div className="editor-field">
+          <label htmlFor="meta-name">
+            <span className="field-label">表示名 (名前)</span>
+            <input
+              id="meta-name"
+              type="text"
+              value={metadata.name || ''}
+              onChange={(e) => handleChange('name', e.target.value)}
+              onBlur={onBlur}
+              placeholder="Character Name"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="editor-field">
+        <span className="field-label">アイコン設定</span>
+        <div className="editor-row icon-settings">
+          <select
+            value={metadata.icon?.type || 'lucide'}
+            onChange={(e) =>
+              handleChange('icon', {
+                ...(metadata.icon || {}),
+                type: e.target.value,
+              })
+            }
+            onBlur={onBlur}
+            className="icon-type-select"
+          >
+            <option value="lucide">Lucide Icon</option>
+            <option value="local">Local File</option>
+            <option value="url">URL</option>
+          </select>
+          <input
+            type="text"
+            value={metadata.icon?.value || ''}
+            onChange={(e) =>
+              handleChange('icon', {
+                ...(metadata.icon || {}),
+                value: e.target.value,
+              })
+            }
+            onBlur={onBlur}
+            placeholder={
+              metadata.icon?.type === 'lucide'
+                ? 'Icon name (e.g. User)'
+                : 'Path or URL'
+            }
+          />
+        </div>
+      </div>
+
+      <div className="editor-section chat-settings">
+        <div className="editor-section-header">
+          <span className="field-label">AIチャット設定</span>
+          <label className="checkbox-label" htmlFor="meta-chat-enabled">
+            <input
+              id="meta-chat-enabled"
+              type="checkbox"
+              checked={metadata.chat?.enabled === true}
+              onChange={(e) =>
+                handleChange('chat', {
+                  ...(metadata.chat || {}),
+                  enabled: e.target.checked,
+                })
+              }
+            />
+            <span>ペルソナとして有効化</span>
+          </label>
+        </div>
+        <div className="editor-field">
+          <label htmlFor="meta-chat-persona">
+            <span className="field-label">口調・追加設定 (Persona)</span>
+            <textarea
+              id="meta-chat-persona"
+              value={metadata.chat?.persona || ''}
+              onChange={(e) =>
+                handleChange('chat', {
+                  ...(metadata.chat || {}),
+                  persona: e.target.value,
+                })
+              }
+              onBlur={onBlur}
+              rows={5}
+              placeholder="語尾や性格、AIチャット時の追加指示を入力してください"
+            />
+          </label>
+        </div>
+      </div>
     </div>
   );
 }

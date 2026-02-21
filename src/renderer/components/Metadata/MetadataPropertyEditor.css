@@ -1,99 +1,175 @@
 .metadata-property-editor {
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    height: 100%;
-    background-color: var(--bg-secondary);
-    color: var(--text-color);
-    overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  height: 100%;
+  background-color: var(--bg-secondary);
+  color: var(--text-color);
+  overflow-y: auto;
 }
 
 .editor-field {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .editor-field label {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .editor-field label,
 .field-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    opacity: 0.7;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .editor-field input,
 .editor-field textarea {
-    padding: 10px;
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    border-radius: 4px;
-    font-size: 0.9rem;
-    font-family: inherit;
-    transition: border-color 0.2s;
+  padding: 10px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
 }
 
 .editor-field input:focus,
 .editor-field textarea:focus {
-    border-color: var(--accent-color);
-    outline: none;
+  border-color: var(--accent-color);
+  outline: none;
 }
 
 .editor-field textarea {
-    resize: vertical;
-    line-height: 1.5;
+  resize: vertical;
+  line-height: 1.5;
 }
 
 .metadata-property-editor::-webkit-scrollbar {
-    width: 8px;
+  width: 8px;
 }
 
 .metadata-property-editor::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 4px;
+  background: var(--border-color);
+  border-radius: 4px;
 }
 
 .tag-toggle-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .tag-toggle-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    color: var(--text-color);
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.2s ease;
-    opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  opacity: 0.8;
 }
 
 .tag-toggle-btn:hover {
-    background-color: var(--bg-active);
-    border-color: var(--accent-color);
-    opacity: 1;
+  background-color: var(--bg-active);
+  border-color: var(--accent-color);
+  opacity: 1;
 }
 
 .tag-toggle-btn.active {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
-    color: white;
-    opacity: 1;
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+  opacity: 1;
 }
 
 .tag-toggle-btn svg {
-    opacity: 0.9;
+  opacity: 0.9;
+}
+
+.editor-section-divider {
+  font-size: 0.7rem;
+  color: var(--text-color);
+  opacity: 0.4;
+  text-align: center;
+  margin: 32px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-section-divider::before,
+.editor-section-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: var(--border-color);
+}
+
+.editor-row {
+  display: flex;
+  gap: 12px;
+}
+
+.editor-row .editor-field {
+  flex: 1;
+}
+
+.icon-settings {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.icon-type-select {
+  width: 120px;
+  padding: 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.chat-settings {
+  margin-top: 10px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.editor-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer;
+  font-weight: normal !important;
+  opacity: 1 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+.checkbox-label input {
+  width: auto;
+  margin: 0;
 }

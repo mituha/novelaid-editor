@@ -286,21 +286,20 @@ export default function AIChatPanel({
             onChange={(e) => setSelectedPersonaId(e.target.value)}
           >
             <option value="">ペルソナなし</option>
-            <optgroup label="システムペルソナ">
-              {PERSONAS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </optgroup>
+            {PERSONAS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
             {dynamicPersonas.length > 0 && (
-              <optgroup label="キャラクター">
+              <>
+                <option disabled>──────────</option>
                 {dynamicPersonas.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
                 ))}
-              </optgroup>
+              </>
             )}
           </select>
         </div>
@@ -328,7 +327,10 @@ export default function AIChatPanel({
                 <div className="message-parts">
                   {msg.parts.map((part, index) =>
                     part.type === 'thought' ? (
-                      <div key={`part-thought-${msg.id}-${index}`} className="thought-bubble">
+                      <div
+                        key={`part-thought-${msg.id}-${index}`}
+                        className="thought-bubble"
+                      >
                         <details className="thought-container">
                           <summary>Thinking...</summary>
                           <div className="thought-content">
@@ -339,7 +341,10 @@ export default function AIChatPanel({
                         </details>
                       </div>
                     ) : (
-                      <div key={`part-text-${msg.id}-${index}`} className="message-text">
+                      <div
+                        key={`part-text-${msg.id}-${index}`}
+                        className="message-text"
+                      >
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {part.content}
                         </ReactMarkdown>
