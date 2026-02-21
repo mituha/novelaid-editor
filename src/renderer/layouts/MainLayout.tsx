@@ -707,34 +707,40 @@ export default function MainLayout() {
     }
 
     if (data.language === 'image') {
+
       const normalized = activePath.replace(/\\/g, '/');
       const encodedPath = normalized
         .split('/')
         .map((segment: string) => encodeURIComponent(segment))
         .join('/');
-      const src = `local-file:///${encodedPath}`;
+      const src = `nvfs://local/${encodedPath}`;
 
       return (
-        <div className="image-viewer-container" style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%',
-          overflow: 'auto',
-          backgroundColor: 'var(--vscode-editor-background, #1e1e1e)'
-        }}>
+
+        <div
+          className="image-viewer-container"
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100%',
+            overflow: 'auto',
+            backgroundColor: 'var(--vscode-editor-background, #1e1e1e)',
+          }}
+        >
           <img
             src={src}
             alt={activePath}
             style={{
               maxWidth: '100%',
               maxHeight: '100%',
-              objectFit: 'contain'
+              objectFit: 'contain',
             }}
           />
         </div>
       );
     }
+
 
 
     // Extract filename and extension for header

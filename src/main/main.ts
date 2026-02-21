@@ -9,7 +9,8 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, dialog, Menu, protocol, net } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog, Menu, protocol, net, session } from 'electron';
+
 import { pathToFileURL } from 'url';
 import fs from 'fs/promises';
 import { autoUpdater } from 'electron-updater';
@@ -30,16 +31,20 @@ import { CalibrationService } from './calibration/CalibrationService';
 import { AIService } from './ai/AIService';
 
 
+
+
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: 'local-file',
-    privileges: { secure: true, standard: true, supportFetchAPI: true, bypassCSP: true },
+    scheme: 'nvfs',
+    privileges: { secure: true, standard: true, supportFetchAPI: true, bypassCSP: true, allowServiceWorkers: true },
   },
   {
     scheme: 'app-asset',
     privileges: { secure: true, standard: true, supportFetchAPI: true, bypassCSP: true },
   },
 ]);
+
+
 
 
 
@@ -629,11 +634,11 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-
 app
   .whenReady()
   .then(() => {
     log.info('Main: app.whenReady() triggered');
+
 
 
 
@@ -642,38 +647,35 @@ app
       ? path.join(process.resourcesPath, 'assets')
       : path.join(__dirname, '../../assets');
 
-    protocol.handle('local-file', (request) => {
+    const nvfsHandler = async (request: Request) => {
       try {
-
-        // Manually extract path to avoid URL pathname normalization issues
-        let filePath = request.url.replace(/^local-file:\/\/+/, '');
-        filePath = decodeURIComponent(filePath);
-        log.info('local-file decoded path:', filePath);
-
-        if (process.platform === 'win32') {
-          // On Windows, URL protocol often has /C:/..., ensure we get C:\...
-          filePath = filePath.replace(/\//g, '\\');
-          if (/^\\[a-zA-Z]:/.test(filePath)) {
-            filePath = filePath.slice(1);
-          }
+        const url = new URL(request.url);
+        // nvfs://local/D:/path -> pathname is /D:/path
+        let filePath = decodeURIComponent(url.pathname);
+        if (process.platform === 'win32' && filePath.startsWith('/')) {
+          filePath = filePath.slice(1);
         }
 
-        log.info('local-file final filePath:', filePath);
-        const fileUrl = pathToFileURL(filePath).toString();
-        log.info('local-file net.fetch URL:', fileUrl);
-        return net.fetch(fileUrl);
-      } catch (e) {
-        console.error('Main: local-file handler error:', e);
-        log.error('local-file error:', e);
+        return net.fetch(pathToFileURL(filePath).toString());
 
+      } catch (e) {
         return new Response('Not Found', { status: 404 });
       }
-    });
+    };
+
+    session.defaultSession.protocol.handle('nvfs', nvfsHandler);
 
     protocol.handle('app-asset', (request) => {
-      const url = request.url.replace(/^app-asset:\/\/+/, '');
-      const filePath = path.join(RESOURCES_PATH, path.normalize(url));
-      return net.fetch(pathToFileURL(filePath).toString());
+      try {
+
+        const url = request.url.replace(/^app-asset:\/\/+/, '');
+        const filePath = path.join(RESOURCES_PATH, path.normalize(url));
+        console.error(`[PROTOCOL] app-asset: ${filePath}`);
+        return net.fetch(pathToFileURL(filePath).toString());
+      } catch (e) {
+        console.error(`[PROTOCOL_ERR] app-asset failure:`, e);
+        return new Response('Not Found', { status: 404 });
+      }
     });
 
     createWindow();

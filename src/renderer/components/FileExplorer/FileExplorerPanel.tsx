@@ -227,12 +227,13 @@ function FileTreeItem({
               .split('/')
               .map((segment: string) => encodeURIComponent(segment))
               .join('/');
-            src = `local-file:///${encodedPath}`;
-            console.log('FileExplorer icon src:', src);
+            src = `nvfs://local/${encodedPath}`;
+
           } else {
             src = `../../../../${icon.value}`;
           }
         }
+
         return (
           <div className="file-custom-icon">
             <img src={src} alt="" />

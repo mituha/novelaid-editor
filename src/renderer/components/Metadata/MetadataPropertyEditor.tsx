@@ -217,15 +217,16 @@ export function MetadataPropertyEditor({
               }
               if (icon.value && (icon.type === 'local' || icon.type === 'url')) {
                 let src = icon.value;
-                const isAbsolute =
-                  icon.value.startsWith('/') || /^[a-zA-Z]:/.test(icon.value);
-                if (isAbsolute) {
+                if (icon.value && (icon.type === 'local' || icon.type === 'url' || icon.value.includes(':') || icon.value.startsWith('/'))) {
+
                   const normalized = icon.value.replace(/\\/g, '/');
                   const encodedPath = normalized
                     .split('/')
                     .map((segment: string) => encodeURIComponent(segment))
                     .join('/');
-                  src = `local-file:///${encodedPath}`;
+                  src = `nvfs://local/${encodedPath}`;
+
+
                 } else {
                   src = `../../../../${icon.value}`;
                 }
