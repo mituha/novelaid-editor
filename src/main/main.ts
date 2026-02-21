@@ -16,18 +16,17 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { loadProject, saveProject } from './project';
-import { readDocument, saveDocument, calculateLineOffset, getLanguageForFile } from './metadata';
+import { readDocument, saveDocument, getLanguageForFile } from './metadata';
 import {
   getRecentProjects,
   addRecentProject,
   removeRecentProject,
 } from './launcher';
-import { ProviderFactory } from './ai/ProviderFactory';
 import { GitService } from './git/GitService';
 import { FileWatcher } from './watcher';
 import { MetadataService } from './metadataService';
 import { CalibrationService } from './calibration/CalibrationService';
-import { PERSONAS, COMMON_SYSTEM_PROMPT } from '../common/constants/personas';
+import { AIService } from './ai/AIService';
 
 class AppUpdater {
   constructor() {
@@ -48,7 +47,7 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 const fileWatcher = new FileWatcher(null);
-const metadataService = new MetadataService();
+const metadataService = MetadataService.getInstance();
 let activeProjectPath: string | null = null; // Added
 
 // Direct metadata update in main process
@@ -288,113 +287,19 @@ ipcMain.handle('recent:remove', async (_, projectPath: string) => {
 });
 
 ipcMain.handle('ai:generate', async (_, prompt: string, config: any) => {
-  try {
-    // Map ProjectConfig.ai structure to ProviderFactory.ProviderConfig
-    const providerType = config.provider || 'lmstudio';
-    let factoryConfig: any = {
-        type: providerType,
-        modelName: 'local-model' // Default
-    };
-
-    if (providerType === 'lmstudio') {
-        factoryConfig.modelName = config.lmstudio?.model || 'local-model';
-        factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
-    } else if (providerType === 'gemini') {
-        factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
-        factoryConfig.apiKey = config.gemini?.apiKey;
-    } else if (providerType === 'openai') {
-        factoryConfig.modelName = config.openai?.model || 'gpt-3.5-turbo';
-        factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';
-        factoryConfig.apiKey = config.openai?.apiKey;
-    }
-
-    const provider = ProviderFactory.createProvider(factoryConfig);
-    return await provider.generateContent(prompt);
-  } catch (error) {
-    console.error('AI Generation Error:', error);
-    throw error;
-  }
+  return AIService.getInstance().generate(prompt, config);
 });
 
 ipcMain.handle('ai:stream', async (_, prompt: string, config: any) => {
-    // Streaming over simple IPC handle is tricky because handle expects a Promise that resolves once.
-    // Usually we use event.reply for streaming or specific stream IPC.
-    // For now, I will implement it but the renderer needs to listen to a channel.
-    // However, the interface asks for AsyncGenerator.
-    // A common pattern for streaming in Electron is:
-    // Renderer calls 'ai:stream-start' -> Main starts -> Main sends 'ai:stream-data' -> Main sends 'ai:stream-end'.
-
-    // Changing approach: Return a unique ID (or just start) and assume renderer listens to a specific channel?
-    // Or, keep it simple for now: 'ai:generate' is enough for basic usage.
-    // If the user wants streaming, I'll add specific logic.
-    // But the interface has streamContent.
-
-    try {
-        const provider = ProviderFactory.createProvider(config);
-        // We can't return an async generator over IPC.
-        // We need to consume it and send events.
-        // But `handle` is request-response.
-        // I will throw error for now as "Not Implemented for IPC" or leave it out until requested.
-        throw new Error("Streaming not yet implemented over IPC");
-    } catch (error) {
-         console.error('AI Stream Error:', error);
-        throw error;
-    }
+  throw new Error('Streaming not yet implemented over IPC handle');
 });
 
 ipcMain.handle('ai:listModels', async (_, config: any) => {
-  try {
-    // Need to reconstruct config slightly as we did for generate
-    const providerType = config.provider || 'lmstudio';
-    let factoryConfig: any = {
-        type: providerType,
-        modelName: 'dummy' // Not used for listing but required by factory/constructor
-    };
-
-    if (providerType === 'lmstudio') {
-        factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
-    } else if (providerType === 'gemini') {
-        factoryConfig.apiKey = config.gemini?.apiKey;
-    } else if (providerType === 'openai') {
-        factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';
-        factoryConfig.apiKey = config.openai?.apiKey;
-    }
-
-    const provider = ProviderFactory.createProvider(factoryConfig);
-    return await provider.listModels();
-  } catch (error) {
-    console.error('AI List Models Error:', error);
-    // Return empty list on error
-    return [];
-  }
+  return AIService.getInstance().listModels(config);
 });
 
 ipcMain.handle('ai:chat', async (_, messages: any[], config: any) => {
-    try {
-        const providerType = config.provider || 'lmstudio';
-        let factoryConfig: any = {
-            type: providerType,
-            modelName: 'local-model'
-        };
-
-        if (providerType === 'lmstudio') {
-            factoryConfig.modelName = config.lmstudio?.model || 'local-model';
-            factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
-        } else if (providerType === 'gemini') {
-            factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
-            factoryConfig.apiKey = config.gemini?.apiKey;
-        } else if (providerType === 'openai') {
-            factoryConfig.modelName = config.openai?.model || 'gpt-3.5-turbo';
-            factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';
-            factoryConfig.apiKey = config.openai?.apiKey;
-        }
-
-        const provider = ProviderFactory.createProvider(factoryConfig);
-        return await provider.chat(messages);
-    } catch (error) {
-        console.error('AI Chat Error:', error);
-        throw error;
-    }
+  return AIService.getInstance().chat(messages, config);
 });
 
 ipcMain.handle('window:setTitle', (_, title: string) => {
@@ -441,86 +346,12 @@ ipcMain.handle('metadata:queryChatEnabled', async () => {
     return metadataService.queryChatEnabled();
 });
 
-ipcMain.on('ai:streamChat', async (event, messages: any[], config: any, personaId?: string) => {
-    try {
-        const providerType = config.provider || 'lmstudio';
-        let factoryConfig: any = {
-            type: providerType,
-            modelName: 'local-model'
-        };
-
-        if (providerType === 'lmstudio') {
-            factoryConfig.modelName = config.lmstudio?.model || 'local-model';
-            factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
-        } else if (providerType === 'gemini') {
-            factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
-            factoryConfig.apiKey = config.gemini?.apiKey;
-        } else if (providerType === 'openai') {
-            factoryConfig.modelName = config.openai?.model || 'gpt-3.5-turbo';
-            factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';
-            factoryConfig.apiKey = config.openai?.apiKey;
-        }
-
-        const provider = ProviderFactory.createProvider(factoryConfig);
-
-        // Inject system prompts
-        const apiMessages = [...messages];
-
-        // Add common prompt (novel editing context)
-        apiMessages.unshift({ role: 'system', content: COMMON_SYSTEM_PROMPT });
-
-        // Add persona prompt if specified
-        if (personaId) {
-            const staticPersona = PERSONAS.find(p => p.id === personaId);
-            if (staticPersona) {
-                apiMessages.unshift({ role: 'system', content: staticPersona.systemPrompt });
-            } else {
-                // Try dynamic persona from metadata
-                const character = await metadataService.findCharacterById(personaId);
-                if (character) {
-                    const charName =
-                        character.metadata.name ||
-                        path.basename(
-                            character.path,
-                            path.extname(character.path),
-                        );
-
-                    // Core identity prompt (placed at the top)
-                    apiMessages.unshift({
-                        role: 'system',
-                        content: `あなたは「${charName}」として振る舞ってください。提供された設定を遵守し、徹底的にそのキャラクターになりきって会話してください。`,
-                    });
-
-                    // Inject file content as background info
-                    const doc = await readDocument(character.path);
-                    if (doc.content) {
-                        apiMessages.unshift({
-                            role: 'system',
-                            content: `【キャラクター設定・背景情報】\n${doc.content}`,
-                        });
-                    }
-                    if (character.metadata.chat?.persona) {
-                        apiMessages.unshift({
-                            role: 'system',
-                            content: `【性格・口調設定】\n${character.metadata.chat.persona}`,
-                        });
-                    }
-                }
-            }
-        }
-
-        const stream = provider.streamChat(apiMessages);
-
-        for await (const chunk of stream) {
-            event.reply('ai:streamChat:data', chunk);
-        }
-        event.reply('ai:streamChat:end');
-
-    } catch (error) {
-        console.error('AI Stream Chat Error:', error);
-        event.reply('ai:streamChat:error', error instanceof Error ? error.message : String(error));
-    }
-});
+ipcMain.on(
+  'ai:streamChat',
+  async (event, messages: any[], config: any, personaId?: string) => {
+    AIService.getInstance().streamChat(event, messages, config, personaId);
+  },
+);
 
 
 

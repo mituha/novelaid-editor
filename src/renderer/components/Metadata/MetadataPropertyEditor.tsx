@@ -77,8 +77,8 @@ export function MetadataPropertyEditor({
     if (hasAny) {
       // Remove all tags associated with this group (case-insensitive)
       const groupLower = group.tags.map((t) => t.toLowerCase());
-      newTags = currentTags.filter((t) =>
-        !groupLower.includes(t.toLowerCase()),
+      newTags = currentTags.filter(
+        (t) => !groupLower.includes(t.toLowerCase()),
       );
     } else {
       // Add primary tag

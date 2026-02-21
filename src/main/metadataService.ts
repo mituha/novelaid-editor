@@ -9,8 +9,18 @@ export interface MetadataEntry {
 }
 
 export class MetadataService {
+  private static instance: MetadataService;
   private index: Map<string, Record<string, any>> = new Map();
   private projectRoot: string | null = null;
+
+  private constructor() {}
+
+  public static getInstance(): MetadataService {
+    if (!MetadataService.instance) {
+      MetadataService.instance = new MetadataService();
+    }
+    return MetadataService.instance;
+  }
 
   queryByPath(filePath: string): Record<string, any> | undefined {
     return this.index.get(filePath);
