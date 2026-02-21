@@ -51,12 +51,14 @@ const ignoreCache = new Map<string, { mtime: number; instance: any }>();
  */
 export async function getLanguageForFile(filePath: string): Promise<string> {
     const ext = path.extname(filePath).toLowerCase();
+    if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(ext)) return 'image';
     if (ext === '.txt') return 'novel';
     if (ext !== '.md' && ext !== '.markdown') return 'markdown';
 
     // .md / .markdown の場合、.novelignore をチェック
     const projectRoot = await findProjectRoot(filePath);
     if (!projectRoot) return 'novel'; // デフォルトは novel
+
 
     const ignorePath = path.join(projectRoot, '.novelignore');
     try {
@@ -88,10 +90,10 @@ export async function getLanguageForFile(filePath: string): Promise<string> {
 }
 
 export async function readDocument(filePath: string): Promise<DocumentData> {
-  const content = await fs.readFile(filePath, 'utf-8');
   const language = await getLanguageForFile(filePath);
 
   if (language === 'markdown' || language === 'novel') {
+    const content = await fs.readFile(filePath, 'utf-8');
     const { data, content: body } = matter(content);
 
     // Calculate line offset if frontmatter exists
@@ -105,8 +107,10 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
     };
   }
 
+  // Handle images or other files: body is just null or path, metadata is empty
+  // For images, we don't actually need to read the content as text
   return {
-    content,
+    content: '',
     metadata: {},
     language,
   };

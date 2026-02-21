@@ -8,7 +8,9 @@ import {
   FilePlus,
   FolderPlus,
   BookText,
+  Image as ImageIcon,
 } from 'lucide-react';
+
 import * as LucideIcons from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
@@ -240,7 +242,9 @@ function FileTreeItem({
     }
     if (node.name.endsWith('.json')) return <FileJson size={16} />;
     if (node.language === 'novel') return <BookText size={16} />;
+    if (node.language === 'image') return <ImageIcon size={16} />;
     return <FileText size={16} />;
+
   };
 
   const handleDragStart = (e: React.DragEvent) => {

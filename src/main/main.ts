@@ -29,7 +29,7 @@ import { MetadataService } from './metadataService';
 import { CalibrationService } from './calibration/CalibrationService';
 import { AIService } from './ai/AIService';
 
-console.log('--- [MAIN] TOP-LEVEL EXECUTION STARTING ---');
+
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'local-file',
@@ -633,23 +633,18 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
-    console.log('--- [MAIN] APP.WHENREADY() TRIGGERED ---');
     log.info('Main: app.whenReady() triggered');
 
 
 
-    // Register custom protocols
+// Register custom protocols
     const RESOURCES_PATH = app.isPackaged
       ? path.join(process.resourcesPath, 'assets')
       : path.join(__dirname, '../../assets');
 
-    console.log('--- [MAIN] REGISTERING local-file HANDLER ---');
     protocol.handle('local-file', (request) => {
-      console.log('--- [MAIN] local-file REQUEST RECEIVED:', request.url);
-      log.info('local-file request:', request.url);
-
-
       try {
+
         // Manually extract path to avoid URL pathname normalization issues
         let filePath = request.url.replace(/^local-file:\/\/+/, '');
         filePath = decodeURIComponent(filePath);

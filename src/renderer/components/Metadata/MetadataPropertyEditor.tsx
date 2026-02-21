@@ -211,20 +211,11 @@ export function MetadataPropertyEditor({
           <div className="icon-preview-container">
             {(() => {
               const icon = metadata.icon || {};
-              if (icon.value) {
-                console.log('MetadataPropertyEditor icon preview:', icon);
-              }
               if (icon.type === 'lucide' && icon.value) {
                 const LucideIcon = (LucideIcons as any)[icon.value];
                 if (LucideIcon) return <LucideIcon size={24} />;
               }
               if (icon.value && (icon.type === 'local' || icon.type === 'url')) {
-                console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-                console.error('!!! ICON RENDER DEBUG V4 !!!');
-                console.error('Icon value:', icon.value);
-                console.error('Icon type:', icon.type);
-
-                console.log('Icon path:', icon.value);
                 let src = icon.value;
                 const isAbsolute =
                   icon.value.startsWith('/') || /^[a-zA-Z]:/.test(icon.value);
@@ -235,7 +226,6 @@ export function MetadataPropertyEditor({
                     .map((segment: string) => encodeURIComponent(segment))
                     .join('/');
                   src = `local-file:///${encodedPath}`;
-                  console.log('Formatted local-file URL:', src);
                 } else {
                   src = `../../../../${icon.value}`;
                 }

@@ -59,17 +59,14 @@ export class MetadataService {
 
   async updateFileIndex(filePath: string) {
     try {
-      console.log(`[MetadataService] Updating index for ${filePath}`);
       const { metadata } = await readDocument(filePath);
       if (Object.keys(metadata).length > 0) {
         this.index.set(filePath, metadata);
-        console.log(`[MetadataService] Indexed ${filePath} with tags: ${JSON.stringify(metadata.tags)}`);
       } else {
         this.index.delete(filePath);
-        console.log(`[MetadataService] Removed ${filePath} from index (no metadata)`);
       }
     } catch (error) {
-      console.error(`[MetadataService] Failed to index file ${filePath}:`, error);
+      // Ignore errors for non-existent or unreadable files
     }
   }
 
