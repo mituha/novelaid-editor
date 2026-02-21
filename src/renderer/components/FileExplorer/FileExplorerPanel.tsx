@@ -44,6 +44,9 @@ function FileTreeItem({
   setNewChildName,
   handleCreateChild,
   setCreatingPath,
+  renamingPath,
+  setRenamingPath,
+  onRefreshItem,
 }: {
   file: FileNode;
   onFileSelect: (path: string, data: any) => void;
@@ -57,11 +60,14 @@ function FileTreeItem({
   setNewChildName: (val: string) => void;
   handleCreateChild: (e: React.KeyboardEvent, onDone?: () => void) => void;
   setCreatingPath: (path: string | null) => void;
+  renamingPath: string | null;
+  setRenamingPath: (path: string | null) => void;
+  onRefreshItem: (path: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [children, setChildren] = useState<FileNode[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
+  const isRenaming = renamingPath === file.path;
   const [newName, setNewName] = useState(file.name);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -108,7 +114,7 @@ function FileTreeItem({
       const parent = normalizedPath.substring(0, lastSep);
 
       if (parent === normalizedSelf) {
-        loadDirectory();
+        loadDirectory().catch(() => {});
       }
     });
 
@@ -163,33 +169,17 @@ function FileTreeItem({
           file.path,
           newPath,
         );
-        setIsRenaming(false);
+        setRenamingPath(null);
         onRefresh();
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error('Failed to rename', err);
       }
     } else if (e.key === 'Escape') {
-      setIsRenaming(false);
+      setRenamingPath(null);
       setNewName(file.name);
     }
   };
-
-  const handleDelete = useCallback(async () => {
-    const confirmed = await window.electron.ipcRenderer.invoke(
-      'dialog:confirm',
-      `${file.name} を削除しますか？`,
-    );
-    if (confirmed) {
-      try {
-        await window.electron.ipcRenderer.invoke('fs:delete', file.path);
-        onRefresh();
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to delete', err);
-      }
-    }
-  }, [file.name, file.path, onRefresh]);
 
   const handleContextMenu = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -207,22 +197,10 @@ function FileTreeItem({
   };
 
   useEffect(() => {
-    const cleanup = window.electron.ipcRenderer.on(
-      'file-explorer:action',
-      (action: any) => {
-        if ((window as any).lastContextPath === file.path) {
-          if (action === 'rename') {
-            setIsRenaming(true);
-          } else if (action === 'delete') {
-            handleDelete();
-          }
-        }
-      },
-    );
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [file.path, handleDelete]);
+    if (isRenaming) {
+      setNewName(file.name);
+    }
+  }, [isRenaming, file.name]);
 
   const handleLocalCreate = (e: React.KeyboardEvent) => {
     handleCreateChild(e, loadDirectory);
@@ -280,7 +258,10 @@ function FileTreeItem({
     if (!srcPath || srcPath === file.path) return;
 
     // Check if dropping onto a subfolder of itself
-    if (srcPath.startsWith(file.path + '/') || srcPath.startsWith(file.path + '\\')) {
+    if (
+      srcPath.startsWith(`${file.path}/`) ||
+      srcPath.startsWith(`${file.path}\\`)
+    ) {
       return;
     }
 
@@ -321,12 +302,13 @@ function FileTreeItem({
         } ${file.name.startsWith('.') ? 'hidden-item' : ''} ${
           isDragOver ? 'drag-over' : ''
         }`}
-        style={{ paddingLeft: `${BASE_INDENT + level * INDENT_STEP}px` }}
+        style={{
+          paddingLeft: `${BASE_INDENT + level * INDENT_STEP}px`,
+        }}
       >
         <span className="chevron">
-          {file.isDirectory ? (
-            isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />
-          ) : null}
+          {file.isDirectory && isOpen && <ChevronDown size={14} />}
+          {file.isDirectory && !isOpen && <ChevronRight size={14} />}
         </span>
         <span className="icon">
           {file.isDirectory ? (
@@ -347,7 +329,7 @@ function FileTreeItem({
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={handleRename}
             onBlur={() => {
-              setIsRenaming(false);
+              setRenamingPath(null);
               setNewName(file.name);
             }}
             onClick={(e) => e.stopPropagation()}
@@ -363,10 +345,12 @@ function FileTreeItem({
               role="button"
               tabIndex={0}
               className="file-item"
-              style={{ paddingLeft: `${BASE_INDENT + (level + 1) * INDENT_STEP}px` }}
-              onKeyDown={() => {}}
-              onClick={(e) => e.stopPropagation()}
-            >
+            style={{
+              paddingLeft: `${BASE_INDENT + (level + 1) * INDENT_STEP}px`,
+            }}
+            onKeyDown={() => {}}
+            onClick={(e) => e.stopPropagation()}
+          >
               <span className="chevron" />
               <span className="icon">
                 {creatingType === 'file' ? (
@@ -404,6 +388,9 @@ function FileTreeItem({
               setNewChildName={setNewChildName}
               handleCreateChild={handleCreateChild}
               setCreatingPath={setCreatingPath}
+              renamingPath={renamingPath}
+              setRenamingPath={setRenamingPath}
+              onRefreshItem={onRefreshItem}
             />
           ))}
         </div>
@@ -420,6 +407,7 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
   const [creatingType, setCreatingType] = useState<'file' | 'folder' | null>(
     null,
   );
+  const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const { currentDir } = useGit();
 
@@ -463,7 +451,7 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
       const parent = normalizedPath.substring(0, lastSep);
 
       if (parent === normalizedRoot) {
-        refreshRoot();
+        refreshRoot().catch(() => {});
       }
     });
 
@@ -471,6 +459,42 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
       cleanup();
     };
   }, [currentDir, refreshRoot]);
+
+  const handleDelete = useCallback(async (path: string) => {
+    const fileName = path.split(/[/\\]/).pop();
+    const confirmed = await window.electron.ipcRenderer.invoke(
+      'dialog:confirm',
+      `${fileName} を削除しますか？`,
+    );
+    if (confirmed) {
+      try {
+        await window.electron.ipcRenderer.invoke('fs:delete', path);
+        refreshRoot();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to delete', err);
+      }
+    }
+  }, [refreshRoot]);
+
+  useEffect(() => {
+    const cleanup = window.electron.ipcRenderer.on(
+      'file-explorer:action',
+      (action: any) => {
+        const path = (window as any).lastContextPath;
+        if (!path) return;
+
+        if (action === 'rename') {
+          setRenamingPath(path);
+        } else if (action === 'delete') {
+          handleDelete(path);
+        }
+      },
+    );
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [handleDelete]);
 
   const handleSelect = useCallback((path: string, isDirectory: boolean) => {
     setSelectedPath(path);
@@ -536,7 +560,16 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
 
   return (
     <div className="file-explorer" onClick={() => setSelectedPath(null)}>
-      <div className="explorer-header" role="presentation" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="explorer-header"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.stopPropagation();
+          }
+        }}
+      >
         {currentDir && (
           <div className="explorer-actions">
             <button
@@ -604,6 +637,9 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
             setNewChildName={setNewName}
             handleCreateChild={handleCreate}
             setCreatingPath={setCreatingPath}
+            renamingPath={renamingPath}
+            setRenamingPath={setRenamingPath}
+            onRefreshItem={() => refreshRoot()}
           />
         ))}
       </div>
