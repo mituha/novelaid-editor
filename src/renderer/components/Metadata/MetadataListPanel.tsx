@@ -23,6 +23,11 @@ interface MetadataListPanelProps {
   fixedTag?: string | string[];
 }
 
+const defaultProps = {
+  fixedTitle: '',
+  fixedTag: '',
+};
+
 export default function MetadataListPanel({
   onFileSelect,
   fixedTag = '',
@@ -45,9 +50,13 @@ export default function MetadataListPanel({
     if (fixedTag) {
       try {
         // Support CSV if its a string
-        const tags = typeof fixedTag === 'string'
-          ? fixedTag.split(',').map(t => t.trim()).filter(Boolean)
-          : fixedTag;
+        const tags =
+          typeof fixedTag === 'string'
+            ? fixedTag
+                .split(',')
+                .map((t) => t.trim())
+                .filter(Boolean)
+            : fixedTag;
 
         const entries = await window.electron.metadata.queryByTag(tags);
         newResults.fixed = entries;
@@ -61,7 +70,10 @@ export default function MetadataListPanel({
           if (list.tag) {
             try {
               // Support CSV tags in custom lists too
-              const tags = list.tag.split(',').map(t => t.trim()).filter(Boolean);
+              const tags = list.tag
+                .split(',')
+                .map((t) => t.trim())
+                .filter(Boolean);
               const entries =
                 await window.electron.metadata.queryByTag(tags);
               newResults[list.id] = entries;
@@ -87,6 +99,8 @@ export default function MetadataListPanel({
   // Re-fetch on scan progress or completion
   useEffect(() => {
     if (!isScanning || scanProgress === 100) {
+      // eslint-disable-next-line no-console
+      console.log(`[MetadataListPanel] Triggering fetchResults. isScanning: ${isScanning}, progress: ${scanProgress}`);
       fetchResults();
     }
   }, [isScanning, scanProgress, fetchResults]);
@@ -238,6 +252,8 @@ export default function MetadataListPanel({
     </div>
   );
 }
+
+MetadataListPanel.defaultProps = defaultProps;
 
 export const charactersPanelConfig: Panel = {
   id: 'characters',

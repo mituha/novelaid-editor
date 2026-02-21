@@ -30,11 +30,11 @@ export const MetadataProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     if (!window.electron?.ipcRenderer) return;
 
-    const handleProgress = (_event: any, ...args: any[]) => {
-      const data = args[0] as { progress: number; status: string };
-      setIsScanning(data.progress < 100);
-      setScanProgress(data.progress);
-      setScanStatus(data.status);
+    const handleProgress = (data: any) => {
+      const { progress, status } = data as { progress: number; status: string };
+      setIsScanning(progress < 100);
+      setScanProgress(progress);
+      setScanStatus(status);
     };
 
     window.electron.ipcRenderer.on('metadata:scan-progress', handleProgress);

@@ -119,9 +119,23 @@ export class MetadataService {
 
   public isIgnored(filePath: string): boolean {
     if (!this.projectRoot) return false;
+
+    // Use absolute paths and normalize them for comparison
+    const absPath = path.resolve(filePath);
+    const absRoot = path.resolve(this.projectRoot);
+
+    // If file is not under project root, it's not "ignored" in the project sense,
+    // but we shouldn't scan it either.
+    if (!absPath.toLowerCase().startsWith(absRoot.toLowerCase())) {
+      return true;
+    }
+
     const relativePath = path
-      .relative(this.projectRoot, filePath)
+      .relative(absRoot, absPath)
       .replace(/\\/g, '/');
+
+    // Skip .novelaid directory itself if not already handled
+    if (relativePath.startsWith('.novelaid/')) return true;
 
     for (const pattern of this.ignoreList) {
       // Basic folder ignore: pattern/
@@ -178,10 +192,11 @@ export class MetadataService {
     const normalizedTargets = targetTags.map((t) => t.toLowerCase());
 
     for (const [filePath, metadata] of this.index.entries()) {
-      const fileTags = metadata.tags;
-      if (!fileTags) continue;
+      // Support both 'tags' and 'tag' (singular)
+      const fileTagsRaw = metadata.tags || metadata.tag;
+      if (!fileTagsRaw) continue;
 
-      const fileTagArray = (Array.isArray(fileTags) ? fileTags : [fileTags])
+      const fileTagArray = (Array.isArray(fileTagsRaw) ? fileTagsRaw : [fileTagsRaw])
         .filter((t): t is string => typeof t === 'string')
         .map((t) => t.toLowerCase());
 
@@ -195,6 +210,7 @@ export class MetadataService {
         });
       }
     }
+    console.log(`[MetadataService] queryByTag(${targetTags.join(',')}) -> Found ${results.length} results`);
     return results;
   }
 
@@ -209,6 +225,7 @@ export class MetadataService {
         });
       }
     }
+    console.log(`[MetadataService] queryChatEnabled() -> Found ${results.length} results`);
     return results;
   }
 
