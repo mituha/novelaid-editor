@@ -281,3 +281,15 @@
   white-space: nowrap;
   letter-spacing: 0.5px;
 }
+
+/* Ruby and Bouten styles */
+.message-bubble ruby rt {
+  font-size: 0.55em;
+  color: var(--text-secondary);
+}
+
+.message-bubble .bouten {
+  text-emphasis: filled dot;
+  -webkit-text-emphasis: filled dot;
+  text-emphasis-color: var(--accent-color);
+}

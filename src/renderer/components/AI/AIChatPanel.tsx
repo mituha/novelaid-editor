@@ -17,6 +17,7 @@ import {
   CHAT_ROLES,
 } from '../../../common/constants/personas';
 import './AIChatPanel.css';
+import NovelMarkdown from './NovelMarkdown';
 
 interface MessagePart {
   type: 'text' | 'thought' | 'tool_call' | 'error';
@@ -498,9 +499,7 @@ export default function AIChatPanel({
                                 key={`part-text-${msg.id}-${part.type}-${index}`}
                                 className="message-text"
                               >
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                  {part.content}
-                                </ReactMarkdown>
+                                <NovelMarkdown content={part.content} />
                               </div>
                             ),
                           )}
