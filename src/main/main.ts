@@ -478,18 +478,31 @@ ipcMain.on('ai:streamChat', async (event, messages: any[], config: any, personaI
                 // Try dynamic persona from metadata
                 const character = await metadataService.findCharacterById(personaId);
                 if (character) {
+                    const charName =
+                        character.metadata.name ||
+                        path.basename(
+                            character.path,
+                            path.extname(character.path),
+                        );
+
+                    // Core identity prompt (placed at the top)
+                    apiMessages.unshift({
+                        role: 'system',
+                        content: `あなたは「${charName}」として振る舞ってください。提供された設定を遵守し、徹底的にそのキャラクターになりきって会話してください。`,
+                    });
+
                     // Inject file content as background info
                     const doc = await readDocument(character.path);
                     if (doc.content) {
                         apiMessages.unshift({
                             role: 'system',
-                            content: `以下のキャラクター設定を参考にしてロールプレイしてください：\n\n${doc.content}`
+                            content: `【キャラクター設定・背景情報】\n${doc.content}`,
                         });
                     }
                     if (character.metadata.chat?.persona) {
                         apiMessages.unshift({
                             role: 'system',
-                            content: `口調設定：\n${character.metadata.chat.persona}`
+                            content: `【性格・口調設定】\n${character.metadata.chat.persona}`,
                         });
                     }
                 }
