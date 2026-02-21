@@ -64,7 +64,7 @@ export class GeminiProvider extends BaseProvider {
       },
     });
 
-    for await (const chunk of stream.stream) {
+    for await (const chunk of stream) {
       const parts = chunk.candidates?.[0]?.content?.parts;
       if (parts) {
         for (const part of parts) {
@@ -98,7 +98,7 @@ export class GeminiProvider extends BaseProvider {
       },
     });
 
-    for await (const chunk of stream.stream) {
+    for await (const chunk of stream) {
       const parts = chunk.candidates?.[0]?.content?.parts;
       if (parts) {
         for (const part of parts) {
@@ -109,16 +109,21 @@ export class GeminiProvider extends BaseProvider {
           }
         }
       } else {
-        const text = chunk.text();
+        const text = chunk.text;
         if (text) yield { content: text, type: 'text' };
       }
     }
   }
 
   async listModels(): Promise<string[]> {
+    // https://ai.google.dev/gemini-api/docs/models
+    // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/provisioned-throughput/supported-models?hl=ja
     return [
       'gemini-3-flash',        // 最新：高速・高性能
+      'gemini-3-flash-preview',
       'gemini-3-pro',         // 最新：高知能・推論重視
+      'gemini-2.5-pro',
+      'gemini-2.5-flash',
       'gemini-2.0-flash-exp', // 2.0世代の高速版
       'gemini-1.5-pro',       // 1.5世代の安定版（長文コンテキストに強い）
       'gemini-1.5-flash',     // 1.5世代の軽量版
