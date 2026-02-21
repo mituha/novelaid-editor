@@ -31,7 +31,10 @@ export class AIService {
       if (providerType === 'lmstudio') {
         factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
       } else if (providerType === 'gemini') {
-        factoryConfig.apiKey = config.gemini?.apiKey;
+        factoryConfig.apiKey =
+          config.gemini?.apiKey ||
+          process.env.GOOGLE_API_KEY ||
+          process.env.GEMINI_API_KEY;
       } else if (providerType === 'openai') {
         factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';
         factoryConfig.apiKey = config.openai?.apiKey;
@@ -115,7 +118,10 @@ export class AIService {
       factoryConfig.baseUrl = config.lmstudio?.baseUrl || 'ws://localhost:1234';
     } else if (providerType === 'gemini') {
       factoryConfig.modelName = config.gemini?.model || 'gemini-1.5-flash';
-      factoryConfig.apiKey = config.gemini?.apiKey;
+      factoryConfig.apiKey =
+        config.gemini?.apiKey ||
+        process.env.GOOGLE_API_KEY ||
+        process.env.GEMINI_API_KEY;
     } else if (providerType === 'openai') {
       factoryConfig.modelName = config.openai?.model || 'gpt-3.5-turbo';
       factoryConfig.baseUrl = config.openai?.baseUrl || 'http://localhost:1234/v1';

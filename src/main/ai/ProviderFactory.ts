@@ -23,10 +23,7 @@ export class ProviderFactory {
       case 'lmstudio':
         return new LMStudioProvider(config.modelName, config.baseUrl);
       case 'gemini':
-        if (!config.apiKey) {
-          throw new Error('API key is required for Gemini provider');
-        }
-        return new GeminiProvider(config.apiKey, config.modelName);
+        return new GeminiProvider(config.modelName, config.apiKey || '');
       case 'openai':
         if (!config.baseUrl) {
             throw new Error('Base URL is required for OpenAI provider');
