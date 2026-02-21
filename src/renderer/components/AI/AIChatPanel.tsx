@@ -5,7 +5,11 @@ import { MessageSquare, Bot } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
-import { PERSONAS, Persona } from '../../../common/constants/personas';
+import {
+  PERSONAS,
+  Persona,
+  CHAT_ROLES,
+} from '../../../common/constants/personas';
 import './AIChatPanel.css';
 
 interface MessagePart {
@@ -107,6 +111,7 @@ export default function AIChatPanel({
   const [isStreaming, setIsStreaming] = useState(false);
   const [includeContext, setIncludeContext] = useState(true);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>(''); // Empty means "None"
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('assistant');
   const [dynamicPersonas, setDynamicPersonas] = useState<DynamicPersona[]>([]);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -306,6 +311,7 @@ export default function AIChatPanel({
       apiMessages,
       settings.ai || {},
       selectedPersonaId,
+      selectedRoleId,
     );
   };
 
@@ -347,6 +353,7 @@ export default function AIChatPanel({
           <select
             value={selectedPersonaId}
             onChange={(e) => setSelectedPersonaId(e.target.value)}
+            title="会話の相手（ペルソナ）を選択します"
           >
             <option value="">ペルソナなし</option>
             {PERSONAS.map((p) => (
@@ -364,6 +371,20 @@ export default function AIChatPanel({
                 ))}
               </>
             )}
+          </select>
+        </div>
+        <div className="role-selector">
+          <LucideIcons.UserSquare2 size={20} />
+          <select
+            value={selectedRoleId}
+            onChange={(e) => setSelectedRoleId(e.target.value)}
+            title="AIの役割（視点）を選択します"
+          >
+            {CHAT_ROLES.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>

@@ -20,13 +20,21 @@
   z-index: 10;
 }
 
-.persona-selector {
+.persona-selector,
+.role-selector {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.persona-selector select {
+.role-selector {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid #444;
+}
+
+.persona-selector select,
+.role-selector select {
   background-color: #2d2d2d;
   color: #fff;
   border: 1px solid #444;
@@ -37,7 +45,8 @@
   transition: all 0.2s;
 }
 
-.persona-selector select:focus {
+.persona-selector select:focus,
+.role-selector select:focus {
   outline: none;
   border-color: #007acc;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.3);

@@ -1,7 +1,7 @@
 import { IpcMainEvent } from 'electron';
 import path from 'path';
 import { ProviderFactory } from './ProviderFactory';
-import { PERSONAS, COMMON_SYSTEM_PROMPT } from '../../common/constants/personas';
+import { PERSONAS, CHAT_ROLES } from '../../common/constants/personas';
 import { MetadataService } from '../metadataService';
 import { readDocument } from '../metadata';
 
@@ -79,10 +79,11 @@ export class AIService {
     messages: any[],
     config: any,
     personaId?: string,
+    roleId?: string,
   ): Promise<void> {
     try {
       const provider = this.createProvider(config);
-      const apiMessages = await this.prepareMessages(messages, personaId);
+      const apiMessages = await this.prepareMessages(messages, personaId, roleId);
 
       const stream = provider.streamChat(apiMessages);
 
@@ -127,11 +128,19 @@ export class AIService {
   /**
    * Helper to prepare messages with system prompts and persona settings
    */
-  private async prepareMessages(messages: any[], personaId?: string): Promise<any[]> {
+  private async prepareMessages(
+    messages: any[],
+    personaId?: string,
+    roleId?: string,
+  ): Promise<any[]> {
     const apiMessages = [...messages];
 
-    // Add common prompt (novel editing context)
-    apiMessages.unshift({ role: 'system', content: COMMON_SYSTEM_PROMPT });
+    // Get role-specific system prompt
+    const targetRoleId = roleId || 'assistant';
+    const role = CHAT_ROLES.find((r) => r.id === targetRoleId) || CHAT_ROLES[0];
+
+    // Add role system prompt
+    apiMessages.unshift({ role: 'system', content: role.systemPrompt });
 
     // Add persona prompt if specified
     if (personaId) {
