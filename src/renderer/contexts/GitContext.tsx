@@ -3,8 +3,10 @@ import React, {
   useContext,
   useState,
   useCallback,
+  useMemo,
   ReactNode,
 } from 'react';
+import { useSettings } from './SettingsContext';
 import { GitFileStatus, GitLogEntry } from '../../main/git/interface';
 
 interface GitContextType {
@@ -38,14 +40,20 @@ interface GitProviderProps {
 }
 
 export function GitContextProvider({ children }: GitProviderProps) {
+  const { projectPath } = useSettings();
   const [status, setStatus] = useState<GitFileStatus[]>([]);
   const [history, setHistory] = useState<GitLogEntry[]>([]);
-  const [currentDir, setCurrentDirState] = useState<string | null>(null);
   const [remotes, setRemotes] = useState<string[]>([]);
   const [currentBranch, setCurrentBranchState] = useState<string>('');
 
-  const setCurrentDir = useCallback((dir: string) => {
-    setCurrentDirState(dir);
+  const currentDir = projectPath;
+
+  const setCurrentDir = useCallback(() => {
+    // projectPath is now the source of truth
+    // eslint-disable-next-line no-console
+    console.warn(
+      'setCurrentDir is deprecated in GitContext. Use loadProjectSettings instead.',
+    );
   }, []);
 
   const refreshStatus = useCallback(async () => {
@@ -102,7 +110,11 @@ export function GitContextProvider({ children }: GitProviderProps) {
   const commitChanges = useCallback(
     async (message: string) => {
       if (!currentDir) return;
-      await window.electron.git.commit(currentDir, message);
+      await window.electron.ipcRenderer.invoke(
+        'git:commit',
+        currentDir,
+        message,
+      );
       await refreshStatus();
       await refreshHistory();
     },
@@ -111,11 +123,11 @@ export function GitContextProvider({ children }: GitProviderProps) {
 
   const pushChanges = useCallback(
     async (remote: string) => {
-        if (!currentDir || !currentBranch) return;
-        await window.electron.git.push(currentDir, remote, currentBranch);
-        await refreshHistory(); // Refresh history to reflect push status if we tracked it
+      if (!currentDir || !currentBranch) return;
+      await window.electron.git.push(currentDir, remote, currentBranch);
+      await refreshHistory();
     },
-    [currentDir, currentBranch, refreshHistory]
+    [currentDir, currentBranch, refreshHistory],
   );
 
   React.useEffect(() => {
@@ -123,12 +135,10 @@ export function GitContextProvider({ children }: GitProviderProps) {
     const cleanup = window.electron.fs.onFileChange(() => {
       refreshStatus();
     });
-    return () => {
-      cleanup();
-    };
+    return () => cleanup();
   }, [currentDir, refreshStatus]);
 
-  const value = React.useMemo(
+  const value = useMemo(
     () => ({
       status,
       history,

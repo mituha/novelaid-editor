@@ -89,49 +89,55 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
   undefined,
 );
 
+const DEFAULT_SETTINGS: ProjectConfig = {
+  theme: 'dark',
+  editor: {
+    fontSize: 14,
+    showLineNumbers: true,
+    showMinimap: true,
+    wordWrap: 'on',
+    selectionHighlight: true,
+    occurrencesHighlight: false,
+    renderWhitespace: 'all',
+    renderControlCharacters: true,
+    showFullWidthSpace: true,
+    defaultFileExtension: 'md',
+  },
+  submission: {
+    kakuyomuUrl: 'https://kakuyomu.jp/my',
+    naroUrl: 'https://syosetu.com/usernovel/list/',
+  },
+  calibration: {
+    textlint: true,
+    noDroppingTheRa: true,
+    noDoubledJoshi: true,
+    jaSpacing: true,
+    kanjiOpenClose: true,
+  },
+};
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<ProjectConfig>({
-    theme: 'dark',
-    editor: {
-      fontSize: 14,
-      showLineNumbers: true,
-      showMinimap: true,
-      wordWrap: 'on',
-      selectionHighlight: true,
-      occurrencesHighlight: false, // 小説執筆としては不要
-      renderWhitespace: 'all',
-      renderControlCharacters: true,
-      showFullWidthSpace: true,
-      defaultFileExtension: 'md',
-    },
-    submission: {
-      kakuyomuUrl: 'https://kakuyomu.jp/my',
-      naroUrl: 'https://syosetu.com/usernovel/list/',
-    },
-    calibration: {
-      textlint: true,
-      noDroppingTheRa: true,
-      noDoubledJoshi: true,
-      jaSpacing: true,
-      kanjiOpenClose: true,
-    },
-  });
+  const [settings, setSettings] = useState<ProjectConfig>(DEFAULT_SETTINGS);
   const [settingTabs, setSettingTabs] = useState<SettingsTab[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [projectPath, setProjectPath] = useState<string | null>(null); // eslint-disable-line space-in-parens
 
   const loadProjectSettings = useCallback(async (path: string) => {
-    setProjectPath(path);
     try {
       const result = await window.electron.ipcRenderer.invoke(
         'project:load',
         path,
       );
       if (result && result.config) {
-        setSettings((prev) => ({ ...prev, ...result.config }));
+        // Reset to defaults first, then apply new config
+        setSettings({ ...DEFAULT_SETTINGS, ...result.config });
+      } else {
+        // If not a project or failed to load, just use defaults
+        setSettings(DEFAULT_SETTINGS);
       }
-      // Plugins could be handled here too
+      setProjectPath(path);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to load project settings:', error);
     }
   }, []);
@@ -144,6 +150,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           window.electron.ipcRenderer
             .invoke('project:save-config', projectPath, updated)
             .catch((err) => {
+              // eslint-disable-next-line no-console
               console.error('Failed to save config:', err);
             });
         }

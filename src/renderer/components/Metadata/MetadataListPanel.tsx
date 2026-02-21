@@ -24,10 +24,9 @@ interface MetadataListPanelProps {
 
 export default function MetadataListPanel({
   onFileSelect,
-  fixedTitle = '',
   fixedTag = '',
 }: MetadataListPanelProps) {
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, projectPath } = useSettings();
   const [lists, setLists] = useState<ListConfig[]>(
     fixedTag ? [] : settings.metadataLists || [],
   );
@@ -81,7 +80,15 @@ export default function MetadataListPanel({
       fetchResults();
     });
     return () => cleanup();
-  }, [fetchResults]);
+  }, [fetchResults, projectPath]);
+
+  // Sync lists state when project changes or settings update
+  useEffect(() => {
+    if (!fixedTag) {
+      setLists(settings.metadataLists || []);
+      setResults({}); // Explicitly clear results when settings or projectPath changes
+    }
+  }, [settings.metadataLists, fixedTag, projectPath]);
 
   const handleAddList = () => {
     if (fixedTag || !newList.title || !newList.tag) return;

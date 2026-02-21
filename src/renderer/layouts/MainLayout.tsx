@@ -82,7 +82,18 @@ export default function MainLayout() {
     }
 
     const restore = async () => {
+      const previousProject = restoredRef.current;
       restoredRef.current = projectPath;
+
+      // If switching to a NEW project, clear current tabs first
+      if (previousProject && previousProject !== projectPath) {
+        setLeftTabs([]);
+        setRightTabs([]);
+        setLeftActivePath(null);
+        setRightActivePath(null);
+        setTabContents({});
+      }
+
       const {
         left,
         right,

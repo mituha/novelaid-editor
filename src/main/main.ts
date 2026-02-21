@@ -243,11 +243,12 @@ ipcMain.handle('fs:delete', async (_, targetPath: string) => {
 ipcMain.handle('project:load', async (_, projectPath: string) => {
   activeProjectPath = projectPath;
   const project = await loadProject(projectPath);
-  if (project) {
-    fileWatcher.start(projectPath);
-    await metadataService.scanProject(projectPath);
-    await CalibrationService.getInstance().loadCustomRules(projectPath);
-  }
+
+  // Always start watcher and scan, regardless of whether it's a formal project
+  fileWatcher.start(projectPath);
+  await metadataService.scanProject(projectPath);
+  await CalibrationService.getInstance().loadCustomRules(projectPath);
+
   return project;
 });
 

@@ -102,7 +102,7 @@ export default function AIChatPanel({
   activeContent = '',
   activePath = null,
 }: AIChatPanelProps) {
-  const { settings } = useSettings();
+  const { settings, projectPath } = useSettings();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [includeContext, setIncludeContext] = useState(true);
@@ -168,7 +168,12 @@ export default function AIChatPanel({
       fetchDynamicPersonas();
     });
     return () => cleanup();
-  }, [fetchDynamicPersonas]);
+  }, [fetchDynamicPersonas, projectPath]);
+
+  // Clear dynamic personas when project changes
+  useEffect(() => {
+    setDynamicPersonas([]);
+  }, [projectPath]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);

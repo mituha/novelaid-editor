@@ -14,7 +14,7 @@ interface RecentProject {
 
 export default function ProjectLauncher() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
-  const { currentDir, setCurrentDir } = useGit();
+  const { currentDir } = useGit();
   const { loadProjectSettings } = useSettings();
   const { version, setActiveProject } = useApp();
   const navigate = useNavigate();
@@ -40,18 +40,12 @@ export default function ProjectLauncher() {
 
   const openProject = useCallback(
     async (path: string) => {
-      if (currentDir === path) {
-        navigate('/editor');
-        return;
-      }
-
       await window.electron?.ipcRenderer.invoke('recent:add', path);
-      setCurrentDir(path);
       setActiveProject(path);
       await loadProjectSettings(path);
       navigate('/editor');
     },
-    [currentDir, setCurrentDir, setActiveProject, loadProjectSettings, navigate],
+    [setActiveProject, loadProjectSettings, navigate],
   );
 
   useEffect(() => {
