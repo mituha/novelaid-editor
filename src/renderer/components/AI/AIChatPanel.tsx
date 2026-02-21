@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { MessageSquare, Bot, Sparkles } from 'lucide-react';
+import { MessageSquare, Bot } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
@@ -17,14 +17,81 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   parts: MessagePart[];
-  displayContent?: string; // For user message display
-  personaId?: string; // ID of the persona that sent this (if assistant)
+  displayContent?: string;
+  personaId?: string;
+  timestamp: number;
 }
 
 interface DynamicPersona extends Persona {
   path: string;
   metadata: Record<string, any>;
 }
+
+function PersonaIcon({
+  persona,
+  size = 36,
+}: {
+  persona?: Persona;
+  size?: number;
+}) {
+  const [imgError, setImgError] = useState(false);
+
+  const fallback = (
+    <div className="persona-icon-default" style={{ width: size, height: size }}>
+      <Bot size={size * 0.7} />
+    </div>
+  );
+
+  if (!persona || imgError) return fallback;
+
+  const { icon } = persona;
+  if (icon.type === 'lucide') {
+    const LucideIcon = (LucideIcons as any)[icon.value] || Bot;
+    return (
+      <div
+        className="persona-icon-lucide"
+        style={{ width: size, height: size }}
+      >
+        <LucideIcon size={size * 0.7} />
+      </div>
+    );
+  }
+
+  let src = icon.value;
+  if (icon.type === 'local-asset') {
+    // app-asset プロトコルを使用
+    src = `app-asset://${icon.value}`;
+  } else if (icon.type === 'local-file') {
+    // ユーザーファイル: ../../../../ などの相対パスを付与
+    if (!src.startsWith('http') && !src.startsWith('data:')) {
+      if (!src.startsWith('../')) {
+        src = `../../../../${src}`;
+      }
+    }
+  }
+
+  if (
+    icon.type === 'url' ||
+    icon.type === 'local-asset' ||
+    icon.type === 'local-file'
+  ) {
+    return (
+      <div className="persona-icon-img" style={{ width: size, height: size }}>
+        <img
+          src={src}
+          alt=""
+          aria-hidden="true"
+          onError={() => setImgError(true)}
+        />
+      </div>
+    );
+  }
+  return fallback;
+}
+PersonaIcon.defaultProps = {
+  persona: undefined,
+  size: 36,
+};
 
 interface AIChatPanelProps {
   activeContent?: string;
@@ -57,6 +124,7 @@ export default function AIChatPanel({
             'こんにちは！小説執筆・編集専門のAIアシスタントです。本日はどのようなお手伝いをしましょうか？',
         },
       ],
+      timestamp: Date.now(),
     },
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -75,9 +143,7 @@ export default function AIChatPanel({
       const mapped: DynamicPersona[] = results.map((entry: any) => {
         const { metadata, path: p } = entry;
         const id =
-          metadata.id ||
-          metadata.name ||
-          p.split(/[/\\]/).pop()!.split('.')[0];
+          metadata.id || metadata.name || p.split(/[/\\]/).pop()!.split('.')[0];
         return {
           id,
           name: metadata.name || id,
@@ -122,7 +188,8 @@ export default function AIChatPanel({
       id: Date.now().toString(),
       role: 'user',
       parts: [{ type: 'text', content: finalContent }],
-      displayContent: input, // This is the content shown in the UI for user messages
+      displayContent: input,
+      timestamp: Date.now(),
     };
 
     const newMessages = [...messages, userMessage];
@@ -137,6 +204,7 @@ export default function AIChatPanel({
       role: 'assistant',
       parts: [],
       personaId: selectedPersonaId,
+      timestamp: Date.now(),
     };
     setMessages((prev) => [...prev, assistantMessage]);
 
@@ -245,42 +313,32 @@ export default function AIChatPanel({
 
   const allPersonas = [...PERSONAS, ...dynamicPersonas];
 
-  const renderPersonaIcon = (persona?: Persona, size = 16) => {
-    if (!persona) return <Bot size={size} />;
+  const formatTime = (timestamp: number) => {
+    const d = new Date(timestamp);
+    const now = new Date();
+    const isToday =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
 
-    const { icon } = persona;
-    if (icon.type === 'lucide') {
-      const LucideIcon = (LucideIcons as any)[icon.value] || Bot;
-      return <LucideIcon size={size} />;
-    }
-    if (icon.type === 'local') {
-      return (
-        <div className="persona-icon" style={{ width: size, height: size }}>
-          <img src={`../../../../${icon.value}`} alt={persona.name} />
-        </div>
-      );
-    }
-    if (icon.type === 'url') {
-      return (
-        <div className="persona-icon" style={{ width: size, height: size }}>
-          <img src={icon.value} alt={persona.name} />
-        </div>
-      );
-    }
-    return <Bot size={size} />;
+    const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d
+      .getMinutes()
+      .toString()
+      .padStart(2, '0')}`;
+    if (isToday) return timeStr;
+
+    return `${d.getFullYear()}/${(d.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')} ${timeStr}`;
   };
 
-  const getPersonaName = (pId?: string) => {
-    if (!pId) return 'AI Assistant';
-    const persona = allPersonas.find((p) => p.id === pId);
-    return persona ? persona.name : 'AI Assistant';
-  };
+  const activePersona = allPersonas.find((p) => p.id === selectedPersonaId);
 
   return (
     <div className="ai-chat-panel">
       <div className="ai-chat-header">
         <div className="persona-selector">
-          <Sparkles size={14} style={{ color: '#aaa' }} />
+          <PersonaIcon persona={activePersona} size={20} />
           <select
             value={selectedPersonaId}
             onChange={(e) => setSelectedPersonaId(e.target.value)}
@@ -306,53 +364,62 @@ export default function AIChatPanel({
       </div>
       <div className="ai-chat-messages">
         {messages.map((msg) => (
-          <div key={msg.id} className={`message-bubble ${msg.role}`}>
-            <div className="message-content-wrapper">
-              {msg.role === 'assistant' && (
-                <div className="message-sender">
-                  {renderPersonaIcon(
-                    allPersonas.find((p) => p.id === msg.personaId),
-                  )}
-                  {getPersonaName(msg.personaId)}
-                </div>
-              )}
-              {msg.role === 'user' ? (
-                <div className="message-text">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {msg.displayContent ||
-                      msg.parts.map((p) => p.content).join('')}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                <div className="message-parts">
-                  {msg.parts.map((part, index) =>
-                    part.type === 'thought' ? (
-                      <div
-                        key={`part-thought-${msg.id}-${index}`}
-                        className="thought-bubble"
-                      >
-                        <details className="thought-container">
-                          <summary>Thinking...</summary>
-                          <div className="thought-content">
+          <div key={msg.id} className={`message-row ${msg.role}`}>
+            {msg.role === 'assistant' && (
+              <div className="message-avatar">
+                <PersonaIcon
+                  persona={allPersonas.find((p) => p.id === msg.personaId)}
+                />
+              </div>
+            )}
+            <div className="message-content-col">
+              {/* Participant name removed for both user and assistant as requested */}
+              <div className="message-bubble-group">
+                <div className={`message-bubble ${msg.role}`}>
+                  {msg.role === 'user' ? (
+                    <div className="message-text">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.displayContent ||
+                          msg.parts.map((p) => p.content).join('')}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <div className="message-parts">
+                      {msg.parts.map((part, index) =>
+                        part.type === 'thought' ? (
+                          <div
+                            /* eslint-disable-next-line react/no-array-index-key */
+                            key={`part-thought-${msg.id}-${part.type}-${index}`}
+                            className="thought-bubble"
+                          >
+                            <details className="thought-container">
+                              <summary>Thinking...</summary>
+                              <div className="thought-content">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {part.content}
+                                </ReactMarkdown>
+                              </div>
+                            </details>
+                          </div>
+                        ) : (
+                          <div
+                            /* eslint-disable-next-line react/no-array-index-key */
+                            key={`part-text-${msg.id}-${part.type}-${index}`}
+                            className="message-text"
+                          >
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                               {part.content}
                             </ReactMarkdown>
                           </div>
-                        </details>
-                      </div>
-                    ) : (
-                      <div
-                        key={`part-text-${msg.id}-${index}`}
-                        className="message-text"
-                      >
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {part.content}
-                        </ReactMarkdown>
-                      </div>
-                    ),
+                        ),
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+                <div className="message-timestamp">
+                  {formatTime(msg.timestamp)}
+                </div>
+              </div>
             </div>
           </div>
         ))}

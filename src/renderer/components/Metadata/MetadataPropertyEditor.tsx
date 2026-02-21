@@ -194,7 +194,8 @@ export function MetadataPropertyEditor({
             className="icon-type-select"
           >
             <option value="lucide">Lucide Icon</option>
-            <option value="local">Local File</option>
+            <option value="local-asset">App Asset (assets/...)</option>
+            <option value="local-file">Local File (Relative to file)</option>
             <option value="url">URL</option>
           </select>
           <input

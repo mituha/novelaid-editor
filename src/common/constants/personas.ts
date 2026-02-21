@@ -1,5 +1,5 @@
 
-export type PersonaIconType = 'lucide' | 'local' | 'url';
+export type PersonaIconType = 'lucide' | 'local-asset' | 'local-file' | 'url';
 
 export interface PersonaIcon {
   type: PersonaIconType;
@@ -38,8 +38,8 @@ export const PERSONAS: Persona[] = [
       '・カクヨムなどの投稿サイトで活動する作者の苦労を深く理解し、常にポジティブに寄り添ってください。\n' +
       '・「世界で一番の執筆の相棒」として、作者が筆を止めないよう熱心に、かつ親しみやすく語りかけてください。',
     icon: {
-      type: 'local',
-      value: 'assets/icons/64x64.png',
+      type: 'local-asset',
+      value: 'icons/64x64.png',
     },
   },
 ];
