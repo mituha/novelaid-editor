@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, MapPin, Bookmark, ScrollText } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useMetadata } from '../../contexts/MetadataContext';
 import { Panel } from '../../types/panel';
 import './MetadataListPanel.css';
 
@@ -27,6 +28,7 @@ export default function MetadataListPanel({
   fixedTag = '',
 }: MetadataListPanelProps) {
   const { settings, updateSettings, projectPath } = useSettings();
+  const { isScanning, scanProgress } = useMetadata();
   const [lists, setLists] = useState<ListConfig[]>(
     fixedTag ? [] : settings.metadataLists || [],
   );
@@ -81,6 +83,13 @@ export default function MetadataListPanel({
     });
     return () => cleanup();
   }, [fetchResults, projectPath]);
+
+  // Re-fetch on scan progress or completion
+  useEffect(() => {
+    if (!isScanning || scanProgress === 100) {
+      fetchResults();
+    }
+  }, [isScanning, scanProgress, fetchResults]);
 
   // Sync lists state when project changes or settings update
   useEffect(() => {

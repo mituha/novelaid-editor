@@ -7,6 +7,7 @@ import { AppProvider } from './contexts/AppContext';
 import './App.css';
 
 import { PanelProvider } from './contexts/PanelContext';
+import { MetadataProvider } from './contexts/MetadataContext';
 import ProjectLauncher from './components/Launcher/ProjectLauncher';
 
 function AppRoutes() {
@@ -39,7 +40,9 @@ export default function App() {
         <SettingsProvider>
           <GitContextProvider>
             <PanelProvider>
-              <AppRoutes />
+              <MetadataProvider>
+                <AppRoutes />
+              </MetadataProvider>
             </PanelProvider>
           </GitContextProvider>
         </SettingsProvider>

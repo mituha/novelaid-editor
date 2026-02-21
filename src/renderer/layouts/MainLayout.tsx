@@ -18,6 +18,7 @@ import DiffViewer from '../components/Git/DiffViewer';
 import { usePanel } from '../contexts/PanelContext';
 import WebBrowser from '../components/Common/WebBrowser';
 import { FileNameHeader } from '../components/Editor/FileNameHeader';
+import { useMetadata } from '../contexts/MetadataContext';
 import './MainLayout.css';
 
 import { LeftPane } from '../components/LeftPane/LeftPane';
@@ -55,6 +56,8 @@ export default function MainLayout() {
 
   const { activeLeftPanelId, activeRightPanelId, setActivePanel, getPanels } =
     usePanel();
+
+  const { isScanning, scanProgress, scanStatus } = useMetadata();
 
   const [leftPaneWidth, setLeftPaneWidth] = useState(250);
   const [rightPaneWidth, setRightPaneWidth] = useState(300);
@@ -826,6 +829,22 @@ export default function MainLayout() {
 
   return (
     <div className="layout-wrapper">
+      {isScanning && (
+        <div className="metadata-scan-progress">
+          <div className="progress-bar-container">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${scanProgress}%` }}
+            />
+          </div>
+          <div className="progress-status-container">
+            <span className="scan-icon">🔍</span>
+            <span className="status-text">
+              メタデータをスキャン中... ({scanProgress}%): {scanStatus}
+            </span>
+          </div>
+        </div>
+      )}
       <div className="main-layout">
         <div
           style={{

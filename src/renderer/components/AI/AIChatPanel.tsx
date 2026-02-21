@@ -10,6 +10,7 @@ import remarkGfm from 'remark-gfm';
 import { MessageSquare, Bot } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useMetadata } from '../../contexts/MetadataContext';
 import { Panel } from '../../types/panel';
 import {
   PERSONAS,
@@ -131,6 +132,7 @@ export default function AIChatPanel({
   activePath = null,
 }: AIChatPanelProps) {
   const { settings, projectPath } = useSettings();
+  const { isScanning, scanProgress } = useMetadata();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [includeContext, setIncludeContext] = useState(true);
@@ -220,6 +222,13 @@ export default function AIChatPanel({
     });
     return () => cleanup();
   }, [fetchDynamicPersonas, projectPath]);
+
+  // Re-fetch on scan progress or completion
+  useEffect(() => {
+    if (!isScanning || scanProgress === 100) {
+      fetchDynamicPersonas();
+    }
+  }, [isScanning, scanProgress, fetchDynamicPersonas]);
 
   // Clear dynamic personas when project changes
   useEffect(() => {

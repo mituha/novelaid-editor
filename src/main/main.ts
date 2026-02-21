@@ -272,7 +272,14 @@ ipcMain.handle('project:load', async (_, projectPath: string) => {
 
   // Always start watcher and scan, regardless of whether it's a formal project
   fileWatcher.start(projectPath);
-  await metadataService.scanProject(projectPath);
+
+  // Non-blocking scan with progress reporting
+  metadataService.onProgress = (progress, status) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('metadata:scan-progress', { progress, status });
+    }
+  };
+  metadataService.scanProject(projectPath); // No await
   await CalibrationService.getInstance().loadCustomRules(projectPath);
 
   return project;

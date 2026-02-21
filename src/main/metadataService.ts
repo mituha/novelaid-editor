@@ -13,6 +13,7 @@ export class MetadataService {
   private index: Map<string, Record<string, any>> = new Map();
   private projectRoot: string | null = null;
   private ignoreList: string[] = [];
+  public onProgress: ((progress: number, currentDir?: string) => void) | null = null;
 
   private constructor() {}
 
@@ -31,7 +32,67 @@ export class MetadataService {
     this.projectRoot = rootPath;
     this.index.clear();
     await this.loadIgnoreList(rootPath);
-    await this.scanDir(rootPath);
+
+    console.log(`Starting metadata scan for ${rootPath}...`);
+    this.onProgress?.(0, 'Scanning directory structure...');
+
+    // 1. First Pass: Count total relevant files to estimate progress
+    let totalFiles = 0;
+    const countFiles = async (dir: string) => {
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.name.startsWith('.') || entry.name === 'node_modules' || this.isIgnored(fullPath)) {
+            continue;
+          }
+
+          if (entry.isDirectory()) {
+            await countFiles(fullPath);
+          } else {
+            const ext = path.extname(fullPath).toLowerCase();
+            if (['.md', '.markdown', '.txt'].includes(ext)) {
+              totalFiles++;
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`[MetadataService] First pass count error in ${dir}:`, e);
+      }
+    };
+    await countFiles(rootPath);
+    console.log(`[MetadataService] Expected files to scan: ${totalFiles}`);
+
+    // 2. Second Pass: Actual scan
+    let processedFiles = 0;
+    const scanDirWithProgress = async (dir: string) => {
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.name.startsWith('.') || entry.name === 'node_modules' || this.isIgnored(fullPath)) continue;
+
+          if (entry.isDirectory()) {
+            await scanDirWithProgress(fullPath);
+          } else {
+            const ext = path.extname(fullPath).toLowerCase();
+            if (['.md', '.markdown', '.txt'].includes(ext)) {
+              await this.updateFileIndex(fullPath);
+              processedFiles++;
+              if (totalFiles > 0) {
+                const progress = Math.round((processedFiles / totalFiles) * 100);
+                this.onProgress?.(progress, entry.name);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`[MetadataService] Scan error in ${dir}:`, e);
+      }
+    };
+
+    await scanDirWithProgress(rootPath);
+    this.onProgress?.(100, 'Scan complete');
     console.log(`Metadata scan complete. Indexed ${this.index.size} files.`);
   }
 
@@ -87,46 +148,22 @@ export class MetadataService {
     return false;
   }
 
-  private async scanDir(dirPath: string) {
-    try {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name);
-
-        // Skip hidden directories and .novelaid
-        if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
-
-        if (this.isIgnored(fullPath)) {
-          console.log(`[MetadataService] Ignoring ${fullPath}`);
-          continue;
-        }
-
-        if (entry.isDirectory()) {
-          await this.scanDir(fullPath);
-        } else {
-          // Check if it's a file we care about (md, txt, etc.)
-          const ext = path.extname(fullPath).toLowerCase();
-          if (['.md', '.markdown', '.txt'].includes(ext)) {
-            await this.updateFileIndex(fullPath);
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to scan directory ${dirPath}:`, error);
-    }
-  }
 
   async updateFileIndex(filePath: string) {
-    if (this.isIgnored(filePath)) return;
+    if (this.isIgnored(filePath)) {
+      console.log(`[MetadataService] Skipping ignored file during index update: ${filePath}`);
+      return;
+    }
     try {
       const { metadata } = await readDocument(filePath);
       if (Object.keys(metadata).length > 0) {
         this.index.set(filePath, metadata);
+        console.log(`[MetadataService] Indexed: ${filePath} (Keys: ${Object.keys(metadata).join(', ')})`);
       } else {
         this.index.delete(filePath);
       }
     } catch (error) {
-      // Ignore errors for non-existent or unreadable files
+      console.error(`[MetadataService] Failed to index ${filePath}:`, error);
     }
   }
 
