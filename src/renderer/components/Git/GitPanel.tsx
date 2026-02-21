@@ -302,10 +302,16 @@ export const GitPanel: React.FC<GitPanelProps> = ({
 
       {/* ステージ済みの変更 */}
       <div className={`git-panel-section ${expanded.staged ? 'expanded' : ''}`}>
-        <button
+        <div
           className="section-header"
-          type="button"
+          role="button"
+          tabIndex={0}
           onClick={() => toggleSection('staged')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              toggleSection('staged');
+            }
+          }}
         >
           {expanded.staged ? (
             <ChevronDown size={16} />
@@ -326,7 +332,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({
               </button>
             )}
           </div>
-        </button>
+        </div>
         {expanded.staged && (
           <div className="section-content">
             {stagedFiles.length === 0 ? (
@@ -370,10 +376,16 @@ export const GitPanel: React.FC<GitPanelProps> = ({
 
       {/* 変更 */}
       <div className={`git-panel-section ${expanded.changes ? 'expanded' : ''}`}>
-        <button
+        <div
           className="section-header"
-          type="button"
+          role="button"
+          tabIndex={0}
           onClick={() => toggleSection('changes')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              toggleSection('changes');
+            }
+          }}
         >
           {expanded.changes ? (
             <ChevronDown size={16} />
@@ -394,7 +406,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({
               </button>
             )}
           </div>
-        </button>
+        </div>
         {expanded.changes && (
           <div className="section-content">
             {unstagedFiles.length === 0 ? (
@@ -440,10 +452,16 @@ export const GitPanel: React.FC<GitPanelProps> = ({
           expanded.history ? 'expanded' : ''
         }`}
       >
-        <button
+        <div
           className="section-header"
-          type="button"
+          role="button"
+          tabIndex={0}
           onClick={() => toggleSection('history')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              toggleSection('history');
+            }
+          }}
         >
           {expanded.history ? (
             <ChevronDown size={16} />
@@ -452,7 +470,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({
           )}
           <span className="section-title">履歴</span>
           <span className="section-count">{history.length}</span>
-        </button>
+        </div>
         {expanded.history && (
           <div className="section-content history-content">
             <div style={{ display: 'flex', minHeight: 'min-content' }}>
