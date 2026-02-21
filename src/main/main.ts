@@ -68,6 +68,7 @@ class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 const fileWatcher = new FileWatcher(null);
 const metadataService = MetadataService.getInstance();
+fileWatcher.setIgnoreCheck((filePath) => metadataService.isIgnored(filePath));
 let activeProjectPath: string | null = null; // Added
 
 // Direct metadata update in main process
@@ -116,6 +117,12 @@ ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
   try {
     const dirents = await fs.readdir(dirPath, { withFileTypes: true });
     const filtered = dirents.filter((dirent) => {
+      const fullPath = path.join(dirPath, dirent.name);
+      // Skip if ignored by .novelaidignore
+      if (metadataService.isIgnored(fullPath)) {
+        return false;
+      }
+
       // Filter out only hidden folders and node_modules, keep hidden files
       if (dirent.isDirectory()) {
         return !dirent.name.startsWith('.') && dirent.name !== 'node_modules';
@@ -558,8 +565,12 @@ ipcMain.handle(
           if (dirent.isDirectory()) {
             if (dirent.name.startsWith('.') || dirent.name === 'node_modules')
               continue;
+            if (metadataService.isIgnored(resPath))
+              continue;
             await searchRecursively(resPath);
           } else if (dirent.isFile()) {
+            if (metadataService.isIgnored(resPath))
+              continue;
             const ext = path.extname(dirent.name).toLowerCase();
              if (textExtensions.has(ext)) {
                try {

@@ -1,5 +1,6 @@
 import chokidar from 'chokidar';
 import { BrowserWindow } from 'electron';
+import { MetadataService } from './metadataService';
 
 export class FileWatcher {
   private watcher: chokidar.FSWatcher | null = null;
@@ -7,6 +8,7 @@ export class FileWatcher {
   private mainWindow: BrowserWindow | null = null;
 
   private listeners: ((event: string, path: string) => void)[] = [];
+  private ignoreCheck: ((path: string) => boolean) | null = null;
 
   constructor(window: BrowserWindow | null) {
     this.mainWindow = window;
@@ -18,6 +20,10 @@ export class FileWatcher {
 
   onFileEvent(callback: (event: string, path: string) => Promise<void> | void) {
     this.listeners.push(callback);
+  }
+
+  setIgnoreCheck(check: (path: string) => boolean) {
+    this.ignoreCheck = check;
   }
 
   start(projectPath: string) {
@@ -59,6 +65,11 @@ export class FileWatcher {
   }
 
   private async handleEvent(event: string, filePath: string) {
+    // Skip if ignored by .novelaidignore via callback
+    if (this.ignoreCheck && this.ignoreCheck(filePath)) {
+      return;
+    }
+
     // 1. Wait for all internal (main process) listeners to finish updating their state
     await Promise.all(this.listeners.map((listener) => listener(event, filePath)));
 

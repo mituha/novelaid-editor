@@ -12,6 +12,7 @@ export class MetadataService {
   private static instance: MetadataService;
   private index: Map<string, Record<string, any>> = new Map();
   private projectRoot: string | null = null;
+  private ignoreList: string[] = [];
 
   private constructor() {}
 
@@ -29,8 +30,61 @@ export class MetadataService {
   async scanProject(rootPath: string) {
     this.projectRoot = rootPath;
     this.index.clear();
+    await this.loadIgnoreList(rootPath);
     await this.scanDir(rootPath);
     console.log(`Metadata scan complete. Indexed ${this.index.size} files.`);
+  }
+
+  private async loadIgnoreList(rootPath: string) {
+    this.ignoreList = [];
+    try {
+      const ignorePath = path.join(rootPath, '.novelaidignore');
+      const content = await fs.readFile(ignorePath, 'utf8');
+      this.ignoreList = content
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#'))
+        .map((p) => {
+          let pattern = p;
+          if (pattern.startsWith('/')) pattern = pattern.slice(1);
+          if (pattern.startsWith('./')) pattern = pattern.slice(2);
+          return pattern;
+        });
+      console.log(`Loaded ${this.ignoreList.length} ignore patterns.`);
+    } catch (e) {
+      // Ignore if file doesn't exist
+    }
+  }
+
+  public isIgnored(filePath: string): boolean {
+    if (!this.projectRoot) return false;
+    const relativePath = path
+      .relative(this.projectRoot, filePath)
+      .replace(/\\/g, '/');
+
+    for (const pattern of this.ignoreList) {
+      // Basic folder ignore: pattern/
+      if (pattern.endsWith('/')) {
+        const dirPattern = pattern.slice(0, -1);
+        if (
+          relativePath === dirPattern ||
+          relativePath.startsWith(`${dirPattern}/`)
+        ) {
+          return true;
+        }
+      } else if (relativePath === pattern || path.basename(relativePath) === pattern) {
+        // Exact match or filename match
+        return true;
+      }
+      // Basic glob-like (very simple)
+      if (pattern.includes('*')) {
+        const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
+        if (regex.test(relativePath) || regex.test(path.basename(relativePath))) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private async scanDir(dirPath: string) {
@@ -41,6 +95,11 @@ export class MetadataService {
 
         // Skip hidden directories and .novelaid
         if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+
+        if (this.isIgnored(fullPath)) {
+          console.log(`[MetadataService] Ignoring ${fullPath}`);
+          continue;
+        }
 
         if (entry.isDirectory()) {
           await this.scanDir(fullPath);
@@ -58,6 +117,7 @@ export class MetadataService {
   }
 
   async updateFileIndex(filePath: string) {
+    if (this.isIgnored(filePath)) return;
     try {
       const { metadata } = await readDocument(filePath);
       if (Object.keys(metadata).length > 0) {
