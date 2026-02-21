@@ -119,7 +119,7 @@ function FileTreeItem({
     });
 
     return () => {
-      cleanup();
+      if (cleanup) cleanup();
     };
   }, [file.isDirectory, file.path, isOpen, loadDirectory]);
 
@@ -213,9 +213,24 @@ function FileTreeItem({
         const LucideIcon = (LucideIcons as any)[icon.value];
         if (LucideIcon) return <LucideIcon size={16} />;
       }
-      if (icon.type === 'local' || icon.type === 'url') {
-        const src =
-          icon.type === 'local' ? `../../../../${icon.value}` : icon.value;
+      if (icon.value && (icon.type === 'local' || icon.type === 'url')) {
+        let src = icon.value;
+        if (icon.type === 'local') {
+          const isAbsolute =
+            icon.value.startsWith('/') || /^[a-zA-Z]:/.test(icon.value);
+          if (isAbsolute) {
+            // Convert backslashes to forward slashes and encode segments
+            const normalized = icon.value.replace(/\\/g, '/');
+            const encodedPath = normalized
+              .split('/')
+              .map((segment: string) => encodeURIComponent(segment))
+              .join('/');
+            src = `local-file:///${encodedPath}`;
+            console.log('FileExplorer icon src:', src);
+          } else {
+            src = `../../../../${icon.value}`;
+          }
+        }
         return (
           <div className="file-custom-icon">
             <img src={src} alt="" />
@@ -348,7 +363,11 @@ function FileTreeItem({
             style={{
               paddingLeft: `${BASE_INDENT + (level + 1) * INDENT_STEP}px`,
             }}
-            onKeyDown={() => {}}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
             onClick={(e) => e.stopPropagation()}
           >
               <span className="chevron" />
@@ -456,7 +475,7 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     });
 
     return () => {
-      cleanup();
+      if (cleanup) cleanup();
     };
   }, [currentDir, refreshRoot]);
 

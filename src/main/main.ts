@@ -9,7 +9,8 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, dialog, Menu, protocol } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog, Menu, protocol, net } from 'electron';
+import { pathToFileURL } from 'url';
 import fs from 'fs/promises';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
@@ -27,6 +28,20 @@ import { FileWatcher } from './watcher';
 import { MetadataService } from './metadataService';
 import { CalibrationService } from './calibration/CalibrationService';
 import { AIService } from './ai/AIService';
+
+console.log('--- [MAIN] TOP-LEVEL EXECUTION STARTING ---');
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'local-file',
+    privileges: { secure: true, standard: true, supportFetchAPI: true, bypassCSP: true },
+  },
+  {
+    scheme: 'app-asset',
+    privileges: { secure: true, standard: true, supportFetchAPI: true, bypassCSP: true },
+  },
+]);
+
+
 
 class AppUpdater {
   constructor() {
@@ -618,16 +633,52 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
+    console.log('--- [MAIN] APP.WHENREADY() TRIGGERED ---');
+    log.info('Main: app.whenReady() triggered');
+
+
+
     // Register custom protocols
     const RESOURCES_PATH = app.isPackaged
       ? path.join(process.resourcesPath, 'assets')
       : path.join(__dirname, '../../assets');
 
-    protocol.registerFileProtocol('app-asset', (request, callback) => {
+    console.log('--- [MAIN] REGISTERING local-file HANDLER ---');
+    protocol.handle('local-file', (request) => {
+      console.log('--- [MAIN] local-file REQUEST RECEIVED:', request.url);
+      log.info('local-file request:', request.url);
+
+
+      try {
+        // Manually extract path to avoid URL pathname normalization issues
+        let filePath = request.url.replace(/^local-file:\/\/+/, '');
+        filePath = decodeURIComponent(filePath);
+        log.info('local-file decoded path:', filePath);
+
+        if (process.platform === 'win32') {
+          // On Windows, URL protocol often has /C:/..., ensure we get C:\...
+          filePath = filePath.replace(/\//g, '\\');
+          if (/^\\[a-zA-Z]:/.test(filePath)) {
+            filePath = filePath.slice(1);
+          }
+        }
+
+        log.info('local-file final filePath:', filePath);
+        const fileUrl = pathToFileURL(filePath).toString();
+        log.info('local-file net.fetch URL:', fileUrl);
+        return net.fetch(fileUrl);
+      } catch (e) {
+        console.error('Main: local-file handler error:', e);
+        log.error('local-file error:', e);
+
+        return new Response('Not Found', { status: 404 });
+      }
+    });
+
+    protocol.handle('app-asset', (request) => {
       const url = request.url.replace(/^app-asset:\/\/+/, '');
-      // Handle trailing slashes or other URL artifacts
       const filePath = path.join(RESOURCES_PATH, path.normalize(url));
-      callback({ path: filePath });
+      return net.fetch(pathToFileURL(filePath).toString());
     });
 
     createWindow();

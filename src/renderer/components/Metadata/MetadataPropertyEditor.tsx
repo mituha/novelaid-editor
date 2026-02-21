@@ -1,5 +1,6 @@
 import React from 'react';
 import { Database, User, MapPin, ScrollText } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Panel } from '../../types/panel';
 import './MetadataPropertyEditor.css';
 
@@ -14,9 +15,25 @@ export function MetadataPropertyEditor({
   onMetadataChange = () => {},
   onBlur = () => {},
 }: MetadataPropertyEditorProps) {
+  const inferIconType = (value: string) => {
+    if (!value) return 'lucide';
+    if (/^https?:\/\//.test(value)) return 'url';
+    if (/\.[a-zA-Z0-9]+$/.test(value) || /[/\\]/.test(value)) return 'local';
+    return 'lucide';
+  };
+
   const handleChange = (key: string, value: any) => {
     if (onMetadataChange) {
-      onMetadataChange({ ...metadata, [key]: value });
+      if (key === 'icon_value') {
+        const type = inferIconType(value);
+        console.log('MetadataPropertyEditor icon change:', { value, type });
+        onMetadataChange({
+          ...metadata,
+          icon: { ...metadata.icon, value, type },
+        });
+      } else {
+        onMetadataChange({ ...metadata, [key]: value });
+      }
     }
   };
 
@@ -187,39 +204,53 @@ export function MetadataPropertyEditor({
       </div>
 
       <div className="editor-field">
-        <span className="field-label">アイコン設定</span>
+        <span className="field-label">
+          アイコン (Lucide名/URL/ローカルパス)
+        </span>
         <div className="editor-row icon-settings">
-          <select
-            value={metadata.icon?.type || 'lucide'}
-            onChange={(e) =>
-              handleChange('icon', {
-                ...(metadata.icon || {}),
-                type: e.target.value,
-              })
-            }
-            onBlur={onBlur}
-            className="icon-type-select"
-          >
-            <option value="lucide">Lucide Icon</option>
-            <option value="local-asset">App Asset (assets/...)</option>
-            <option value="local-file">Local File (Relative to file)</option>
-            <option value="url">URL</option>
-          </select>
+          <div className="icon-preview-container">
+            {(() => {
+              const icon = metadata.icon || {};
+              if (icon.value) {
+                console.log('MetadataPropertyEditor icon preview:', icon);
+              }
+              if (icon.type === 'lucide' && icon.value) {
+                const LucideIcon = (LucideIcons as any)[icon.value];
+                if (LucideIcon) return <LucideIcon size={24} />;
+              }
+              if (icon.value && (icon.type === 'local' || icon.type === 'url')) {
+                console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+                console.error('!!! ICON RENDER DEBUG V4 !!!');
+                console.error('Icon value:', icon.value);
+                console.error('Icon type:', icon.type);
+
+                console.log('Icon path:', icon.value);
+                let src = icon.value;
+                const isAbsolute =
+                  icon.value.startsWith('/') || /^[a-zA-Z]:/.test(icon.value);
+                if (isAbsolute) {
+                  const normalized = icon.value.replace(/\\/g, '/');
+                  const encodedPath = normalized
+                    .split('/')
+                    .map((segment: string) => encodeURIComponent(segment))
+                    .join('/');
+                  src = `local-file:///${encodedPath}`;
+                  console.log('Formatted local-file URL:', src);
+                } else {
+                  src = `../../../../${icon.value}`;
+                }
+                return <img src={src} alt="" className="icon-preview-img" />;
+              }
+              return <div className="icon-placeholder" />;
+            })()}
+          </div>
           <input
             type="text"
             value={metadata.icon?.value || ''}
-            onChange={(e) =>
-              handleChange('icon', {
-                ...(metadata.icon || {}),
-                value: e.target.value,
-              })
-            }
+            onChange={(e) => handleChange('icon_value', e.target.value)}
             onBlur={onBlur}
-            placeholder={
-              metadata.icon?.type === 'lucide'
-                ? 'Icon name (e.g. User)'
-                : 'Path or URL'
-            }
+            placeholder="User, https://..., or C:\path\to\icon.png"
+            className="icon-value-input"
           />
         </div>
       </div>
