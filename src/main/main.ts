@@ -18,7 +18,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { loadProject, saveProject } from './project';
-import { readDocument, saveDocument, getLanguageForFile } from './metadata';
+import { readDocument, saveDocument } from './metadata';
 import {
   getRecentProjects,
   addRecentProject,

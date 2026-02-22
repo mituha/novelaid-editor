@@ -2,10 +2,11 @@ import fs from 'fs/promises';
 import path from 'path';
 import { dialog, BrowserWindow } from 'electron';
 import { MetadataService } from '../metadataService';
-import { readDocument, saveDocument, getLanguageForFile } from '../metadata';
+import { readDocument, saveDocument } from '../metadata';
 
 export class FileService {
   private static instance: FileService;
+  private ignoreCache = new Map<string, { mtime: number; instance: any }>();
 
   private constructor() {}
 
@@ -24,6 +25,68 @@ export class FileService {
       return null;
     }
     return filePaths[0];
+  }
+
+  private async findProjectRoot(filePath: string): Promise<string | null> {
+    let current = path.dirname(filePath);
+    const root = path.parse(current).root;
+    const NOVELAID_DIR = '.novelaid';
+
+    while (current !== root) {
+      try {
+        await fs.access(path.join(current, NOVELAID_DIR));
+        return current;
+      } catch {
+        const parent = path.dirname(current);
+        if (parent === current) break;
+        current = parent;
+      }
+    }
+    return null;
+  }
+
+  public async getDocumentType(filePath: string): Promise<string> {
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.ch') return 'ch';
+    if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(ext))
+      return 'image';
+    if (ext === '.txt') return 'novel';
+    if (ext !== '.md' && ext !== '.markdown') return 'markdown';
+
+    // .md / .markdown の場合、.novelignore をチェック
+    const projectRoot = await this.findProjectRoot(filePath);
+    if (!projectRoot) return 'novel'; // デフォルトは novel
+
+    const ignorePath = path.join(projectRoot, '.novelignore');
+    try {
+      const stats = await fs.stat(ignorePath);
+      let ignoreInstance;
+
+      const cached = this.ignoreCache.get(projectRoot);
+      if (cached && cached.mtime === stats.mtimeMs) {
+        ignoreInstance = cached.instance;
+      } else {
+        const ignore = require('ignore');
+        const content = await fs.readFile(ignorePath, 'utf-8');
+        ignoreInstance = ignore().add(content);
+        this.ignoreCache.set(projectRoot, {
+          mtime: stats.mtimeMs,
+          instance: ignoreInstance,
+        });
+      }
+
+      const relativePath = path.relative(projectRoot, filePath);
+      // ignore package expects forward slashes
+      const normalizedRelativePath = relativePath.replace(/\\/g, '/');
+
+      if (ignoreInstance.ignores(normalizedRelativePath)) {
+        return 'markdown';
+      }
+    } catch (err) {
+      // .novelignore がない場合は無視してデフォルト(novel)を返す
+    }
+
+    return 'novel';
   }
 
   public async readDirectory(dirPath: string) {
@@ -53,7 +116,7 @@ export class FileService {
           path: fullPath,
           language: isDirectory
             ? undefined
-            : await getLanguageForFile(fullPath),
+            : await this.getDocumentType(fullPath),
           metadata: isDirectory
             ? undefined
             : metadataService.queryByPath?.(fullPath),
