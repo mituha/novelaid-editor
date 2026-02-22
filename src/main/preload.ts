@@ -7,6 +7,7 @@ export type Channels =
   | 'dialog:openDirectory'
   | 'dialog:confirm'
   | 'fs:readDirectory'
+  | 'fs:getDirectoryType'
   | 'fs:readFile'
   | 'fs:writeFile'
   | 'fs:createFile'

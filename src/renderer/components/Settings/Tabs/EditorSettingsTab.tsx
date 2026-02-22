@@ -153,21 +153,6 @@ export default function EditorSettingsTab() {
         </div>
       </div>
 
-      <div className="setting-item">
-        <label className="setting-label" htmlFor="default-extension">
-          新規作成時のデフォルト拡張子
-        </label>
-        <select
-          id="default-extension"
-          className="setting-select"
-          value={editorConfig.defaultFileExtension || 'md'}
-          onChange={(e) => handleChange('defaultFileExtension', e.target.value)}
-        >
-          <option value="md">.md</option>
-          <option value="txt">.txt</option>
-        </select>
-      </div>
-
     </div>
   );
 }

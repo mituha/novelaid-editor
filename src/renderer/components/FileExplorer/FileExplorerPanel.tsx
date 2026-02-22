@@ -14,7 +14,6 @@ import {
 import * as LucideIcons from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
-import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
 import './FileExplorerPanel.css';
 
@@ -529,24 +528,31 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     setSelectedIsDir(isDirectory);
   }, []);
 
-  const { settings } = useSettings();
-  const defaultExt = settings.editor?.defaultFileExtension || 'md';
-
-  const initiateCreate = (type: 'file' | 'folder') => {
+  const initiateCreate = async (type: 'file' | 'folder') => {
     setCreatingType(type);
-    setNewName(type === 'file' ? `untitled.${defaultExt}` : 'untitled');
-    if (!selectedPath || !currentDir) {
-      setCreatingPath(currentDir);
-    } else if (selectedIsDir) {
-      setCreatingPath(selectedPath);
-    } else {
-      // It's a file, use parent
+    let targetPath = currentDir;
+    if (selectedPath && selectedIsDir) {
+      targetPath = selectedPath;
+    } else if (selectedPath) {
       const lastSep =
         selectedPath.lastIndexOf('\\') !== -1
           ? selectedPath.lastIndexOf('\\')
           : selectedPath.lastIndexOf('/');
-      setCreatingPath(selectedPath.substring(0, lastSep));
+      targetPath = selectedPath.substring(0, lastSep);
     }
+
+    if (type === 'file' && targetPath) {
+      const dirType = await window.electron.ipcRenderer.invoke(
+        'fs:getDirectoryType',
+        targetPath,
+      );
+      const ext = dirType === 'markdown' ? 'md' : 'txt';
+      setNewName(`untitled.${ext}`);
+    } else {
+      setNewName('untitled');
+    }
+
+    setCreatingPath(targetPath);
   };
 
   const handleCreate = async (
@@ -561,7 +567,12 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
           !finalName.includes('.') &&
           !finalName.startsWith('.')
         ) {
-          finalName = `${finalName}.${defaultExt}`;
+          const dirType = await window.electron.ipcRenderer.invoke(
+            'fs:getDirectoryType',
+            creatingPath,
+          );
+          const ext = dirType === 'markdown' ? 'md' : 'txt';
+          finalName = `${finalName}.${ext}`;
         }
         const fullPath = `${creatingPath}/${finalName}`;
         if (creatingType === 'file') {
