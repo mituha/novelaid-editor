@@ -41,6 +41,7 @@ export default function MainLayout() {
         initialColumn?: number;
         searchQuery?: string;
         language?: string;
+        deleted?: boolean;
       }
     >
   >({});
@@ -74,6 +75,11 @@ export default function MainLayout() {
   const autoSaveTimerRef = useRef<Record<string, any>>({});
   const restoredRef = useRef<string | null>(null);
 
+  // Refs for accessing latest state in callbacks without re-subscribing
+  // （closeTabByPath より前に宣言して前方参照エラーを回避）
+  const tabsRef = useRef({ left: leftTabs, right: rightTabs });
+  const tabContentsRef = useRef(tabContents);
+
   const clearTimer = useCallback((path: string) => {
     if (autoSaveTimerRef.current[path]) {
       clearTimeout(autoSaveTimerRef.current[path]);
@@ -82,8 +88,17 @@ export default function MainLayout() {
   }, []);
 
   const closeTabByPath = useCallback(
-    (path: string) => {
+    (path: string, reason?: string) => {
+      // タイマーをキャンセルすることで自動保存を防ぐ
       clearTimer(path);
+
+      if (reason === 'deleted') {
+        // tabContentsRef に deleted フラグを即座にセット（同期・直接ミュート）
+        // React state の非同期更新を待たずに handleSaveByPath がスキップできるようにするため
+        if (tabContentsRef.current[path]) {
+          tabContentsRef.current[path] = { ...tabContentsRef.current[path], deleted: true };
+        }
+      }
 
       const closeInSide = (side: 'left' | 'right') => {
         const setTabs = side === 'left' ? setLeftTabs : setRightTabs;
@@ -283,10 +298,6 @@ export default function MainLayout() {
   }, [isRightPaneNarrow, getPanels, setActivePanel]);
 
 
-  // Refs for accessing latest state in callbacks without re-subscribing
-  const tabsRef = useRef({ left: leftTabs, right: rightTabs });
-  const tabContentsRef = useRef(tabContents);
-
   useEffect(() => {
     tabsRef.current = { left: leftTabs, right: rightTabs };
   }, [leftTabs, rightTabs]);
@@ -441,9 +452,15 @@ export default function MainLayout() {
       const removeCloseListener = ipcRenderer.on(
         'app:close-file',
         (pathOrArgs: any) => {
-          const path =
-            typeof pathOrArgs === 'string' ? pathOrArgs : pathOrArgs.path;
-          if (path) closeTabByPath(path);
+          const filePath =
+            typeof pathOrArgs === 'string' ? pathOrArgs : pathOrArgs?.path;
+          const reason =
+            typeof pathOrArgs === 'string' ? undefined : pathOrArgs?.reason;
+
+          if (!filePath) return;
+
+          console.log(`[MainLayout] app:close-file [${reason ?? 'unknown'}]: ${filePath}`);
+          closeTabByPath(filePath, reason);
         },
       );
 
@@ -454,7 +471,7 @@ export default function MainLayout() {
       };
     }
     return () => {};
-  }, [registerSettingTab, openSettings, handleFileSelect, closeTabByPath]);
+  }, [registerSettingTab, openSettings, handleFileSelect, closeTabByPath, clearTimer]);
 
   const handleTabClick = useCallback(
     (side: 'left' | 'right') => (path: string) => {
@@ -580,6 +597,13 @@ export default function MainLayout() {
   const handleSaveByPath = useCallback(async (path: string) => {
     const data = tabContentsRef.current[path];
     if (!path || !data) return;
+
+    // 削除済みフラグが立っている場合は保存しない
+    // （削除前に onBlur や auto-save タイマーが発火しても復活させないため）
+    if (data.deleted) {
+      console.log(`[MainLayout] 削除済みのため保存をスキップ: ${path}`);
+      return;
+    }
 
     // Safety check: Don't save if the file is no longer in any tab
     // (prevents recreation of deleted files by pending timers)

@@ -4,19 +4,22 @@ import { dialog, BrowserWindow } from 'electron';
 import { MetadataService } from '../metadataService';
 import { readDocument, saveDocument } from '../metadata';
 
+const LOG_PREFIX = '[FileService]';
+
 export class FileService {
   private static instance: FileService;
   private attributeCache = new Map<string, { mtime: number; data: Map<string, string> }>();
-  private beforeDeleteCallback: ((targetPath: string) => void) | null = null;
+  private beforeDeleteCallback: ((targetPath: string, reason: string) => void) | null = null;
 
   private constructor() {}
 
-  public setBeforeDeleteCallback(callback: (targetPath: string) => void) {
+  public setBeforeDeleteCallback(callback: (targetPath: string, reason: string) => void) {
     this.beforeDeleteCallback = callback;
   }
 
   /** .novelaidattributes が変更されたとき、対象ディレクトリのキャッシュを破棄します */
   public invalidateAttributeCache(dirPath: string) {
+    console.log(`${LOG_PREFIX} invalidateAttributeCache: ${dirPath}`);
     this.attributeCache.delete(dirPath);
   }
 
@@ -28,12 +31,15 @@ export class FileService {
   }
 
   public async openDirectory(window: BrowserWindow): Promise<string | null> {
+    console.log(`${LOG_PREFIX} openDirectory: ダイアログを表示`);
     const { canceled, filePaths } = await dialog.showOpenDialog(window, {
       properties: ['openDirectory'],
     });
     if (canceled) {
+      console.log(`${LOG_PREFIX} openDirectory: キャンセルされました`);
       return null;
     }
+    console.log(`${LOG_PREFIX} openDirectory: 選択されたディレクトリ: ${filePaths[0]}`);
     return filePaths[0];
   }
 
@@ -175,6 +181,7 @@ export class FileService {
   }
 
   public async readDirectory(dirPath: string) {
+    console.log(`${LOG_PREFIX} readDirectory: ${dirPath}`);
     const metadataService = MetadataService.getInstance();
     const dirents = await fs.readdir(dirPath, { withFileTypes: true });
     const filtered = dirents.filter((dirent) => {
@@ -191,6 +198,7 @@ export class FileService {
       return true;
     });
 
+    console.log(`${LOG_PREFIX} readDirectory: ${filtered.length} 件のエントリを返します (${dirPath})`);
     return await Promise.all(
       filtered.map(async (dirent) => {
         const fullPath = path.join(dirPath, dirent.name);
@@ -211,22 +219,27 @@ export class FileService {
   }
 
   public async readFile(filePath: string): Promise<string> {
+    console.log(`${LOG_PREFIX} readFile: ${filePath}`);
     return await fs.readFile(filePath, 'utf-8');
   }
 
   public async writeFile(filePath: string, content: string): Promise<void> {
+    console.log(`${LOG_PREFIX} writeFile: ${filePath} (${content.length} 文字)`);
     await fs.writeFile(filePath, content, 'utf-8');
   }
 
   public async readDocument(filePath: string) {
+    console.log(`${LOG_PREFIX} readDocument: ${filePath}`);
     return await readDocument(filePath);
   }
 
   public async saveDocument(filePath: string, data: any) {
+    console.log(`${LOG_PREFIX} saveDocument: ${filePath}`);
     return await saveDocument(filePath, data);
   }
 
   public async createFile(filePath: string): Promise<boolean> {
+    console.log(`${LOG_PREFIX} createFile: ${filePath}`);
     await fs.writeFile(filePath, '', 'utf-8');
     return true;
   }
@@ -235,6 +248,7 @@ export class FileService {
    * 未命名のドキュメントを適切なフォルダ形式と名前で作成します。
    */
   public async createUntitledDocument(dirPath: string): Promise<string> {
+    console.log(`${LOG_PREFIX} createUntitledDocument: ${dirPath}`);
     const dirType = await this.getPreferredDocumentTypeForDirectory(dirPath);
     let baseName = '新規小説';
     let ext = '.txt';
@@ -245,6 +259,7 @@ export class FileService {
     }
 
     const uniquePath = await this.getUniquePath(dirPath, baseName, ext);
+    console.log(`${LOG_PREFIX} createUntitledDocument: 作成するパス: ${uniquePath}`);
     await fs.writeFile(uniquePath, '', 'utf-8');
     return uniquePath;
   }
@@ -275,28 +290,33 @@ export class FileService {
   }
 
   public async createDirectory(dirPath: string): Promise<boolean> {
+    console.log(`${LOG_PREFIX} createDirectory: ${dirPath}`);
     await fs.mkdir(dirPath, { recursive: true });
     return true;
   }
 
   public async rename(oldPath: string, newPath: string): Promise<boolean> {
+    console.log(`${LOG_PREFIX} rename: ${oldPath} → ${newPath}`);
     await fs.rename(oldPath, newPath);
     return true;
   }
 
   public async move(oldPath: string, newPath: string): Promise<boolean> {
+    console.log(`${LOG_PREFIX} move: ${oldPath} → ${newPath}`);
     await fs.rename(oldPath, newPath);
     return true;
   }
 
   public async copy(srcPath: string, destPath: string): Promise<boolean> {
+    console.log(`${LOG_PREFIX} copy: ${srcPath} → ${destPath}`);
     await fs.cp(srcPath, destPath, { recursive: true });
     return true;
   }
 
   public async delete(targetPath: string): Promise<boolean> {
+    console.log(`${LOG_PREFIX} delete: ${targetPath}`);
     if (this.beforeDeleteCallback) {
-      this.beforeDeleteCallback(targetPath);
+      this.beforeDeleteCallback(targetPath, 'deleted');
     }
     await fs.rm(targetPath, { recursive: true, force: true });
     return true;

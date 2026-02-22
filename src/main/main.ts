@@ -87,9 +87,9 @@ fileWatcher.onFileEvent(async (event, filePath) => {
   }
 });
 
-FileService.getInstance().setBeforeDeleteCallback((targetPath) => {
+FileService.getInstance().setBeforeDeleteCallback((targetPath, reason) => {
   if (mainWindow) {
-    mainWindow.webContents.send('app:close-file', targetPath);
+    mainWindow.webContents.send('app:close-file', { path: targetPath, reason });
   }
 });
 
