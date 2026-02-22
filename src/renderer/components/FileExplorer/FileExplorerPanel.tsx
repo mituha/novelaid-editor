@@ -102,7 +102,7 @@ function FileTreeItem({
   selectedPath: string | null;
   onSelect: (path: string, isDirectory: boolean) => void;
   creatingPath: string | null;
-  creatingType: 'file' | 'folder' | 'chat' | null;
+  creatingType: 'file' | 'folder' | null;
   newChildName: string;
   setNewChildName: (val: string) => void;
   handleCreateChild: (e: React.KeyboardEvent, onDone?: () => void) => void;
@@ -318,10 +318,17 @@ function FileTreeItem({
         </span>
         <span className="icon">
           {file.isDirectory ? (
-            <Folder
-              size={16}
-              className={`${isOpen ? 'folder-open' : 'folder-closed'} folder-type-${file.language}`}
-            />
+            file.language === 'chat' ? (
+              <MessageSquare
+                size={16}
+                className={`folder-type-chat ${isOpen ? 'folder-open' : 'folder-closed'}`}
+              />
+            ) : (
+              <Folder
+                size={16}
+                className={`${isOpen ? 'folder-open' : 'folder-closed'} folder-type-${file.language}`}
+              />
+            )
           ) : (
             <FileIcon
               name={file.name}
@@ -369,9 +376,11 @@ function FileTreeItem({
           >
               <span className="chevron" />
               <span className="icon">
-                {creatingType === 'file' && <FileText size={16} />}
-                {creatingType === 'chat' && <MessageSquare size={16} />}
-                {creatingType === 'folder' && <Folder size={16} />}
+                {creatingType === 'file' ? (
+                  <FileText size={16} />
+                ) : (
+                  <Folder size={16} />
+                )}
               </span>
               <input
                 className="rename-input"
@@ -418,9 +427,9 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedIsDir, setSelectedIsDir] = useState(false);
   const [creatingPath, setCreatingPath] = useState<string | null>(null);
-  const [creatingType, setCreatingType] = useState<
-    'file' | 'folder' | 'chat' | null
-  >(null);
+  const [creatingType, setCreatingType] = useState<'file' | 'folder' | null>(
+    null,
+  );
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [rootIsExpanded, setRootIsExpanded] = useState(true);
@@ -519,7 +528,7 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     setSelectedIsDir(isDirectory);
   }, []);
 
-  const initiateCreate = async (type: 'file' | 'folder' | 'chat') => {
+  const initiateCreate = async (type: 'file' | 'folder') => {
     setCreatingType(type);
     let targetPath = currentDir;
     if (selectedPath && selectedIsDir) {
@@ -532,11 +541,19 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
       targetPath = selectedPath.substring(0, lastSep);
     }
 
-    if (type === 'chat') {
-      setNewName('new_chat');
-    } else if (type === 'folder') {
-      setNewName('untitled');
-    } else if (type === 'file') {
+    if (type === 'file' && targetPath) {
+      try {
+        await window.electron.ipcRenderer.invoke(
+          'fs:createUntitledDocument',
+          targetPath,
+        );
+        refreshRoot();
+        return; // Don't set creatingPath/creatingType for files
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to create quick file', err);
+      }
+    } else {
       setNewName('untitled');
     }
 
@@ -551,23 +568,19 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
       try {
         let finalName = newName;
         if (
-          (creatingType === 'file' || creatingType === 'chat') &&
+          creatingType === 'file' &&
           !finalName.includes('.') &&
           !finalName.startsWith('.')
         ) {
-          if (creatingType === 'chat') {
-            finalName = `${finalName}.ch`;
-          } else {
-            const dirType = await window.electron.ipcRenderer.invoke(
-              'fs:getDirectoryType',
-              creatingPath,
-            );
-            const ext = dirType === 'markdown' ? 'md' : 'txt';
-            finalName = `${finalName}.${ext}`;
-          }
+          const dirType = await window.electron.ipcRenderer.invoke(
+            'fs:getDirectoryType',
+            creatingPath,
+          );
+          const ext = dirType === 'markdown' ? 'md' : 'txt';
+          finalName = `${finalName}.${ext}`;
         }
         const fullPath = `${creatingPath}/${finalName}`;
-        if (creatingType === 'file' || creatingType === 'chat') {
+        if (creatingType === 'file') {
           await window.electron.ipcRenderer.invoke('fs:createFile', fullPath);
         } else {
           await window.electron.ipcRenderer.invoke(
@@ -652,21 +665,13 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
               <FilePlus size={14} />
             </button>
             <button
-               type="button"
-               className="action-btn"
-               onClick={() => initiateCreate('folder')}
-               title="新規フォルダー"
-             >
-               <FolderPlus size={14} />
-             </button>
-             <button
-               type="button"
-               className="action-btn"
-               onClick={() => initiateCreate('chat')}
-               title="新規チャットチャンネル"
-             >
-               <MessageSquare size={14} />
-             </button>
+              type="button"
+              className="action-btn"
+              onClick={() => initiateCreate('folder')}
+              title="新規フォルダー"
+            >
+              <FolderPlus size={14} />
+            </button>
           </span>
         </div>
       )}
@@ -684,9 +689,11 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
               >
                 <span className="chevron" />
                 <span className="icon">
-                  {creatingType === 'file' && <FileText size={16} />}
-                  {creatingType === 'chat' && <MessageSquare size={16} />}
-                  {creatingType === 'folder' && <Folder size={16} />}
+                  {creatingType === 'file' ? (
+                    <FileText size={16} />
+                  ) : (
+                    <Folder size={16} />
+                  )}
                 </span>
                 <input
                   className="rename-input"

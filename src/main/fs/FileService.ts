@@ -160,6 +160,7 @@ export class FileService {
     const novelKeywords = ['novel', '小説'];
     const markdownKeywords = ['設定', 'プロット', '資料', 'wiki'];
     const imageKeywords = ['image', '画像'];
+    const chatKeywords = ['chat', 'チャット', 'channel', 'チャンネル'];
 
     if (novelKeywords.some((kw) => dirName.includes(kw))) {
       return 'novel';
@@ -169,6 +170,9 @@ export class FileService {
     }
     if (imageKeywords.some((kw) => dirName.includes(kw))) {
       return 'image';
+    }
+    if (chatKeywords.some((kw) => dirName.includes(kw))) {
+      return 'chat';
     }
 
     // 4. 名前から判定できない場合、親フォルダのタイプを継承
@@ -256,6 +260,9 @@ export class FileService {
     if (dirType === 'markdown') {
       baseName = '新規設定';
       ext = '.md';
+    } else if (dirType === 'chat') {
+      baseName = '#新規チャット';
+      ext = '.ch';
     }
 
     const uniquePath = await this.getUniquePath(dirPath, baseName, ext);

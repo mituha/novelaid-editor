@@ -210,9 +210,9 @@
   color: var(--accent-color) !important;
 }
 
-.folder-type-markdown {
-  color: #88cc88 !important;
-  /* Greenish color for research/markdown */
+.folder-type-chat {
+  color: #4dabf7 !important;
+  /* Blue color for chat folders */
 }
 
 .file-item.file {
