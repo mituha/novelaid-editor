@@ -46,10 +46,19 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
     };
   }
 
-  // Handle images or other files: body is just null or path, metadata is empty
-  // For images, we don't actually need to read the content as text
+  // 画像の場合はコンテンツを空のままとする
+  if (language === 'image') {
+    return {
+      content: '',
+      metadata: {},
+      language,
+    };
+  }
+
+  // それ以外のドキュメント（.ch / chat 等）は、単なるテキストとして全て読み込む
+  const content = await fs.readFile(filePath, 'utf-8');
   return {
-    content: '',
+    content,
     metadata: {},
     language,
   };

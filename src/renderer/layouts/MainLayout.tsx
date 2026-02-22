@@ -819,6 +819,7 @@ export default function MainLayout() {
     if (activePath.endsWith('.ch')) {
       return (
         <ChView
+          key={activePath}
           content={data.content}
           path={activePath}
           onContentChange={handleContentChange(activePath, side)}

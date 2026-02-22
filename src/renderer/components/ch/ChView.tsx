@@ -66,6 +66,7 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [fileData, setFileData] = useState<ChFileStructure | null>(null);
+  const activeAssistantMsgIdRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize file data
@@ -90,9 +91,8 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('Failed to parse .ch file', e);
-      // Fallback or error UI
     }
-  }, [content]);
+  }, [content, path]); // Re-run when content or path changes (path change handled by key mostly)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -116,48 +116,9 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
     [onContentChange],
   );
 
-  const handleSend = () => {
-    if (!input.trim() || isStreaming || !fileData) return;
-
-    const userMsg: ChMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-      timestamp: formatTimestamp(),
-    };
-
-    const updatedMessages = [...fileData.messages, userMsg];
-    const assistantMsgId = (Date.now() + 1).toString();
-    const assistantMsg: ChMessage = {
-      id: assistantMsgId,
-      role: 'assistant',
-      agentId: fileData.metadata.defaultPersonaId,
-      parts: [],
-      timestamp: formatTimestamp(),
-    };
-
-    const nextData: ChFileStructure = {
-      ...fileData,
-      messages: [...updatedMessages, assistantMsg],
-    };
-
-    setFileData(nextData);
-    setInput('');
-    setIsStreaming(true);
-
-    // Prepare for cleanup
-    let cleanupData: (() => void) | undefined;
-    let cleanupEnd: (() => void) | undefined;
-    let cleanupError: (() => void) | undefined;
-
-    const doCleanup = () => {
-      if (cleanupData) cleanupData();
-      if (cleanupEnd) cleanupEnd();
-      if (cleanupError) cleanupError();
-    };
-
-    // Setup listeners for streaming with SPECIFIC PATH
-    cleanupData = window.electron.ipcRenderer.on(
+  // Listen for AI streaming
+  useEffect(() => {
+    const cleanupData = window.electron.ipcRenderer.on(
       'ai:streamChat:data',
       (chunk: any, resPath: any) => {
         if (resPath !== path) return;
@@ -166,7 +127,7 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
           return {
             ...prev,
             messages: prev.messages.map((m) => {
-              if (m.id !== assistantMsgId) return m;
+              if (m.id !== activeAssistantMsgIdRef.current) return m;
               const parts = m.parts || [];
               const lastPart = parts[parts.length - 1];
               if (lastPart && lastPart.type === chunk.type) {
@@ -184,13 +145,11 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
       },
     );
 
-    cleanupEnd = window.electron.ipcRenderer.on(
+    const cleanupEnd = window.electron.ipcRenderer.on(
       'ai:streamChat:end',
       (resPath: any) => {
         if (resPath !== path) return;
         setIsStreaming(false);
-        doCleanup();
-        // Auto-save on completion
         setFileData((current) => {
           if (current) saveFile(current);
           return current;
@@ -198,19 +157,56 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
       },
     );
 
-    cleanupError = window.electron.ipcRenderer.on(
+    const cleanupError = window.electron.ipcRenderer.on(
       'ai:streamChat:error',
       (err: any, resPath: any) => {
         if (resPath !== path) return;
         setIsStreaming(false);
-        doCleanup();
         // eslint-disable-next-line no-console
         console.error('Stream error:', err);
       },
     );
 
+    return () => {
+      if (cleanupData) cleanupData();
+      if (cleanupEnd) cleanupEnd();
+      if (cleanupError) cleanupError();
+    };
+  }, [path, saveFile]);
+
+  const handleSend = () => {
+    if (!input.trim() || isStreaming || !fileData) return;
+
+    const userMsg: ChMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+      timestamp: formatTimestamp(),
+    };
+
+    const assistantMsgId = (Date.now() + 1).toString();
+    activeAssistantMsgIdRef.current = assistantMsgId;
+
+    const assistantMsg: ChMessage = {
+      id: assistantMsgId,
+      role: 'assistant',
+      agentId: fileData.metadata.defaultPersonaId,
+      parts: [],
+      timestamp: formatTimestamp(),
+    };
+
+    const nextData: ChFileStructure = {
+      ...fileData,
+      messages: [...fileData.messages, userMsg, assistantMsg],
+    };
+
+    setFileData(nextData);
+    saveFile(nextData); // Save immediately to parent
+    setInput('');
+    setIsStreaming(true);
+
     // Prepare API messages
-    const apiMessages = updatedMessages.map((m) => ({
+    const apiMessages = [...fileData.messages, userMsg].map((m) => ({
       role: m.role,
       content: m.parts
         ? m.parts.map((p) => p.content).join('')
