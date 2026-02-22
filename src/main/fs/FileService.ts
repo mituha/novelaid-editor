@@ -168,6 +168,49 @@ export class FileService {
     return true;
   }
 
+  /**
+   * 未命名のドキュメントを適切なフォルダ形式と名前で作成します。
+   */
+  public async createUntitledDocument(dirPath: string): Promise<string> {
+    const dirType = this.getPreferredDocumentTypeForDirectory(dirPath);
+    let baseName = '新規小説';
+    let ext = '.txt';
+
+    if (dirType === 'markdown') {
+      baseName = '新規設定';
+      ext = '.md';
+    }
+
+    const uniquePath = await this.getUniquePath(dirPath, baseName, ext);
+    await fs.writeFile(uniquePath, '', 'utf-8');
+    return uniquePath;
+  }
+
+  /**
+   * 重複しないファイルパスを生成します。
+   */
+  private async getUniquePath(
+    dirPath: string,
+    baseName: string,
+    ext: string,
+  ): Promise<string> {
+    let filePath = path.join(dirPath, `${baseName}${ext}`);
+    let counter = 2;
+
+    while (true) {
+      try {
+        await fs.access(filePath);
+        // ファイルが存在する場合は連番を付与
+        filePath = path.join(dirPath, `${baseName}(${counter})${ext}`);
+        counter++;
+      } catch {
+        // ファイルが存在しない場合はこのパスを使用
+        break;
+      }
+    }
+    return filePath;
+  }
+
   public async createDirectory(dirPath: string): Promise<boolean> {
     await fs.mkdir(dirPath, { recursive: true });
     return true;

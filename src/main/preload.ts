@@ -11,6 +11,7 @@ export type Channels =
   | 'fs:readFile'
   | 'fs:writeFile'
   | 'fs:createFile'
+  | 'fs:createUntitledDocument'
   | 'fs:createDirectory'
   | 'fs:rename'
   | 'fs:copy'

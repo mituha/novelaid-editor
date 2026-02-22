@@ -150,6 +150,15 @@ ipcMain.handle('fs:createFile', async (_, filePath: string) => {
   }
 });
 
+ipcMain.handle('fs:createUntitledDocument', async (_, dirPath: string) => {
+  try {
+    return await FileService.getInstance().createUntitledDocument(dirPath);
+  } catch (error) {
+    console.error('Error creating untitled document:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('fs:createDirectory', async (_, dirPath: string) => {
   try {
     return await FileService.getInstance().createDirectory(dirPath);

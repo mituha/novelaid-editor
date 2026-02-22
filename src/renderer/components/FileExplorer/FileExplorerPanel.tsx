@@ -542,12 +542,17 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     }
 
     if (type === 'file' && targetPath) {
-      const dirType = await window.electron.ipcRenderer.invoke(
-        'fs:getDirectoryType',
-        targetPath,
-      );
-      const ext = dirType === 'markdown' ? 'md' : 'txt';
-      setNewName(`untitled.${ext}`);
+      try {
+        await window.electron.ipcRenderer.invoke(
+          'fs:createUntitledDocument',
+          targetPath,
+        );
+        refreshRoot();
+        return; // Don't set creatingPath/creatingType for files
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to create quick file', err);
+      }
     } else {
       setNewName('untitled');
     }
