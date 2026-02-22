@@ -86,6 +86,28 @@ export class FileService {
       // .novelignore がない場合は無視してデフォルト(novel)を返す
     }
 
+    // フォルダ名による判定(フォールバック)
+    return this.getPreferredDocumentTypeForDirectory(path.dirname(filePath));
+  }
+
+  /**
+   * ディレクトリ名から、そのディレクトリ内での優先ドキュメントタイプを推定します。
+   */
+  public getPreferredDocumentTypeForDirectory(dirPath: string): string {
+    const dirName = path.basename(dirPath).toLowerCase();
+
+    // 仕様に基づいたキーワードによる判定
+    const novelKeywords = ['novel', '小説'];
+    const markdownKeywords = ['設定', 'プロット', '資料', 'wiki'];
+
+    if (novelKeywords.some((kw) => dirName.includes(kw))) {
+      return 'novel';
+    }
+    if (markdownKeywords.some((kw) => dirName.includes(kw))) {
+      return 'markdown';
+    }
+
+    // デフォルト
     return 'novel';
   }
 
