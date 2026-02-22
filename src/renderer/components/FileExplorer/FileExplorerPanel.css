@@ -19,6 +19,58 @@
   background-color: var(--bg-secondary);
 }
 
+/* VSCode スタイルのルートフォルダーヘッダー */
+.root-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px 2px 2px;
+  height: 26px;
+  cursor: pointer;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.root-folder-header:hover {
+  background-color: var(--bg-active);
+}
+
+.root-folder-header.drag-over {
+  background-color: var(--accent-color);
+  opacity: 0.7;
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+}
+
+.root-chevron {
+  opacity: 0.7;
+}
+
+.root-folder-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.root-folder-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.root-folder-header:hover .root-folder-actions {
+  opacity: 1;
+}
+
 .explorer-title {
   font-size: 0.75rem;
   font-weight: 600;
@@ -159,7 +211,8 @@
 }
 
 .folder-type-markdown {
-  color: #88cc88 !important; /* Greenish color for research/markdown */
+  color: #88cc88 !important;
+  /* Greenish color for research/markdown */
 }
 
 .file-item.file {
@@ -176,4 +229,11 @@
 
 .file-item.hidden-item:hover {
   opacity: 0.8;
+}
+
+.file-item.drag-over {
+  background-color: var(--accent-color);
+  opacity: 0.6;
+  outline: 1px solid var(--accent-color);
+  outline-offset: -1px;
 }

@@ -255,14 +255,14 @@ function FileTreeItem({
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', file.path);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = 'copyMove'; // Shift+ドラッグでコピーカーソルを表示
     e.stopPropagation();
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     if (file.isDirectory) {
       e.preventDefault();
-      e.dataTransfer.dropEffect = e.shiftKey ? 'copy' : 'move';
+      e.dataTransfer.dropEffect = e.ctrlKey ? 'copy' : 'move';
       setIsDragOver(true);
     }
     e.stopPropagation();
@@ -291,7 +291,7 @@ function FileTreeItem({
     }
 
     try {
-      const isCopy = e.shiftKey;
+      const isCopy = e.ctrlKey; // Ctrl+ドラッグ = コピー
       const fileName = srcPath.split(/[/\\]/).pop();
       const destPath = `${file.path}/${fileName}`;
 
@@ -438,6 +438,8 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
   );
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [rootIsExpanded, setRootIsExpanded] = useState(true);
+  const [rootIsDragOver, setRootIsDragOver] = useState(false);
   const { currentDir } = useGit();
 
   const refreshRoot = useCallback(async () => {
@@ -606,90 +608,140 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     }
   };
 
+  // ルートフォルダーへのドラッグハンドラー
+  const handleRootDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = e.ctrlKey ? 'copy' : 'move';
+    setRootIsDragOver(true);
+  };
+
+  const handleRootDragLeave = () => {
+    setRootIsDragOver(false);
+  };
+
+  const handleRootDrop = async (e: React.DragEvent) => {
+    if (!currentDir) return;
+    e.preventDefault();
+    setRootIsDragOver(false);
+    const srcPath = e.dataTransfer.getData('text/plain');
+    if (!srcPath) return;
+    const srcParent = srcPath.replace(/[/\\][^/\\]+$/, '');
+    const normalize = (p: string) => p.replace(/\\/g, '/');
+    if (normalize(srcParent) === normalize(currentDir)) return; // 既にルート直下
+    try {
+      const isCopy = e.ctrlKey; // Ctrl+ドラッグ = コピー
+      const fileName = srcPath.split(/[/\\]/).pop();
+      const destPath = `${currentDir}/${fileName}`;
+      if (isCopy) {
+        await window.electron.ipcRenderer.invoke('fs:copy', srcPath, destPath);
+      } else {
+        await window.electron.ipcRenderer.invoke('fs:move', srcPath, destPath);
+      }
+      refreshRoot();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to move/copy to root', err);
+    }
+  };
+
+  const rootFolderName = currentDir
+    ? currentDir.split(/[/\\]/).filter(Boolean).pop() ?? currentDir
+    : '';
+
   return (
     <div className="file-explorer" onClick={() => setSelectedPath(null)}>
-      <div
-        className="explorer-header"
-        role="presentation"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.stopPropagation();
-          }
-        }}
-      >
-        {currentDir && (
-          <div className="explorer-actions">
+      {/* ルートフォルダーヘッダー行（VSCode スタイル） */}
+      {currentDir && (
+        <div
+          role="button"
+          tabIndex={0}
+          className={`root-folder-header ${rootIsDragOver ? 'drag-over' : ''}`}
+          onClick={(e) => { e.stopPropagation(); setRootIsExpanded((v) => !v); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setRootIsExpanded((v) => !v); }}
+          onDragOver={handleRootDragOver}
+          onDragLeave={handleRootDragLeave}
+          onDrop={handleRootDrop}
+        >
+          <span className="chevron root-chevron">
+            {rootIsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+          <span className="root-folder-name" title={currentDir}>{rootFolderName}</span>
+          <span className="root-folder-actions" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               className="action-btn"
               onClick={() => initiateCreate('file')}
-              title="New File"
+              title="新規ファイル"
             >
-              <FilePlus size={16} />
+              <FilePlus size={14} />
             </button>
             <button
               type="button"
               className="action-btn"
               onClick={() => initiateCreate('folder')}
-              title="New Folder"
+              title="新規フォルダー"
             >
-              <FolderPlus size={16} />
+              <FolderPlus size={14} />
             </button>
-          </div>
-        )}
-      </div>
+          </span>
+        </div>
+      )}
       <div className="explorer-content">
-        {creatingPath === currentDir && creatingType && (
-          <div
-            role="button"
-            tabIndex={0}
-            className="file-item"
-            style={{ paddingLeft: `${BASE_INDENT}px` }}
-            onKeyDown={() => {}} /* Creation input handles its own keys */
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="chevron" />
-            <span className="icon">
-              {creatingType === 'file' ? (
-                <FileText size={16} />
-              ) : (
-                <Folder size={16} />
-              )}
-            </span>
-            <input
-              className="rename-input"
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
-              value={newName}
-              placeholder={`New ${creatingType}...`}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={handleCreate}
-              onBlur={() => setCreatingPath(null)}
-              onClick={(e) => e.stopPropagation()}
-              onFocus={(e) => e.target.select()}
-            />
-          </div>
+        {rootIsExpanded && (
+          <>
+            {creatingPath === currentDir && creatingType && (
+              <div
+                role="button"
+                tabIndex={0}
+                className="file-item"
+                style={{ paddingLeft: `${BASE_INDENT + INDENT_STEP}px` }}
+                onKeyDown={() => {}} /* Creation input handles its own keys */
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="chevron" />
+                <span className="icon">
+                  {creatingType === 'file' ? (
+                    <FileText size={16} />
+                  ) : (
+                    <Folder size={16} />
+                  )}
+                </span>
+                <input
+                  className="rename-input"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
+                  autoFocus
+                  value={newName}
+                  placeholder={`New ${creatingType}...`}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={handleCreate}
+                  onBlur={() => setCreatingPath(null)}
+                  onClick={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.target.select()}
+                />
+              </div>
+            )}
+            {rootFiles.map((file) => (
+              <FileTreeItem
+                key={file.path}
+                file={file}
+                onFileSelect={onFileSelect}
+                level={1}
+                onRefresh={refreshRoot}
+                selectedPath={selectedPath}
+                onSelect={handleSelect}
+                creatingPath={creatingPath}
+                creatingType={creatingType}
+                newChildName={newName}
+                setNewChildName={setNewName}
+                handleCreateChild={handleCreate}
+                setCreatingPath={setCreatingPath}
+                renamingPath={renamingPath}
+                setRenamingPath={setRenamingPath}
+                onRefreshItem={() => refreshRoot()}
+              />
+            ))}
+          </>
         )}
-        {rootFiles.map((file) => (
-          <FileTreeItem
-            key={file.path}
-            file={file}
-            onFileSelect={onFileSelect}
-            onRefresh={refreshRoot}
-            selectedPath={selectedPath}
-            onSelect={handleSelect}
-            creatingPath={creatingPath}
-            creatingType={creatingType}
-            newChildName={newName}
-            setNewChildName={setNewName}
-            handleCreateChild={handleCreate}
-            setCreatingPath={setCreatingPath}
-            renamingPath={renamingPath}
-            setRenamingPath={setRenamingPath}
-            onRefreshItem={() => refreshRoot()}
-          />
-        ))}
       </div>
     </div>
   );
