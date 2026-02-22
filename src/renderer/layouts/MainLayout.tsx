@@ -793,6 +793,7 @@ export default function MainLayout() {
 
     const handleRename = async (newName: string) => {
         if (!newName || newName === fileName) return;
+        clearTimer(activePath);
 
         const dir = activePath.substring(0, activePath.lastIndexOf('\\'));
         const newPath = `${dir}\\${newName}${fileExt}`;
