@@ -89,7 +89,7 @@ export default function MainLayout() {
   }, []);
 
   const closeTabByPath = useCallback(
-    (path: string, reason?: string) => {
+    (path: string, reason?: string, side?: 'left' | 'right') => {
       // タイマーをキャンセルすることで自動保存を防ぐ
       clearTimer(path);
 
@@ -101,11 +101,11 @@ export default function MainLayout() {
         }
       }
 
-      const closeInSide = (side: 'left' | 'right') => {
-        const setTabs = side === 'left' ? setLeftTabs : setRightTabs;
-        const activePath = side === 'left' ? leftActivePath : rightActivePath;
+      const closeInSide = (targetSide: 'left' | 'right') => {
+        const setTabs = targetSide === 'left' ? setLeftTabs : setRightTabs;
+        const activePath = targetSide === 'left' ? leftActivePath : rightActivePath;
         const setActivePath =
-          side === 'left' ? setLeftActivePath : setRightActivePath;
+          targetSide === 'left' ? setLeftActivePath : setRightActivePath;
 
         setTabs((prev) => {
           const newTabs = prev.filter((tab) => tab.path !== path);
@@ -123,12 +123,22 @@ export default function MainLayout() {
         });
       };
 
-      closeInSide('left');
-      closeInSide('right');
+      if (!side || side === 'left') closeInSide('left');
+      if (!side || side === 'right') closeInSide('right');
 
       setTabContents((prevContents) => {
         const newContents = { ...prevContents };
-        delete newContents[path];
+        // 他のペインに同じファイルが残っていないか、あるいはサイドが指定されていない（一括削除）場合のみ消去
+        const stillInAnyTabs = () => {
+          if (!side) return false;
+          const otherSide = side === 'left' ? 'right' : 'left';
+          const otherTabs = tabsRef.current[otherSide];
+          return otherTabs.some((t) => t.path === path);
+        };
+
+        if (!stillInAnyTabs()) {
+          delete newContents[path];
+        }
         return newContents;
       });
     },
@@ -594,7 +604,7 @@ export default function MainLayout() {
 
   const handleTabClose = useCallback(
     (side: 'left' | 'right') => (path: string) => {
-      closeTabByPath(path);
+      closeTabByPath(path, undefined, side);
     },
     [closeTabByPath],
   );
