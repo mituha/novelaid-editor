@@ -22,6 +22,7 @@ import { useMetadata } from '../contexts/MetadataContext';
 import './MainLayout.css';
 
 import { LeftPane } from '../components/LeftPane/LeftPane';
+import ChView from '../components/ch/ChView';
 
 export default function MainLayout() {
   const [leftTabs, setLeftTabs] = useState<Tab[]>([]);
@@ -644,7 +645,7 @@ export default function MainLayout() {
       console.error(err);
       savingPaths.current.delete(path);
     }
-  }, [clearTimer]);
+  }, [clearTimer, setLeftTabs, setRightTabs]);
 
   const triggerAutoSave = useCallback(
     (path: string) => {
@@ -705,7 +706,7 @@ export default function MainLayout() {
         triggerAutoSave(path);
       }
     },
-    [],
+    [triggerAutoSave],
   );
 
   const handleSave = useCallback(async () => {
@@ -815,7 +816,15 @@ export default function MainLayout() {
       );
     }
 
-
+    if (activePath.endsWith('.ch')) {
+      return (
+        <ChView
+          content={data.content}
+          path={activePath}
+          onContentChange={handleContentChange(activePath, side)}
+        />
+      );
+    }
 
     // Extract filename and extension for header
     const fileNameWithExt = activePath.split('\\').pop() || '';

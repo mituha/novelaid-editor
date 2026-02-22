@@ -440,8 +440,8 @@ ipcMain.handle('metadata:queryChatEnabled', async () => {
 
 ipcMain.on(
   'ai:streamChat',
-  async (event, messages: any[], config: any, personaId?: string, roleId?: string) => {
-    AIService.getInstance().streamChat(event, messages, config, personaId, roleId);
+  async (event, messages: any[], config: any, personaId?: string, roleId?: string, path?: string) => {
+    AIService.getInstance().streamChat(event, messages, config, personaId, roleId, path);
   },
 );
 

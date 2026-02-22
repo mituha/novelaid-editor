@@ -83,6 +83,7 @@ export class AIService {
     config: any,
     personaId?: string,
     roleId?: string,
+    path?: string,
   ): Promise<void> {
     try {
       const provider = this.createProvider(config);
@@ -91,14 +92,15 @@ export class AIService {
       const stream = provider.streamChat(apiMessages);
 
       for await (const chunk of stream) {
-        event.reply('ai:streamChat:data', chunk);
+        event.reply('ai:streamChat:data', chunk, path);
       }
-      event.reply('ai:streamChat:end');
+      event.reply('ai:streamChat:end', path);
     } catch (error) {
       console.error('[AIService] Stream Chat Error:', error);
       event.reply(
         'ai:streamChat:error',
         error instanceof Error ? error.message : String(error),
+        path,
       );
     }
   }

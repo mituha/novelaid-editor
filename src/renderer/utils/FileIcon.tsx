@@ -3,6 +3,7 @@ import {
   FileJson,
   BookText,
   Image as ImageIcon,
+  MessageSquare,
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import React from 'react';
@@ -66,6 +67,7 @@ export const FileIcon: React.FC<FileIconProps> = ({
     }
   }
 
+  if (name.endsWith('.ch')) return <MessageSquare size={size} />;
   if (name.endsWith('.json')) return <FileJson size={size} />;
   if (language === 'novel') return <BookText size={size} />;
   if (language === 'image') return <ImageIcon size={size} />;
