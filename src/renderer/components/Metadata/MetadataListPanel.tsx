@@ -191,6 +191,11 @@ export default function MetadataListPanel({
                 <li key={entry.path}>
                   <div
                     className="bookmark-item-link"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', entry.path);
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
                     onClick={() => handleFileClick(entry.path)}
                     onKeyDown={handleKeyDown(entry.path)}
                     role="button"
@@ -226,6 +231,11 @@ export default function MetadataListPanel({
                   <li key={entry.path}>
                     <div
                       className="bookmark-item-link"
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', entry.path);
+                        e.dataTransfer.effectAllowed = 'copy';
+                      }}
                       onClick={() => handleFileClick(entry.path)}
                       onKeyDown={handleKeyDown(entry.path)}
                       role="button"
