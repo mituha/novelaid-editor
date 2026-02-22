@@ -10,7 +10,7 @@ import { AppearanceSettingsTab } from '../components/Settings/Tabs/AppearanceSet
 import { CalibrationSettingsTab } from '../components/Settings/Tabs/CalibrationSettingsTab';
 import { RightPane } from '../components/RightPane/RightPane';
 import Resizer from '../components/Common/Resizer';
-import { StatusBar } from '../components/Common/StatusBar';
+import StatusBar from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
 import NovelPreview from '../components/Preview/NovelPreview';
 import MarkdownPreview from '../components/Preview/MarkdownPreview';
@@ -348,11 +348,15 @@ export default function MainLayout() {
             setTabContents((prev) => ({ ...prev, [path]: data }));
 
             // Mark as not dirty
-            setLeftTabs((prev) =>
-              prev.map((t) => (t.path === path ? { ...t, isDirty: false } : t)),
+            setLeftTabs((current) =>
+              current.map((tab) =>
+                tab.path === path ? { ...tab, isDirty: false } : tab,
+              ),
             );
-            setRightTabs((prev) =>
-              prev.map((t) => (t.path === path ? { ...t, isDirty: false } : t)),
+            setRightTabs((current) =>
+              current.map((tab) =>
+                tab.path === path ? { ...tab, isDirty: false } : tab,
+              ),
             );
           } catch (err) {
             console.error('Failed to reload file', err);
@@ -663,10 +667,14 @@ export default function MainLayout() {
       }));
       // Mark as dirty in both lists
       setLeftTabs((prev) =>
-        prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
+        prev.map((tab) =>
+          tab.path === path ? { ...tab, isDirty: true } : tab,
+        ),
       );
       setRightTabs((prev) =>
-        prev.map((tab) => (tab.path === path ? { ...tab, isDirty: true } : tab)),
+        prev.map((tab) =>
+          tab.path === path ? { ...tab, isDirty: true } : tab,
+        ),
       );
 
       triggerAutoSave(path);
@@ -1040,6 +1048,8 @@ export default function MainLayout() {
           activeTabPath
         )}
         activePath={getOriginalPath(activeTabPath)}
+        language={activeTabPath ? tabContents[getOriginalPath(activeTabPath) || '']?.language : undefined}
+        metadata={activeTabPath ? tabContents[getOriginalPath(activeTabPath) || '']?.metadata : undefined}
         openSettings={openSettings}
         onGoHome={() => navigate('/')}
         onToggleLeftPane={handleToggleLeftPane}

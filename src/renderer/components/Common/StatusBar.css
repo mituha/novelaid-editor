@@ -78,3 +78,22 @@
 .char-count {
   font-weight: 500;
 }
+
+.status-file-icon {
+  margin-right: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.file-name {
+  margin-right: 10px;
+}
+
+.document-type {
+  opacity: 0.6;
+  font-size: 10px;
+  text-transform: uppercase;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 1px 4px;
+  border-radius: 3px;
+}

@@ -10,10 +10,13 @@ import {
 import { useState, useEffect } from 'react';
 import './StatusBar.css';
 import { CountMetric } from '../../utils/CharCounter';
+import { FileIcon } from '../../utils/FileIcon';
 
 interface StatusBarProps {
   metrics: CountMetric[];
   activePath: string | null;
+  language?: string;
+  metadata?: Record<string, any>;
   openSettings: () => void;
   onGoHome: () => void;
   onToggleLeftPane: () => void;
@@ -22,9 +25,11 @@ interface StatusBarProps {
   isRightPaneVisible: boolean;
 }
 
-export function StatusBar({
+export default function StatusBar({
   metrics,
   activePath,
+  language = '',
+  metadata = {},
   openSettings,
   onGoHome,
   onToggleLeftPane,
@@ -83,7 +88,23 @@ export function StatusBar({
           <SettingsIcon size={14} />
         </button>
         <div className="status-item file-info">
-          <span>{fileName}</span>
+          {activePath && (
+            <div className="status-file-icon">
+              <FileIcon
+                name={fileName || ''}
+                path={activePath}
+                language={language}
+                metadata={metadata}
+                size={14}
+              />
+            </div>
+          )}
+          <span className="file-name">{fileName}</span>
+          {language && (
+            <span className="document-type">
+              {language.charAt(0).toUpperCase() + language.slice(1)}
+            </span>
+          )}
         </div>
       </div>
       <div className="status-item right-info">

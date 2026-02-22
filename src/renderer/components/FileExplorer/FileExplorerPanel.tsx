@@ -4,18 +4,15 @@ import {
   Files,
   Folder,
   FileText,
-  FileJson,
   FilePlus,
   FolderPlus,
-  BookText,
-  Image as ImageIcon,
 } from 'lucide-react';
 
-import * as LucideIcons from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
 import { Panel } from '../../types/panel';
 import './FileExplorerPanel.css';
+import { FileIcon } from '../../utils/FileIcon';
 
 const BASE_INDENT = 8;
 const INDENT_STEP = 16;
@@ -257,49 +254,6 @@ function FileTreeItem({
     handleCreateChild(e, loadDirectory);
   };
 
-  const getFileIcon = (node: FileNode) => {
-    if (node.metadata?.icon) {
-      const { icon } = node.metadata;
-      if (icon.type === 'lucide') {
-        const LucideIcon = (LucideIcons as any)[icon.value];
-        if (LucideIcon) return <LucideIcon size={16} />;
-      }
-      if (icon.value && (icon.type === 'local' || icon.type === 'url')) {
-        let src = icon.value;
-        const isAbsolute =
-          icon.value.startsWith('/') ||
-          /^[a-zA-Z]:/.test(icon.value) ||
-          icon.value.startsWith('http');
-
-        if (icon.type === 'local' || !isAbsolute) {
-          let fullPath = icon.value;
-          if (!isAbsolute && node.path) {
-            const dir = node.path.replace(/[\\/][^\\/]+$/, '');
-            const separator = node.path.includes('\\') ? '\\' : '/';
-            fullPath = `${dir}${separator}${icon.value}`;
-          }
-
-          const normalized = fullPath.replace(/\\/g, '/');
-          const encodedPath = normalized
-            .split('/')
-            .map((segment: string) => encodeURIComponent(segment))
-            .join('/');
-          src = `nvfs://local/${encodedPath}`;
-        }
-
-        return (
-          <div className="file-custom-icon">
-            <img src={src} alt="" />
-          </div>
-        );
-      }
-    }
-    if (node.name.endsWith('.json')) return <FileJson size={16} />;
-    if (node.language === 'novel') return <BookText size={16} />;
-    if (node.language === 'image') return <ImageIcon size={16} />;
-    return <FileText size={16} />;
-
-  };
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', file.path);
@@ -368,7 +322,13 @@ function FileTreeItem({
               className={`${isOpen ? 'folder-open' : 'folder-closed'} folder-type-${file.language}`}
             />
           ) : (
-            getFileIcon(file)
+            <FileIcon
+              name={file.name}
+              path={file.path}
+              language={file.language}
+              metadata={file.metadata}
+              size={16}
+            />
           )}
         </span>
         {isRenaming ? (
@@ -653,7 +613,15 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     if (!srcPath) return;
     const isCopy = e.ctrlKey;
     // eslint-disable-next-line no-console
-    console.log('[handleRootDrop] srcPath:', srcPath, 'destDir:', currentDir, 'isCopy:', isCopy);
+      // eslint-disable-next-line no-console
+      console.log(
+        '[handleRootDrop] srcPath:',
+        srcPath,
+        'destDir:',
+        currentDir,
+        'isCopy:',
+        isCopy,
+      );
     await performFileDrop(srcPath, currentDir, isCopy, refreshRoot);
   };
 
