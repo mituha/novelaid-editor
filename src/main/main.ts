@@ -189,9 +189,65 @@ ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
   }
 });
 
-ipcMain.handle('fs:move', async (_, oldPath: string, newPath: string) => {
+/**
+ * 宛先パスの競合を解決するヘルパー。
+ * - 宛先が存在しない場合はそのままのパスを返す
+ * - 存在する場合はダイアログで「上書き / ファイル名を変更 / キャンセル」を選択させる
+ * - キャンセル時は null を返す
+ */
+async function resolveDestPath(
+  win: BrowserWindow,
+  destPath: string,
+): Promise<string | null> {
+  // 宛先が存在するか確認
+  let destExists = false;
   try {
-    return await FileService.getInstance().move(oldPath, newPath);
+    await fs.access(destPath);
+    destExists = true;
+  } catch {
+    // 存在しない → そのまま使用
+  }
+
+  console.log(`[resolveDestPath] destPath: ${destPath}, exists: ${destExists}`);
+
+  if (!destExists) return destPath;
+
+  // 存在する → ダイアログで選択
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'warning',
+    buttons: ['上書き', 'ファイル名を変更', 'キャンセル'],
+    defaultId: 1,
+    cancelId: 2,
+    title: '確認',
+    message: `"${path.basename(destPath)}" は既に存在します。`,
+    detail: 'どのように処理しますか？',
+  });
+
+  console.log(`[resolveDestPath] dialog response: ${response}`);
+
+  if (response === 0) {
+    // 上書き
+    return destPath;
+  }
+  if (response === 1) {
+    // ファイル名を変更（getUniquePath で安全な名前を生成）
+    const dir = path.dirname(destPath);
+    const ext = path.extname(destPath);
+    const base = path.basename(destPath, ext);
+    return await FileService.getInstance().getUniquePath(dir, base, ext);
+  }
+  // キャンセル
+  return null;
+}
+
+ipcMain.handle('fs:move', async (_, oldPath: string, newPath: string) => {
+  if (!mainWindow) throw new Error('No window');
+  console.log(`[fs:move] oldPath: ${oldPath}, newPath: ${newPath}`);
+  try {
+    const resolved = await resolveDestPath(mainWindow, newPath);
+    console.log(`[fs:move] resolved: ${resolved}`);
+    if (!resolved) return false; // キャンセル
+    return await FileService.getInstance().move(oldPath, resolved);
   } catch (error) {
     console.error('Error moving:', error);
     throw error;
@@ -200,8 +256,25 @@ ipcMain.handle('fs:move', async (_, oldPath: string, newPath: string) => {
 
 
 ipcMain.handle('fs:copy', async (_, srcPath: string, destPath: string) => {
+  if (!mainWindow) throw new Error('No window');
+  console.log(`[fs:copy] srcPath: ${srcPath}, destPath: ${destPath}, isSameFolder: ${srcPath === destPath}`);
   try {
-    return await FileService.getInstance().copy(srcPath, destPath);
+    let resolved: string;
+    if (srcPath === destPath) {
+      // 同一フォルダー内コピー → ダイアログなしで自動リネーム
+      const dir = path.dirname(destPath);
+      const ext = path.extname(destPath);
+      const base = path.basename(destPath, ext);
+      resolved = await FileService.getInstance().getUniquePath(dir, base, ext);
+      console.log(`[fs:copy] 同一フォルダーコピー → resolved: ${resolved}`);
+    } else {
+      // 異なるフォルダーへのコピー → 競合時はダイアログ表示
+      const r = await resolveDestPath(mainWindow, destPath);
+      console.log(`[fs:copy] 別フォルダーコピー → resolved: ${r}`);
+      if (!r) return false; // キャンセル
+      resolved = r;
+    }
+    return await FileService.getInstance().copy(srcPath, resolved);
   } catch (error) {
     console.error('Error copying:', error);
     throw error;

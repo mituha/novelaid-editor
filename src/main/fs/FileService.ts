@@ -267,7 +267,7 @@ export class FileService {
   /**
    * 重複しないファイルパスを生成します。
    */
-  private async getUniquePath(
+  public async getUniquePath(
     dirPath: string,
     baseName: string,
     ext: string,

@@ -20,6 +20,54 @@ import './FileExplorerPanel.css';
 const BASE_INDENT = 8;
 const INDENT_STEP = 16;
 
+/** パスを正規化（バックスラッシュ → スラッシュ） */
+const normalizePath = (p: string) => p.replace(/\\/g, '/');
+
+/**
+ * ドラッグ&ドロップによるファイル移動/コピーを実行する共通処理。
+ * - フォルダーを自分の子孫へのドロップは禁止（コピー含む）
+ * - 移動の場合: 同一フォルダーへのドロップは無視
+ * - コピーの場合: 同一フォルダーへのドロップは main.ts 側で自動リネーム
+ */
+async function performFileDrop(
+  srcPath: string,
+  destDir: string,
+  isCopy: boolean,
+  onRefresh: () => void,
+): Promise<void> {
+  const normSrc = normalizePath(srcPath);
+  const normDest = normalizePath(destDir);
+
+  // srcPath と destDir が同じ（自分自身へのドロップ）は禁止
+  if (normSrc === normDest) return;
+
+  // destDir が srcPath の子孫の場合は禁止（フォルダーを自分のサブフォルダーへ移動/コピー防止）
+  if (normDest.startsWith(`${normSrc}/`)) return;
+
+  const srcParent = normalizePath(srcPath.replace(/[/\\][^/\\]+$/, ''));
+
+  // 移動の場合: 同一フォルダーへのドロップは無視
+  if (!isCopy && srcParent === normDest) return;
+
+  const fileName = srcPath.split(/[/\\]/).pop() ?? '';
+  const destPath = `${destDir}/${fileName}`;
+
+  // eslint-disable-next-line no-console
+  console.log(`[performFileDrop] ${isCopy ? 'copy' : 'move'} src:${srcPath} → dest:${destPath}`);
+
+  try {
+    await window.electron.ipcRenderer.invoke(
+      isCopy ? 'fs:copy' : 'fs:move',
+      srcPath,
+      destPath,
+    );
+    onRefresh();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[performFileDrop] Failed:', err);
+  }
+}
+
 interface FileNode {
   name: string;
   isDirectory: boolean;
@@ -280,33 +328,11 @@ function FileTreeItem({
     e.stopPropagation();
 
     const srcPath = e.dataTransfer.getData('text/plain');
-    if (!srcPath || srcPath === file.path) return;
-
-    // Check if dropping onto a subfolder of itself
-    if (
-      srcPath.startsWith(`${file.path}/`) ||
-      srcPath.startsWith(`${file.path}\\`)
-    ) {
-      return;
-    }
-
-    try {
-      const isCopy = e.ctrlKey; // Ctrl+ドラッグ = コピー
-      const fileName = srcPath.split(/[/\\]/).pop();
-      const destPath = `${file.path}/${fileName}`;
-
-      if (srcPath === destPath) return;
-
-      if (isCopy) {
-        await window.electron.ipcRenderer.invoke('fs:copy', srcPath, destPath);
-      } else {
-        await window.electron.ipcRenderer.invoke('fs:move', srcPath, destPath);
-      }
-      onRefresh();
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to move/copy file', err);
-    }
+    if (!srcPath) return;
+    const isCopy = e.ctrlKey;
+    // eslint-disable-next-line no-console
+    console.log('[handleDrop] srcPath:', srcPath, 'destDir:', file.path, 'isCopy:', isCopy);
+    await performFileDrop(srcPath, file.path, isCopy, onRefresh);
   };
 
   return (
@@ -625,23 +651,10 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     setRootIsDragOver(false);
     const srcPath = e.dataTransfer.getData('text/plain');
     if (!srcPath) return;
-    const srcParent = srcPath.replace(/[/\\][^/\\]+$/, '');
-    const normalize = (p: string) => p.replace(/\\/g, '/');
-    if (normalize(srcParent) === normalize(currentDir)) return; // 既にルート直下
-    try {
-      const isCopy = e.ctrlKey; // Ctrl+ドラッグ = コピー
-      const fileName = srcPath.split(/[/\\]/).pop();
-      const destPath = `${currentDir}/${fileName}`;
-      if (isCopy) {
-        await window.electron.ipcRenderer.invoke('fs:copy', srcPath, destPath);
-      } else {
-        await window.electron.ipcRenderer.invoke('fs:move', srcPath, destPath);
-      }
-      refreshRoot();
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to move/copy to root', err);
-    }
+    const isCopy = e.ctrlKey;
+    // eslint-disable-next-line no-console
+    console.log('[handleRootDrop] srcPath:', srcPath, 'destDir:', currentDir, 'isCopy:', isCopy);
+    await performFileDrop(srcPath, currentDir, isCopy, refreshRoot);
   };
 
   const rootFolderName = currentDir
