@@ -137,7 +137,7 @@ export class FileService {
           isDirectory,
           path: fullPath,
           language: isDirectory
-            ? undefined
+            ? this.getPreferredDocumentTypeForDirectory(fullPath)
             : await this.getDocumentType(fullPath),
           metadata: isDirectory
             ? undefined

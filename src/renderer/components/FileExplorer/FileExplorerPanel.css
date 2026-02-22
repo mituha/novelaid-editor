@@ -154,6 +154,14 @@
   opacity: 0.8;
 }
 
+.folder-type-novel {
+  color: var(--accent-color) !important;
+}
+
+.folder-type-markdown {
+  color: #88cc88 !important; /* Greenish color for research/markdown */
+}
+
 .file-item.file {
   color: var(--text-secondary);
 }

@@ -338,7 +338,7 @@ function FileTreeItem({
           {file.isDirectory ? (
             <Folder
               size={16}
-              className={isOpen ? 'folder-open' : 'folder-closed'}
+              className={`${isOpen ? 'folder-open' : 'folder-closed'} folder-type-${file.language}`}
             />
           ) : (
             getFileIcon(file)
