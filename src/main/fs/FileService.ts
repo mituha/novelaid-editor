@@ -7,8 +7,13 @@ import { readDocument, saveDocument } from '../metadata';
 export class FileService {
   private static instance: FileService;
   private ignoreCache = new Map<string, { mtime: number; instance: any }>();
+  private beforeDeleteCallback: ((targetPath: string) => void) | null = null;
 
   private constructor() {}
+
+  public setBeforeDeleteCallback(callback: (targetPath: string) => void) {
+    this.beforeDeleteCallback = callback;
+  }
 
   public static getInstance(): FileService {
     if (!FileService.instance) {
@@ -245,6 +250,9 @@ export class FileService {
   }
 
   public async delete(targetPath: string): Promise<boolean> {
+    if (this.beforeDeleteCallback) {
+      this.beforeDeleteCallback(targetPath);
+    }
     await fs.rm(targetPath, { recursive: true, force: true });
     return true;
   }

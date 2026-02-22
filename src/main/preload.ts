@@ -31,7 +31,8 @@ export type Channels =
   | 'menu:go-home'
   | 'menu:open-project'
   | 'menu:open-settings'
-  | 'app:open-file';
+  | 'app:open-file'
+  | 'app:close-file';
 
 const electronHandler = {
   ipcRenderer: {

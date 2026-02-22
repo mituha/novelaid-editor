@@ -71,8 +71,53 @@ export default function MainLayout() {
 
   const activeTabPath = activeSide === 'left' ? leftActivePath : rightActivePath;
   const savingPaths = useRef<Set<string>>(new Set());
-  const autoSaveTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const autoSaveTimerRef = useRef<Record<string, any>>({});
   const restoredRef = useRef<string | null>(null);
+
+  const clearTimer = useCallback((path: string) => {
+    if (autoSaveTimerRef.current[path]) {
+      clearTimeout(autoSaveTimerRef.current[path]);
+      delete autoSaveTimerRef.current[path];
+    }
+  }, []);
+
+  const closeTabByPath = useCallback(
+    (path: string) => {
+      clearTimer(path);
+
+      const closeInSide = (side: 'left' | 'right') => {
+        const setTabs = side === 'left' ? setLeftTabs : setRightTabs;
+        const activePath = side === 'left' ? leftActivePath : rightActivePath;
+        const setActivePath =
+          side === 'left' ? setLeftActivePath : setRightActivePath;
+
+        setTabs((prev) => {
+          const newTabs = prev.filter((tab) => tab.path !== path);
+
+          if (activePath === path) {
+            const closedTabIndex = prev.findIndex((tab) => tab.path === path);
+            if (newTabs.length > 0) {
+              const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
+              setActivePath(newTabs[nextIndex].path);
+            } else {
+              setActivePath(null);
+            }
+          }
+          return newTabs;
+        });
+      };
+
+      closeInSide('left');
+      closeInSide('right');
+
+      setTabContents((prevContents) => {
+        const newContents = { ...prevContents };
+        delete newContents[path];
+        return newContents;
+      });
+    },
+    [leftActivePath, rightActivePath, clearTimer],
+  );
 
   // Restore open files from settings
   useEffect(() => {
@@ -303,6 +348,7 @@ export default function MainLayout() {
           }
         }
       } else if (event === 'unlink') {
+        clearTimer(path);
         // Handle file deletion
         setLeftTabs((prev) => prev.filter((t) => t.path !== path));
         setRightTabs((prev) => prev.filter((t) => t.path !== path));
@@ -317,7 +363,7 @@ export default function MainLayout() {
     return () => {
       cleanup();
     };
-  }, []); // Run once on mount
+  }, [clearTimer]); // Run once on mount (now depends on clearTimer)
 
   // Apply theme to body
   useEffect(() => {
@@ -391,13 +437,24 @@ export default function MainLayout() {
           console.error('Failed to open file via app:open-file:', error);
         }
       });
+
+      const removeCloseListener = ipcRenderer.on(
+        'app:close-file',
+        (pathOrArgs: any) => {
+          const path =
+            typeof pathOrArgs === 'string' ? pathOrArgs : pathOrArgs.path;
+          if (path) closeTabByPath(path);
+        },
+      );
+
       return () => {
         if (removeSettingsListener) removeSettingsListener();
         if (removeOpenListener) removeOpenListener();
+        if (removeCloseListener) removeCloseListener();
       };
     }
     return () => {};
-  }, [registerSettingTab, openSettings, handleFileSelect]);
+  }, [registerSettingTab, openSettings, handleFileSelect, closeTabByPath]);
 
   const handleTabClick = useCallback(
     (side: 'left' | 'right') => (path: string) => {
@@ -515,42 +572,24 @@ export default function MainLayout() {
 
   const handleTabClose = useCallback(
     (side: 'left' | 'right') => (path: string) => {
-      const setTabs = side === 'left' ? setLeftTabs : setRightTabs;
-      const activePath = side === 'left' ? leftActivePath : rightActivePath;
-      const setActivePath = side === 'left' ? setLeftActivePath : setRightActivePath;
-
-      setTabs((prev) => {
-        const newTabs = prev.filter((tab) => tab.path !== path);
-
-        if (activePath === path) {
-          const closedTabIndex = prev.findIndex((tab) => tab.path === path);
-          if (newTabs.length > 0) {
-            const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
-            setActivePath(newTabs[nextIndex].path);
-          } else {
-            setActivePath(null);
-          }
-        }
-
-        // If the path is not open in the other pane, clear content
-        const otherTabs = side === 'left' ? tabsRef.current.right : tabsRef.current.left;
-        if (!otherTabs.find((t) => t.path === path)) {
-             setTabContents((prevContents) => {
-                const newContents = { ...prevContents };
-                delete newContents[path];
-                return newContents;
-             });
-        }
-
-        return newTabs;
-      });
+      closeTabByPath(path);
     },
-    [leftActivePath, rightActivePath],
+    [closeTabByPath],
   );
 
   const handleSaveByPath = useCallback(async (path: string) => {
     const data = tabContentsRef.current[path];
     if (!path || !data) return;
+
+    // Safety check: Don't save if the file is no longer in any tab
+    // (prevents recreation of deleted files by pending timers)
+    const allTabs = [...tabsRef.current.left, ...tabsRef.current.right];
+    if (!allTabs.find((t) => t.path === path)) {
+      console.log(
+        `[MainLayout] Skipping save for closed/deleted file: ${path}`,
+      );
+      return;
+    }
 
     try {
       console.log(`[MainLayout] Saving ${path}...`);
@@ -577,7 +616,7 @@ export default function MainLayout() {
       console.error(err);
       savingPaths.current.delete(path);
     }
-  }, []);
+  }, [clearTimer]);
 
   const triggerAutoSave = useCallback(
     (path: string) => {
