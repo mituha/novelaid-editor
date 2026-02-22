@@ -6,7 +6,6 @@ import { readDocument, saveDocument } from '../metadata';
 
 export class FileService {
   private static instance: FileService;
-  private ignoreCache = new Map<string, { mtime: number; instance: any }>();
   private attributeCache = new Map<string, { mtime: number; data: Map<string, string> }>();
   private beforeDeleteCallback: ((targetPath: string) => void) | null = null;
 
@@ -33,24 +32,6 @@ export class FileService {
     return filePaths[0];
   }
 
-  private async findProjectRoot(filePath: string): Promise<string | null> {
-    let current = path.dirname(filePath);
-    const root = path.parse(current).root;
-    const NOVELAID_DIR = '.novelaid';
-
-    while (current !== root) {
-      try {
-        await fs.access(path.join(current, NOVELAID_DIR));
-        return current;
-      } catch {
-        const parent = path.dirname(current);
-        if (parent === current) break;
-        current = parent;
-      }
-    }
-    return null;
-  }
-
   public async getDocumentType(filePath: string): Promise<string> {
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.ch') return 'ch';
@@ -59,41 +40,29 @@ export class FileService {
     if (ext === '.txt') return 'novel';
     if (ext !== '.md' && ext !== '.markdown') return 'markdown';
 
-    // .md / .markdown の場合、.novelignore をチェック
-    const projectRoot = await this.findProjectRoot(filePath);
-    if (!projectRoot) return 'novel'; // デフォルトは novel
+    // mdファイルに対する特別な処理の確認
+    // 基本的にはmdをnovel用として扱っている場合の特殊処理用です
+    // *.md novel を処理することになります。
+    // また、その際に特定ファイルを除外する場合もあります
+    // plot.md markdown など
 
-    const ignorePath = path.join(projectRoot, '.novelignore');
-    try {
-      const stats = await fs.stat(ignorePath);
-      let ignoreInstance;
+    const dirPath = path.dirname(filePath);
+    const fileName = path.basename(filePath);
 
-      const cached = this.ignoreCache.get(projectRoot);
-      if (cached && cached.mtime === stats.mtimeMs) {
-        ignoreInstance = cached.instance;
-      } else {
-        const ignore = require('ignore');
-        const content = await fs.readFile(ignorePath, 'utf-8');
-        ignoreInstance = ignore().add(content);
-        this.ignoreCache.set(projectRoot, {
-          mtime: stats.mtimeMs,
-          instance: ignoreInstance,
-        });
+    // 1. .novelaidattributes をチェック (最優先)
+    const attrs = await this.getAttributesForDirectory(dirPath);
+    if (attrs) {
+      let matchedType: string | null = null;
+      for (const [pattern, type] of attrs.entries()) {
+        if (!pattern.endsWith('/') && pattern !== './' && this.patternMatches(pattern, fileName)) {
+          matchedType = type;
+        }
       }
-
-      const relativePath = path.relative(projectRoot, filePath);
-      // ignore package expects forward slashes
-      const normalizedRelativePath = relativePath.replace(/\\/g, '/');
-
-      if (ignoreInstance.ignores(normalizedRelativePath)) {
-        return 'markdown';
-      }
-    } catch (err) {
-      // .novelignore がない場合は無視してデフォルト(novel)を返す
+      if (matchedType) return matchedType;
     }
-
-    // フォルダ名による判定(フォールバック)
-    return await this.getPreferredDocumentTypeForDirectory(path.dirname(filePath));
+    //特殊処理を行わなかったマークダウンファイルはマークダウンです
+    //フォルダーの属性によるフォールバック処理は不要です。
+    return 'markdown';
   }
 
   /**
@@ -104,9 +73,11 @@ export class FileService {
     if (pattern === target) return true;
     if (!pattern.includes('*') && !pattern.includes('?')) return false;
 
-    // 特殊文字をエスケープしつつ、* と ? を正規表現に変換
-    const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-    const regexStr = escaped.replace(/\\\*/g, '.*').replace(/\\\?/g, '.');
+    // 正規表現の特殊文字 (* ? 以外) をエスケープしてから、* と ? をワイルドカードとして展開
+    const regexStr = pattern
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&') // * ? 以外の特殊文字をエスケープ
+      .replace(/\*/g, '.*')                  // * → .*
+      .replace(/\?/g, '.');                  // ? → .
     const regex = new RegExp(`^${regexStr}$`, 'i');
     return regex.test(target);
   }
