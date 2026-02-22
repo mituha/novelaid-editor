@@ -404,10 +404,59 @@ export default function CodeEditor({
       onBlur?.();
     });
 
+    // ファイルエクスプローラーからのドロップをインターセプトしてファイル名のみ挿入
+    const domNode = editor.getDomNode();
+    if (domNode) {
+      domNode.addEventListener(
+        'drop',
+        (e: DragEvent) => {
+          const filePath = e.dataTransfer?.getData('text/plain');
+          if (!filePath) return;
+
+          // パス区切り文字が含まれる場合のみ処理
+          // （ファイルエクスプローラーからのドラッグと判断）
+          const isFilePath =
+            filePath.includes('/') || filePath.includes('\\');
+          if (!isFilePath) return;
+
+          // Monaco のデフォルトドロップ動作（フルパス挿入）を止める
+          e.preventDefault();
+          e.stopPropagation();
+
+          // ファイル名のみ取得（拡張子なし）
+          const fullName = filePath.split(/[/\\]/).pop() ?? filePath;
+          const dotIndex = fullName.lastIndexOf('.');
+          const fileName = dotIndex > 0 ? fullName.slice(0, dotIndex) : fullName;
+
+          // ドロップ位置をカーソル位置として取得
+          const target = editor.getTargetAtClientPoint(e.clientX, e.clientY);
+          const position = target?.position ?? editor.getPosition();
+          if (!position) return;
+
+          editor.executeEdits('file-drop', [
+            {
+              range: {
+                startLineNumber: position.lineNumber,
+                startColumn: position.column,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column,
+              },
+              text: fileName,
+              forceMoveMarkers: true,
+            },
+          ]);
+          editor.focus();
+        },
+        // キャプチャフェーズで捕捉することで Monaco の内部ハンドラーより先に実行
+        true,
+      );
+    }
+
     // 補足:コンテキストメニューを標準では多層には出来ない模様。
 
     // Add Ruby action to context menu
     editor.addAction({
+
       id: 'insert-ruby',
       label: 'ルビを振る',
       contextMenuGroupId: 'navigation',
