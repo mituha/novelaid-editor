@@ -29,6 +29,7 @@ import { FileWatcher } from './watcher';
 import { MetadataService } from './metadataService';
 import { CalibrationService } from './calibration/CalibrationService';
 import { AIService } from './ai/AIService';
+import { FileService } from './fs/FileService';
 
 
 
@@ -92,13 +93,7 @@ ipcMain.on('ipc-example', async (event, arg) => {
 
 ipcMain.handle('dialog:openDirectory', async () => {
   if (!mainWindow) return null;
-  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory'],
-  });
-  if (canceled) {
-    return null;
-  }
-  return filePaths[0];
+  return await FileService.getInstance().openDirectory(mainWindow);
 });
 
 ipcMain.handle('dialog:confirm', async (_, message: string) => {
@@ -115,35 +110,7 @@ ipcMain.handle('dialog:confirm', async (_, message: string) => {
 
 ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
   try {
-    const dirents = await fs.readdir(dirPath, { withFileTypes: true });
-    const filtered = dirents.filter((dirent) => {
-      const fullPath = path.join(dirPath, dirent.name);
-      // Skip if ignored by .novelaidignore
-      if (metadataService.isIgnored(fullPath)) {
-        return false;
-      }
-
-      // Filter out only hidden folders and node_modules, keep hidden files
-      if (dirent.isDirectory()) {
-        return !dirent.name.startsWith('.') && dirent.name !== 'node_modules';
-      }
-      return true;
-    });
-    return await Promise.all(
-      filtered.map(async (dirent) => {
-        const fullPath = path.join(dirPath, dirent.name);
-        const isDirectory = dirent.isDirectory();
-        return {
-          name: dirent.name,
-          isDirectory,
-          path: fullPath,
-          language: isDirectory
-            ? undefined
-            : await getLanguageForFile(fullPath),
-          metadata: isDirectory ? undefined : metadataService.queryByPath?.(fullPath),
-        };
-      }),
-    );
+    return await FileService.getInstance().readDirectory(dirPath);
   } catch (error) {
     console.error('Error reading directory:', error);
     throw error;
@@ -151,19 +118,19 @@ ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
 });
 
 ipcMain.handle('fs:readFile', async (_, filePath: string) => {
-  return await fs.readFile(filePath, 'utf-8');
+  return await FileService.getInstance().readFile(filePath);
 });
 
 ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
-  return await fs.writeFile(filePath, content, 'utf-8');
+  return await FileService.getInstance().writeFile(filePath, content);
 });
 
 ipcMain.handle('fs:readDocument', async (_, filePath: string) => {
-  return await readDocument(filePath);
+  return await FileService.getInstance().readDocument(filePath);
 });
 
 ipcMain.handle('fs:saveDocument', async (_, filePath: string, data: any) => {
-  return await saveDocument(filePath, data);
+  return await FileService.getInstance().saveDocument(filePath, data);
 });
 
 ipcMain.handle('metadata:query', async (_, tagOrTags: string | string[]) => {
@@ -172,8 +139,7 @@ ipcMain.handle('metadata:query', async (_, tagOrTags: string | string[]) => {
 
 ipcMain.handle('fs:createFile', async (_, filePath: string) => {
   try {
-    await fs.writeFile(filePath, '', 'utf-8');
-    return true;
+    return await FileService.getInstance().createFile(filePath);
   } catch (error) {
     console.error('Error creating file:', error);
     throw error;
@@ -182,8 +148,7 @@ ipcMain.handle('fs:createFile', async (_, filePath: string) => {
 
 ipcMain.handle('fs:createDirectory', async (_, dirPath: string) => {
   try {
-    await fs.mkdir(dirPath, { recursive: true });
-    return true;
+    return await FileService.getInstance().createDirectory(dirPath);
   } catch (error) {
     console.error('Error creating directory:', error);
     throw error;
@@ -192,8 +157,7 @@ ipcMain.handle('fs:createDirectory', async (_, dirPath: string) => {
 
 ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
   try {
-    await fs.rename(oldPath, newPath);
-    return true;
+    return await FileService.getInstance().rename(oldPath, newPath);
   } catch (error) {
     console.error('Error renaming:', error);
     throw error;
@@ -202,8 +166,7 @@ ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
 
 ipcMain.handle('fs:move', async (_, oldPath: string, newPath: string) => {
   try {
-    await fs.rename(oldPath, newPath);
-    return true;
+    return await FileService.getInstance().move(oldPath, newPath);
   } catch (error) {
     console.error('Error moving:', error);
     throw error;
@@ -213,9 +176,7 @@ ipcMain.handle('fs:move', async (_, oldPath: string, newPath: string) => {
 
 ipcMain.handle('fs:copy', async (_, srcPath: string, destPath: string) => {
   try {
-    // fs.cp is available in Node.js 16.7.0+
-    await fs.cp(srcPath, destPath, { recursive: true });
-    return true;
+    return await FileService.getInstance().copy(srcPath, destPath);
   } catch (error) {
     console.error('Error copying:', error);
     throw error;
@@ -258,8 +219,7 @@ ipcMain.handle(
 
 ipcMain.handle('fs:delete', async (_, targetPath: string) => {
   try {
-    await fs.rm(targetPath, { recursive: true, force: true });
-    return true;
+    return await FileService.getInstance().delete(targetPath);
   } catch (error) {
     console.error('Error deleting:', error);
     throw error;
@@ -456,7 +416,9 @@ const installExtensions = async () => {
 
 const createWindow = async () => {
   if (isDebug) {
-    await installExtensions();
+    // NOTE: Extension loading is disabled here because it was causing "Could not establish connection"
+    // errors and application crashes in some environments.
+    // await installExtensions();
   }
 
   const RESOURCES_PATH = app.isPackaged

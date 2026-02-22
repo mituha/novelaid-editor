@@ -25,7 +25,11 @@ export type Channels =
   | 'ai:streamChat:data'
   | 'ai:streamChat:end'
   | 'ai:streamChat:error'
-  | 'metadata:queryChatEnabled';
+  | 'metadata:queryChatEnabled'
+  | 'menu:go-home'
+  | 'menu:open-project'
+  | 'menu:open-settings'
+  | 'app:open-file';
 
 const electronHandler = {
   ipcRenderer: {

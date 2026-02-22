@@ -5,6 +5,7 @@ import {
   BrowserWindow,
   MenuItemConstructorOptions,
 } from 'electron';
+import { FileService } from './fs/FileService';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
   selector?: string;
@@ -80,6 +81,23 @@ export default class MenuBuilder {
           accelerator: 'Command+Q',
           click: () => {
             app.quit();
+          },
+        },
+      ],
+    };
+    const subMenuFile: DarwinMenuItemConstructorOptions = {
+      label: 'ファイル',
+      submenu: [
+        {
+          label: '開く...',
+          accelerator: 'Command+O',
+          click: async () => {
+            const path = await FileService.getInstance().openDirectory(
+              this.mainWindow,
+            );
+            if (path) {
+              this.mainWindow.webContents.send('menu:open-project', path);
+            }
           },
         },
       ],
@@ -171,6 +189,7 @@ export default class MenuBuilder {
 
     return [
       subMenuAbout,
+      subMenuFile,
       subMenuEdit,
       subMenuView,
       subMenuWindow,
@@ -186,6 +205,12 @@ export default class MenuBuilder {
           {
             label: '開く(&O)',
             accelerator: 'Ctrl+O',
+            click: async () => {
+              const path = await FileService.getInstance().openDirectory(this.mainWindow);
+              if (path) {
+                this.mainWindow.webContents.send('menu:open-project', path);
+              }
+            },
           },
           {
             label: '閉じる(&C)',
