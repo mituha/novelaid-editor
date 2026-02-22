@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { CHAT_ROLES } from '../../../common/constants/personas';
 import NovelMarkdown from '../AI/NovelMarkdown';
 import './ChView.css';
 import { usePersonas } from '../../hooks/usePersonas';
 import PersonaSelector from '../AI/PersonaSelector';
 import RoleSelector from '../AI/RoleSelector';
 import PersonaIcon from '../AI/PersonaIcon';
+import AIContextSelector from '../AI/AIContextSelector';
+import { useAIContextContent } from '../../hooks/useAIContextContent';
+import { useAutoResize } from '../../hooks/useAutoResize';
 
 interface ChMessagePart {
   type: 'text' | 'thought' | 'tool_call' | 'error';
@@ -37,10 +39,20 @@ interface ChFileStructure {
   messages: ChMessage[];
 }
 
+interface Tab {
+  name: string;
+  path: string;
+}
+
 interface ChViewProps {
   content: string;
   path: string;
   onContentChange: (newContent: string) => void;
+  leftActivePath: string | null;
+  rightActivePath: string | null;
+  leftTabs: Tab[];
+  rightTabs: Tab[];
+  tabContents: Record<string, any>;
 }
 
 const formatTimestamp = (d: Date = new Date()) => {
@@ -64,14 +76,27 @@ const displayTimestamp = (ts: string) => {
   return `${y}/${m}/${d} ${h}:${min}:${s}`;
 };
 
-export default function ChView({ content, path, onContentChange }: ChViewProps) {
+export default function ChView({
+  content,
+  path,
+  onContentChange,
+  leftActivePath,
+  rightActivePath,
+  leftTabs,
+  rightTabs,
+  tabContents,
+}: ChViewProps) {
   const { settings } = useSettings();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
+  const { getContextText } = useAIContextContent();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [fileData, setFileData] = useState<ChFileStructure | null>(null);
   const activeAssistantMsgIdRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useAutoResize(textareaRef, input);
 
   // Initialize file data
   useEffect(() => {
@@ -178,8 +203,22 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
     };
   }, [path, saveFile]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || isStreaming || !fileData) return;
+
+    // AIコンテキストの収集
+    const contextText = await getContextText(
+      leftActivePath,
+      rightActivePath,
+      leftTabs,
+      rightTabs,
+      tabContents,
+    );
+
+    let finalInput = input;
+    if (contextText) {
+      finalInput = `Context:\n${contextText}\nUser: ${input}`;
+    }
 
     const userMsg: ChMessage = {
       id: Date.now().toString(),
@@ -210,12 +249,17 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
     setIsStreaming(true);
 
     // Prepare API messages
-    const apiMessages = [...fileData.messages, userMsg].map((m) => ({
+    const apiMessages = fileData.messages.map((m) => ({
       role: m.role,
       content: m.parts
         ? m.parts.map((p) => p.content).join('')
         : m.content || '',
     }));
+    // ユーザーメッセージにコンテキストを込めて送る
+    apiMessages.push({
+      role: 'user',
+      content: finalInput,
+    });
 
     window.electron.ipcRenderer.sendMessage(
       'ai:streamChat',
@@ -316,6 +360,7 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
 
       <div className="ch-input-area">
         <textarea
+          ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -326,6 +371,13 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
           }}
           placeholder={isStreaming ? 'AI生成中...' : 'メッセージを入力...'}
           disabled={isStreaming}
+          rows={1}
+        />
+        <AIContextSelector
+          leftActivePath={leftActivePath}
+          rightActivePath={rightActivePath}
+          leftTabs={leftTabs}
+          rightTabs={rightTabs}
         />
       </div>
     </div>

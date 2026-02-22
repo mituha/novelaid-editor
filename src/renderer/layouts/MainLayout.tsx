@@ -833,6 +833,11 @@ export default function MainLayout() {
           content={data.content}
           path={activePath}
           onContentChange={handleContentChange(activePath, side)}
+          leftActivePath={leftActivePath}
+          rightActivePath={rightActivePath}
+          leftTabs={leftTabs}
+          rightTabs={rightTabs}
+          tabContents={tabContents}
         />
       );
     }
@@ -1057,6 +1062,11 @@ export default function MainLayout() {
             metadata={activeTabPath ? tabContents[activeTabPath]?.metadata : undefined}
             onMetadataChange={(metadata) => handleMetadataChange(activeTabPath, metadata)}
             onOpenWebBrowser={handleOpenWebBrowser}
+            leftActivePath={leftActivePath}
+            rightActivePath={rightActivePath}
+            leftTabs={leftTabs}
+            rightTabs={rightTabs}
+            tabContents={tabContents}
           />
         </div>
       </div>

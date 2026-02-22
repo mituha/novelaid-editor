@@ -19,6 +19,14 @@ import { usePersonas } from '../../hooks/usePersonas';
 import PersonaIcon from './PersonaIcon';
 import PersonaSelector from './PersonaSelector';
 import RoleSelector from './RoleSelector';
+import AIContextSelector from './AIContextSelector';
+import { useAIContextContent } from '../../hooks/useAIContextContent';
+import { useAutoResize } from '../../hooks/useAutoResize';
+
+interface Tab {
+  name: string;
+  path: string;
+}
 
 interface MessagePart {
   type: 'text' | 'thought' | 'tool_call' | 'error';
@@ -36,21 +44,32 @@ interface Message {
 
 
 interface AIChatPanelProps {
-  activeContent?: string;
-  activePath?: string | null;
+  activeContent: string;
+  activePath: string | null;
+  leftActivePath: string | null;
+  rightActivePath: string | null;
+  leftTabs: Tab[];
+  rightTabs: Tab[];
+  tabContents: Record<string, any>;
 }
 
 export default function AIChatPanel({
-  activeContent = '',
-  activePath = null,
+  leftActivePath,
+  rightActivePath,
+  leftTabs,
+  rightTabs,
+  tabContents,
 }: AIChatPanelProps) {
   const { settings } = useSettings();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
+  const { getContextText } = useAIContextContent();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [includeContext, setIncludeContext] = useState(true);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>(''); // Empty means "None"
   const [selectedRoleId, setSelectedRoleId] = useState<string>('assistant');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useAutoResize(textareaRef, input);
 
   const getInitialMessages = useCallback(
     () => [
@@ -103,14 +122,22 @@ export default function AIChatPanel({
     setInput(e.target.value);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || isStreaming) return;
 
     let finalContent = input;
 
-    // Attach context if enabled and available
-    if (includeContext && activeContent && activePath) {
-      finalContent = `Context (File: ${activePath}):\n\`\`\`\n${activeContent}\n\`\`\`\n\nUser: ${input}`;
+    // AIコンテキストの収集
+    const contextText = await getContextText(
+      leftActivePath,
+      rightActivePath,
+      leftTabs,
+      rightTabs,
+      tabContents,
+    );
+
+    if (contextText) {
+      finalContent = `Context:\n${contextText}\nUser: ${input}`;
     }
 
     const userMessage: Message = {
@@ -295,16 +322,18 @@ export default function AIChatPanel({
   return (
     <div className="ai-chat-panel">
       <div className="ai-chat-header">
-        <PersonaSelector
-          selectedPersonaId={selectedPersonaId}
-          onPersonaChange={setSelectedPersonaId}
-          staticPersonas={staticPersonas}
-          dynamicPersonas={dynamicPersonas}
-        />
-        <RoleSelector
-          selectedRoleId={selectedRoleId}
-          onRoleChange={setSelectedRoleId}
-        />
+        <div className="selectors-row">
+          <PersonaSelector
+            selectedPersonaId={selectedPersonaId}
+            onPersonaChange={setSelectedPersonaId}
+            staticPersonas={staticPersonas}
+            dynamicPersonas={dynamicPersonas}
+          />
+          <RoleSelector
+            selectedRoleId={selectedRoleId}
+            onRoleChange={setSelectedRoleId}
+          />
+        </div>
       </div>
       <div className="ai-chat-messages">
         {messages.map((msg) => (
@@ -378,32 +407,20 @@ export default function AIChatPanel({
       </div>
       <div className="ai-chat-input-area">
         <textarea
+          ref={textareaRef}
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder={isStreaming ? 'AIが入力中...' : 'AIに相談する...'}
           disabled={isStreaming}
+          rows={1}
         />
-        <div className="chat-options" style={{ marginTop: '5px' }}>
-          <label
-            htmlFor="include-context-checkbox"
-            style={{
-              fontSize: '12px',
-              color: '#ccc',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-            }}
-          >
-            <input
-              id="include-context-checkbox"
-              type="checkbox"
-              checked={includeContext}
-              onChange={(e) => setIncludeContext(e.target.checked)}
-            />
-            エディターのコンテキストを含める
-          </label>
-        </div>
+        <AIContextSelector
+          leftActivePath={leftActivePath}
+          rightActivePath={rightActivePath}
+          leftTabs={leftTabs}
+          rightTabs={rightTabs}
+        />
       </div>
     </div>
   );
@@ -417,7 +434,4 @@ export const aiChatPanelConfig: Panel = {
   defaultLocation: 'right',
 };
 
-AIChatPanel.defaultProps = {
-  activeContent: '',
-  activePath: null,
-};
+// No default props needed for required ones

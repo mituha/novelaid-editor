@@ -8,6 +8,7 @@ import './App.css';
 
 import { PanelProvider } from './contexts/PanelContext';
 import { MetadataProvider } from './contexts/MetadataContext';
+import { AIContextProvider } from './contexts/AIContextContext';
 import ProjectLauncher from './components/Launcher/ProjectLauncher';
 
 function AppRoutes() {
@@ -58,7 +59,9 @@ export default function App() {
           <GitContextProvider>
             <PanelProvider>
               <MetadataProvider>
-                <AppRoutes />
+                <AIContextProvider>
+                  <AppRoutes />
+                </AIContextProvider>
               </MetadataProvider>
             </PanelProvider>
           </GitContextProvider>

@@ -1,0 +1,158 @@
+.ai-context-selector {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--bg-lighter);
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    overflow: hidden;
+}
+
+.ai-context-summary {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    cursor: pointer;
+    gap: 8px;
+    user-select: none;
+    background-color: var(--bg-hover);
+    transition: background-color 0.2s;
+}
+
+.ai-context-summary:hover {
+    background-color: var(--bg-active);
+}
+
+.ai-context-summary .icon-context {
+    color: var(--accent-color);
+}
+
+.ai-context-summary .summary-text {
+    flex: 1;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.ai-context-summary .badge {
+    background-color: var(--accent-color);
+    color: white;
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.ai-context-details {
+    padding: 8px 10px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-darker);
+}
+
+.context-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.context-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 2px 0;
+}
+
+.context-item input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.context-item .side-label {
+    color: var(--text-muted);
+    font-weight: bold;
+    font-size: 0.75rem;
+    min-width: 24px;
+}
+
+.context-item .file-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-color);
+}
+
+.context-item.all-open {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.context-item.all-open .all-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.context-custom-dropzone {
+    border: 2px dashed var(--border-color);
+    border-radius: 4px;
+    padding: 8px;
+    background-color: rgba(255, 255, 255, 0.02);
+    transition: all 0.2s;
+}
+
+.context-custom-dropzone.drag-over {
+    border-color: var(--accent-color);
+    background-color: rgba(var(--accent-rgb), 0.1);
+}
+
+.dropzone-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    justify-content: center;
+    margin-bottom: 6px;
+}
+
+.custom-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.custom-file-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    background-color: var(--bg-lighter);
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.custom-file-item .file-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.custom-file-item .remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    line-height: 0;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.custom-file-item .remove-btn:hover {
+    color: var(--error-color);
+    background-color: rgba(255, 0, 0, 0.1);
+}
