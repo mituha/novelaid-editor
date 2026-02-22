@@ -11,7 +11,8 @@ import './CalibrationMarkers.css';
 
 interface CodeEditorProps {
   value: string;
-  lastSource?: 'user' | 'external';
+  lastSource?: string; // 'user' | 'user-left' | 'user-right' | 'external'
+  side?: 'left' | 'right'; // このエディターがどちらのペインか
   onChange: (value: string | undefined) => void;
   onFocus?: () => void;
   onBlur?: () => void;
@@ -25,6 +26,7 @@ interface CodeEditorProps {
 export default function CodeEditor({
   value,
   lastSource,
+  side,
   onChange,
   onFocus = () => {},
   onBlur = () => {},
@@ -125,21 +127,25 @@ export default function CodeEditor({
         // But defaultValue={value} handles the start.
         // So we only care about *updates* while mounted.
 
-        if (lastSource === 'external') {
-            if (value !== currentValue) {
-                if (isComposingRef.current) {
-                    console.log('[CodeEditor] External update ignored (IME composing)');
-                    return;
-                }
-                console.log('[CodeEditor] External update applied to editor');
-                editorRef.current.setValue(value || '');
-                lastEmittedValueRef.current = value;
+        // 自分自身の入力（loopback）を除外し、外部または反対側のペインからの更新を反映する
+        const isExternal = lastSource === 'external';
+        const isOppositeSide =
+          (side === 'left' && lastSource === 'user-right') ||
+          (side === 'right' && lastSource === 'user-left');
+
+        if (isExternal || isOppositeSide) {
+          if (value !== currentValue) {
+            if (isComposingRef.current) {
+              console.log('[CodeEditor] Update ignored (IME composing)');
+              return;
             }
-        } else {
-             // console.log('[CodeEditor] Ignoring user/loopback update');
+            console.log(`[CodeEditor] Applying update from ${lastSource}`);
+            editorRef.current.setValue(value || '');
+            lastEmittedValueRef.current = value;
+          }
         }
     }
-  }, [value, lastSource]);
+  }, [value, lastSource, side]);
 
   const handleRubyAction = useCallback((editor: any) => {
     const selection = editor.getSelection();

@@ -655,11 +655,11 @@ export default function MainLayout() {
     [handleSaveByPath],
   );
 
-  const handleContentChange = (path: string | null) => (value: string | undefined) => {
+  const handleContentChange = (path: string | null, side: 'left' | 'right') => (value: string | undefined) => {
     if (path) {
       setTabContents((prev) => ({
         ...prev,
-        [path]: { ...prev[path], content: value || '', lastSource: 'user' }, // Mark as user
+        [path]: { ...prev[path], content: value || '', lastSource: `user-${side}` as any }, // どちらのペインが編集したか記録
       }));
       // Mark as dirty in both lists
       setLeftTabs((prev) =>
@@ -878,7 +878,8 @@ export default function MainLayout() {
             value={data.content}
             language={data.language}
             lastSource={data.lastSource}
-            onChange={handleContentChange(activePath)}
+            side={side}
+            onChange={handleContentChange(activePath, side)}
             onFocus={() => setActiveSide(side)}
             onBlur={() => handleSaveByPath(activePath)}
             initialLine={(data as any).initialLine}
