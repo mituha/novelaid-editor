@@ -73,11 +73,17 @@ fileWatcher.setIgnoreCheck((filePath) => metadataService.isIgnored(filePath));
 let activeProjectPath: string | null = null; // Added
 
 // Direct metadata update in main process
-fileWatcher.onFileEvent(async (event, path) => {
+fileWatcher.onFileEvent(async (event, filePath) => {
+  // .novelaidattributes が変更された場合、属性キャッシュを破棄する
+  if (path.basename(filePath) === '.novelaidattributes') {
+    FileService.getInstance().invalidateAttributeCache(path.dirname(filePath));
+    return; // メタデータ更新は不要
+  }
+
   if (event === 'add' || event === 'change') {
-    await metadataService.updateFileIndex(path);
+    await metadataService.updateFileIndex(filePath);
   } else if (event === 'unlink') {
-    metadataService.removeFileFromIndex(path);
+    metadataService.removeFileFromIndex(filePath);
   }
 });
 

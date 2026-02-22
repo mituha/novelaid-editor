@@ -36,10 +36,15 @@ export class FileWatcher {
     this.currentPath = projectPath;
     this.watcher = chokidar.watch(projectPath, {
       ignored: [
-        /(^|[\/\\])\../, // ignore dotfiles
-        '**/node_modules/**',
-        '**/.git/**',
-        '**/.novelaid/**', // ignore our metadata dir if needed
+        (filePath: string) => {
+          const base = filePath.split(/[/\\]/).pop() ?? '';
+          // .novelaidattributes は監視対象とする（dotfile 除外の例外）
+          if (base === '.novelaidattributes') return false;
+          // その他の dotfile および特定ディレクトリは除外
+          if (base.startsWith('.')) return true;
+          if (filePath.includes('node_modules')) return true;
+          return false;
+        },
       ],
       persistent: true,
       ignoreInitial: true,

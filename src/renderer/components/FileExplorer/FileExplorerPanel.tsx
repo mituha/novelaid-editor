@@ -106,15 +106,17 @@ function FileTreeItem({
     if (!file.isDirectory || !isOpen) return;
 
     const cleanup = window.electron.fs.onFileChange(({ path }) => {
-      // Normalize paths to compare parent directory
       const normalize = (p: string) => p.replace(/\\/g, '/');
       const normalizedPath = normalize(path);
       const normalizedSelf = normalize(file.path);
 
+      const fileName = normalizedPath.split('/').pop() ?? '';
       const lastSep = normalizedPath.lastIndexOf('/');
       const parent = normalizedPath.substring(0, lastSep);
 
-      if (parent === normalizedSelf) {
+      // 直下のファイル・フォルダーが変更された場合、または
+      // 自身の .novelaidattributes が変更された場合に再読み込み
+      if (parent === normalizedSelf || (fileName === '.novelaidattributes' && parent === normalizedSelf)) {
         loadDirectory().catch(() => {});
       }
     });
@@ -469,15 +471,17 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     if (!currentDir) return;
 
     const cleanup = window.electron.fs.onFileChange(({ path }) => {
-      // Normalize paths to compare parent directory
       const normalize = (p: string) => p.replace(/\\/g, '/');
       const normalizedPath = normalize(path);
       const normalizedRoot = normalize(currentDir);
 
+      const fileName = normalizedPath.split('/').pop() ?? '';
       const lastSep = normalizedPath.lastIndexOf('/');
       const parent = normalizedPath.substring(0, lastSep);
 
-      if (parent === normalizedRoot) {
+      // 直下のファイル・フォルダーが変更された場合、または
+      // ルートの .novelaidattributes が変更された場合に再読み込み
+      if (parent === normalizedRoot || (fileName === '.novelaidattributes' && parent === normalizedRoot)) {
         refreshRoot().catch(() => {});
       }
     });

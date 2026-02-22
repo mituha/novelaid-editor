@@ -15,6 +15,11 @@ export class FileService {
     this.beforeDeleteCallback = callback;
   }
 
+  /** .novelaidattributes が変更されたとき、対象ディレクトリのキャッシュを破棄します */
+  public invalidateAttributeCache(dirPath: string) {
+    this.attributeCache.delete(dirPath);
+  }
+
   public static getInstance(): FileService {
     if (!FileService.instance) {
       FileService.instance = new FileService();
