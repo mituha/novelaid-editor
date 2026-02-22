@@ -7,6 +7,7 @@ import { readDocument, saveDocument } from '../metadata';
 export class FileService {
   private static instance: FileService;
   private ignoreCache = new Map<string, { mtime: number; instance: any }>();
+  private attributeCache = new Map<string, { mtime: number; data: Map<string, string> }>();
   private beforeDeleteCallback: ((targetPath: string) => void) | null = null;
 
   private constructor() {}
@@ -92,17 +93,88 @@ export class FileService {
     }
 
     // フォルダ名による判定(フォールバック)
-    return this.getPreferredDocumentTypeForDirectory(path.dirname(filePath));
+    return await this.getPreferredDocumentTypeForDirectory(path.dirname(filePath));
+  }
+
+  /**
+   * パターンが対象の文字列にマッチするか判定します。
+   * シンプルなワイルドカード (*) をサポートします。
+   */
+  private patternMatches(pattern: string, target: string): boolean {
+    if (pattern === target) return true;
+    if (!pattern.includes('*') && !pattern.includes('?')) return false;
+
+    // 特殊文字をエスケープしつつ、* と ? を正規表現に変換
+    const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    const regexStr = escaped.replace(/\\\*/g, '.*').replace(/\\\?/g, '.');
+    const regex = new RegExp(`^${regexStr}$`, 'i');
+    return regex.test(target);
+  }
+
+  /**
+   * .novelaidattributes を読み込み、パース結果を返します。
+   */
+  private async getAttributesForDirectory(dirPath: string): Promise<Map<string, string> | null> {
+    const attrPath = path.join(dirPath, '.novelaidattributes');
+    try {
+      const stats = await fs.stat(attrPath);
+      const cached = this.attributeCache.get(dirPath);
+      if (cached && cached.mtime === stats.mtimeMs) {
+        return cached.data;
+      }
+
+      const content = await fs.readFile(attrPath, 'utf-8');
+      const data = new Map<string, string>();
+      const lines = content.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+
+        const [pattern, type] = trimmed.split(/\s+/);
+        if (pattern && type) {
+          data.set(pattern, type);
+        }
+      }
+
+      this.attributeCache.set(dirPath, { mtime: stats.mtimeMs, data });
+      return data;
+    } catch (err) {
+      return null;
+    }
   }
 
   /**
    * ディレクトリ名から、そのディレクトリ内での優先ドキュメントタイプを推定します。
    * 名前から判定できない場合、親ディレクトリのタイプを継承します。
    */
-  public getPreferredDocumentTypeForDirectory(dirPath: string): string {
+  public async getPreferredDocumentTypeForDirectory(dirPath: string): Promise<string> {
     const dirName = path.basename(dirPath).toLowerCase();
 
-    // 仕様に基づいたキーワードによる判定
+    // 1. 自分自身の .novelaidattributes `./` を確認
+    const ownAttrs = await this.getAttributesForDirectory(dirPath);
+    if (ownAttrs?.has('./')) {
+      return ownAttrs.get('./')!;
+    }
+
+    // 2. 親の .novelaidattributes `dirName/` を確認
+    const parentPath = path.dirname(dirPath);
+    if (parentPath !== dirPath && parentPath !== '.') {
+      const parentAttrs = await this.getAttributesForDirectory(parentPath);
+      if (parentAttrs) {
+        const dirKeyword = `${path.basename(dirPath)}/`;
+        // 後ろの設定が優先されるように、パース順（挿入順）を考慮して最後に見つかったものを採用
+        let matchedType: string | null = null;
+        for (const [pattern, type] of parentAttrs.entries()) {
+          // ディレクトリパターンの場合（/で終わる）
+          if (pattern.endsWith('/') && this.patternMatches(pattern, dirKeyword)) {
+            matchedType = type;
+          }
+        }
+        if (matchedType) return matchedType;
+      }
+    }
+
+    // 3. 仕様に基づいたキーワードによる判定
     const novelKeywords = ['novel', '小説'];
     const markdownKeywords = ['設定', 'プロット', '資料', 'wiki'];
     const imageKeywords = ['image', '画像'];
@@ -117,15 +189,12 @@ export class FileService {
       return 'image';
     }
 
-    // 名前から判定できない場合、親フォルダのタイプを継承
-    const parent = path.dirname(dirPath);
-    if (parent !== dirPath && parent !== '.') {
-      // プロジェクトルートを超えて遡らないようにする (本来はプロジェクトルートで止めるのが理想だが、一旦dirnameで親へ)
-      // findProjectRoot の結果を使っても良いが、パフォーマンスを考慮して単純に親を見る
-      return this.getPreferredDocumentTypeForDirectory(parent);
+    // 4. 名前から判定できない場合、親フォルダのタイプを継承
+    if (parentPath !== dirPath && parentPath !== '.') {
+      return await this.getPreferredDocumentTypeForDirectory(parentPath);
     }
 
-    // どこまで遡っても判定できない場合はデフォルト
+    // 5. デフォルト
     return 'novel';
   }
 
@@ -155,7 +224,7 @@ export class FileService {
           isDirectory,
           path: fullPath,
           language: isDirectory
-            ? this.getPreferredDocumentTypeForDirectory(fullPath)
+            ? await this.getPreferredDocumentTypeForDirectory(fullPath)
             : await this.getDocumentType(fullPath),
           metadata: isDirectory
             ? undefined
@@ -190,7 +259,7 @@ export class FileService {
    * 未命名のドキュメントを適切なフォルダ形式と名前で作成します。
    */
   public async createUntitledDocument(dirPath: string): Promise<string> {
-    const dirType = this.getPreferredDocumentTypeForDirectory(dirPath);
+    const dirType = await this.getPreferredDocumentTypeForDirectory(dirPath);
     let baseName = '新規小説';
     let ext = '.txt';
 
