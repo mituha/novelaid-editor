@@ -3,22 +3,22 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo,
 } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { MessageSquare, Bot } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useMetadata } from '../../contexts/MetadataContext';
 import { Panel } from '../../types/panel';
 import {
-  PERSONAS,
   Persona,
   CHAT_ROLES,
 } from '../../../common/constants/personas';
 import './AIChatPanel.css';
 import NovelMarkdown from './NovelMarkdown';
+import { usePersonas } from '../../hooks/usePersonas';
+import PersonaIcon from './PersonaIcon';
+import PersonaSelector from './PersonaSelector';
+import RoleSelector from './RoleSelector';
 
 interface MessagePart {
   type: 'text' | 'thought' | 'tool_call' | 'error';
@@ -34,93 +34,6 @@ interface Message {
   timestamp: number;
 }
 
-interface DynamicPersona extends Persona {
-  path: string;
-  metadata: Record<string, any>;
-}
-
-function PersonaIcon({
-  persona,
-  size = 36,
-}: {
-  persona?: Persona;
-  size?: number;
-}) {
-  const [imgError, setImgError] = useState(false);
-
-  const fallback = (
-    <div className="persona-icon-default" style={{ width: size, height: size }}>
-      <Bot size={size * 0.7} />
-    </div>
-  );
-
-  if (!persona || imgError) return fallback;
-
-  const { icon } = persona;
-  if (!icon || !icon.value) return fallback;
-
-  if (icon.type === 'lucide') {
-    const LucideIcon = (LucideIcons as any)[icon.value] || Bot;
-    return (
-      <div
-        className="persona-icon-lucide"
-        style={{ width: size, height: size }}
-      >
-        <LucideIcon size={size * 0.7} />
-      </div>
-    );
-  }
-
-  let src = icon.value;
-  if (icon.type === 'local-asset') {
-    // app-asset プロトコルを使用 (内部アセット)
-    src = `app-asset://${icon.value}`;
-  } else if (
-    icon.type === 'local-file' ||
-    (icon.type as string) === 'local' ||
-    icon.type === 'url'
-  ) {
-    const isAbsolute =
-      icon.value.startsWith('/') ||
-      /^[a-zA-Z]:/.test(icon.value) ||
-      icon.value.startsWith('http');
-
-    if (icon.type === 'url' && isAbsolute) {
-      src = icon.value;
-    } else {
-      // ローカルファイルまたは相対パスのURL
-      let fullPath = icon.value;
-      if (!isAbsolute && persona.filePath) {
-        // キャラクターファイルの場所を基準に解決
-        const dir = persona.filePath.replace(/[\\/][^\\/]+$/, '');
-        const separator = persona.filePath.includes('\\') ? '\\' : '/';
-        fullPath = `${dir}${separator}${icon.value}`;
-      }
-
-      const normalized = fullPath.replace(/\\/g, '/');
-      const encodedPath = normalized
-        .split('/')
-        .map((segment: string) => encodeURIComponent(segment))
-        .join('/');
-      src = `nvfs://local/${encodedPath}`;
-    }
-  }
-
-  return (
-    <div className="persona-icon-img" style={{ width: size, height: size }}>
-      <img
-        src={src}
-        alt=""
-        aria-hidden="true"
-        onError={() => setImgError(true)}
-      />
-    </div>
-  );
-}
-PersonaIcon.defaultProps = {
-  persona: undefined,
-  size: 36,
-};
 
 interface AIChatPanelProps {
   activeContent?: string;
@@ -131,14 +44,14 @@ export default function AIChatPanel({
   activeContent = '',
   activePath = null,
 }: AIChatPanelProps) {
-  const { settings, projectPath } = useSettings();
-  const { isScanning, scanProgress } = useMetadata();
+  const { settings } = useSettings();
+  const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [includeContext, setIncludeContext] = useState(true);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>(''); // Empty means "None"
   const [selectedRoleId, setSelectedRoleId] = useState<string>('assistant');
-  const [dynamicPersonas, setDynamicPersonas] = useState<DynamicPersona[]>([]);
+
   const getInitialMessages = useCallback(
     () => [
       {
@@ -166,11 +79,6 @@ export default function AIChatPanel({
   const [contextStartIndex, setContextStartIndex] = useState(0);
   const [pendingContextReset, setPendingContextReset] = useState(false);
 
-  const allPersonas = useMemo(
-    () => [...PERSONAS, ...dynamicPersonas],
-    [dynamicPersonas],
-  );
-
   // Mark context break when persona or role changes
   useEffect(() => {
     // If we have history beyond the initial greeting, mark for reset on next send
@@ -180,6 +88,7 @@ export default function AIChatPanel({
     setInput('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPersonaId, selectedRoleId]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -189,51 +98,6 @@ export default function AIChatPanel({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const fetchDynamicPersonas = useCallback(async () => {
-    try {
-      const results = await window.electron.metadata.queryChatEnabled();
-      const mapped: DynamicPersona[] = results.map((entry: any) => {
-        const { metadata, path: p } = entry;
-        const id =
-          metadata.id || metadata.name || p.split(/[/\\]/).pop()!.split('.')[0];
-        return {
-          id,
-          name: metadata.name || id,
-          systemPrompt: metadata.chat?.persona || '',
-          icon: metadata.icon || { type: 'lucide', value: 'User' },
-          isDynamic: true,
-          filePath: p,
-          path: p,
-          metadata,
-        };
-      });
-      setDynamicPersonas(mapped);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to fetch dynamic personas', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchDynamicPersonas();
-    const cleanup = window.electron.fs.onFileChange(() => {
-      fetchDynamicPersonas();
-    });
-    return () => cleanup();
-  }, [fetchDynamicPersonas, projectPath]);
-
-  // Re-fetch on scan progress or completion
-  useEffect(() => {
-    if (!isScanning || scanProgress === 100) {
-      fetchDynamicPersonas();
-    }
-  }, [isScanning, scanProgress, fetchDynamicPersonas]);
-
-  // Clear dynamic personas when project changes
-  useEffect(() => {
-    setDynamicPersonas([]);
-  }, [projectPath]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -428,50 +292,19 @@ export default function AIChatPanel({
       .padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')} ${timeStr}`;
   };
 
-  const activePersona = allPersonas.find((p) => p.id === selectedPersonaId);
-
   return (
     <div className="ai-chat-panel">
       <div className="ai-chat-header">
-        <div className="persona-selector">
-          <PersonaIcon persona={activePersona} size={20} />
-          <select
-            value={selectedPersonaId}
-            onChange={(e) => setSelectedPersonaId(e.target.value)}
-            title="会話の相手（ペルソナ）を選択します"
-          >
-            <option value="">ペルソナなし</option>
-            {PERSONAS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-            {dynamicPersonas.length > 0 && (
-              <>
-                <option disabled>──────────</option>
-                {dynamicPersonas.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </>
-            )}
-          </select>
-        </div>
-        <div className="role-selector">
-          <LucideIcons.UserSquare2 size={20} />
-          <select
-            value={selectedRoleId}
-            onChange={(e) => setSelectedRoleId(e.target.value)}
-            title="AIの役割（視点）を選択します"
-          >
-            {CHAT_ROLES.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <PersonaSelector
+          selectedPersonaId={selectedPersonaId}
+          onPersonaChange={setSelectedPersonaId}
+          staticPersonas={staticPersonas}
+          dynamicPersonas={dynamicPersonas}
+        />
+        <RoleSelector
+          selectedRoleId={selectedRoleId}
+          onRoleChange={setSelectedRoleId}
+        />
       </div>
       <div className="ai-chat-messages">
         {messages.map((msg) => (

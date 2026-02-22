@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Bot, User } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { PERSONAS, CHAT_ROLES } from '../../../common/constants/personas';
+import { CHAT_ROLES } from '../../../common/constants/personas';
 import NovelMarkdown from '../AI/NovelMarkdown';
 import './ChView.css';
+import { usePersonas } from '../../hooks/usePersonas';
+import PersonaSelector from '../AI/PersonaSelector';
+import RoleSelector from '../AI/RoleSelector';
+import PersonaIcon from '../AI/PersonaIcon';
 
 interface ChMessagePart {
   type: 'text' | 'thought' | 'tool_call' | 'error';
@@ -63,6 +66,7 @@ const displayTimestamp = (ts: string) => {
 
 export default function ChView({ content, path, onContentChange }: ChViewProps) {
   const { settings } = useSettings();
+  const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [fileData, setFileData] = useState<ChFileStructure | null>(null);
@@ -229,53 +233,36 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
     <div className="ch-view">
       <div className="ch-header">
         <div className="ch-selectors">
-          <div className="ch-persona-selector">
-            <Bot size={16} />
-            <select
-              value={fileData.metadata.defaultPersonaId}
-              onChange={(e) => {
-                const next: ChFileStructure = {
-                  ...fileData,
-                  metadata: {
-                    ...fileData.metadata,
-                    defaultPersonaId: e.target.value,
-                  },
-                };
-                setFileData(next);
-                saveFile(next);
-              }}
-            >
-              <option value="">ペルソナなし</option>
-              {PERSONAS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="ch-role-selector">
-            <User size={16} />
-            <select
-              value={fileData.metadata.defaultRoleId}
-              onChange={(e) => {
-                const next: ChFileStructure = {
-                  ...fileData,
-                  metadata: {
-                    ...fileData.metadata,
-                    defaultRoleId: e.target.value,
-                  },
-                };
-                setFileData(next);
-                saveFile(next);
-              }}
-            >
-              {CHAT_ROLES.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <PersonaSelector
+            selectedPersonaId={fileData.metadata.defaultPersonaId || ''}
+            onPersonaChange={(id) => {
+              const next: ChFileStructure = {
+                ...fileData,
+                metadata: {
+                  ...fileData.metadata,
+                  defaultPersonaId: id,
+                },
+              };
+              setFileData(next);
+              saveFile(next);
+            }}
+            staticPersonas={staticPersonas}
+            dynamicPersonas={dynamicPersonas}
+          />
+          <RoleSelector
+            selectedRoleId={fileData.metadata.defaultRoleId || 'assistant'}
+            onRoleChange={(id) => {
+              const next: ChFileStructure = {
+                ...fileData,
+                metadata: {
+                  ...fileData.metadata,
+                  defaultRoleId: id,
+                },
+              };
+              setFileData(next);
+              saveFile(next);
+            }}
+          />
         </div>
         <div className="ch-title">
           {fileData.metadata.title || path.split(/[/\\]/).pop()}
@@ -285,6 +272,14 @@ export default function ChView({ content, path, onContentChange }: ChViewProps) 
       <div className="ch-messages">
         {fileData.messages.map((msg) => (
           <div key={msg.id} className={`ch-message-row ${msg.role}`}>
+            {msg.role === 'assistant' && (
+              <div className="ch-message-avatar">
+                <PersonaIcon
+                  persona={allPersonas.find((p) => p.id === msg.agentId)}
+                  size={32}
+                />
+              </div>
+            )}
             <div className={`ch-message-bubble ${msg.role}`}>
               {msg.role === 'user' ? (
                 <div className="ch-message-text">{msg.content}</div>
