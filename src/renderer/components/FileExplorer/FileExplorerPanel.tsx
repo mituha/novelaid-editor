@@ -2,18 +2,15 @@ import {
   ChevronRight,
   ChevronDown,
   Files,
-  Folder,
-  FileText,
   FilePlus,
   FolderPlus,
-  MessageSquare,
 } from 'lucide-react';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
 import { Panel } from '../../types/panel';
 import './FileExplorerPanel.css';
-import { FileIcon } from '../../utils/FileIcon';
+import FileIcon from '../../utils/FileIcon';
 
 const BASE_INDENT = 8;
 const INDENT_STEP = 16;
@@ -51,7 +48,9 @@ async function performFileDrop(
   const destPath = `${destDir}/${fileName}`;
 
   // eslint-disable-next-line no-console
-  console.log(`[performFileDrop] ${isCopy ? 'copy' : 'move'} src:${srcPath} → dest:${destPath}`);
+  console.log(
+    `[performFileDrop] ${isCopy ? 'copy' : 'move'} src:${srcPath} → dest:${destPath}`,
+  );
 
   try {
     await window.electron.ipcRenderer.invoke(
@@ -162,7 +161,10 @@ function FileTreeItem({
 
       // 直下のファイル・フォルダーが変更された場合、または
       // 自身の .novelaidattributes が変更された場合に再読み込み
-      if (parent === normalizedSelf || (fileName === '.novelaidattributes' && parent === normalizedSelf)) {
+      if (
+        parent === normalizedSelf ||
+        (fileName === '.novelaidattributes' && parent === normalizedSelf)
+      ) {
         loadDirectory().catch(() => {});
       }
     });
@@ -286,7 +288,14 @@ function FileTreeItem({
     if (!srcPath) return;
     const isCopy = e.ctrlKey;
     // eslint-disable-next-line no-console
-    console.log('[handleDrop] srcPath:', srcPath, 'destDir:', file.path, 'isCopy:', isCopy);
+    console.log(
+      '[handleDrop] srcPath:',
+      srcPath,
+      'destDir:',
+      file.path,
+      'isCopy:',
+      isCopy,
+    );
     await performFileDrop(srcPath, file.path, isCopy, onRefresh);
   };
 
@@ -317,27 +326,15 @@ function FileTreeItem({
           {file.isDirectory && !isOpen && <ChevronRight size={14} />}
         </span>
         <span className="icon">
-          {file.isDirectory ? (
-            file.language === 'chat' ? (
-              <MessageSquare
-                size={16}
-                className={`folder-type-chat ${isOpen ? 'folder-open' : 'folder-closed'}`}
-              />
-            ) : (
-              <Folder
-                size={16}
-                className={`${isOpen ? 'folder-open' : 'folder-closed'} folder-type-${file.language}`}
-              />
-            )
-          ) : (
-            <FileIcon
-              name={file.name}
-              path={file.path}
-              language={file.language}
-              metadata={file.metadata}
-              size={16}
-            />
-          )}
+          <FileIcon
+            name={file.name}
+            path={file.path}
+            language={file.language}
+            metadata={file.metadata}
+            size={16}
+            isDirectory={file.isDirectory}
+            isOpen={isOpen}
+          />
         </span>
         {isRenaming ? (
           <input
@@ -364,23 +361,23 @@ function FileTreeItem({
               role="button"
               tabIndex={0}
               className="file-item"
-            style={{
-              paddingLeft: `${BASE_INDENT + (level + 1) * INDENT_STEP}px`,
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.stopPropagation();
-              }
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
+              style={{
+                paddingLeft: `${BASE_INDENT + (level + 1) * INDENT_STEP}px`,
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <span className="chevron" />
               <span className="icon">
-                {creatingType === 'file' ? (
-                  <FileText size={16} />
-                ) : (
-                  <Folder size={16} />
-                )}
+                <FileIcon
+                  name={creatingType === 'file' ? 'untitled' : 'folder'}
+                  isDirectory={creatingType === 'folder'}
+                  size={16}
+                />
               </span>
               <input
                 className="rename-input"
@@ -477,7 +474,10 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
 
       // 直下のファイル・フォルダーが変更された場合、または
       // ルートの .novelaidattributes が変更された場合に再読み込み
-      if (parent === normalizedRoot || (fileName === '.novelaidattributes' && parent === normalizedRoot)) {
+      if (
+        parent === normalizedRoot ||
+        (fileName === '.novelaidattributes' && parent === normalizedRoot)
+      ) {
         refreshRoot().catch(() => {});
       }
     });
@@ -645,14 +645,25 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
           role="button"
           tabIndex={0}
           className={`root-folder-header ${rootIsDragOver ? 'drag-over' : ''}`}
-          onClick={(e) => { e.stopPropagation(); setRootIsExpanded((v) => !v); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setRootIsExpanded((v) => !v); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setRootIsExpanded((v) => !v);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              setRootIsExpanded((v) => !v);
+            }
+          }}
           onDragOver={handleRootDragOver}
           onDragLeave={handleRootDragLeave}
           onDrop={handleRootDrop}
         >
           <span className="chevron root-chevron">
-            {rootIsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {rootIsExpanded ? (
+              <ChevronDown size={14} />
+            ) : (
+              <ChevronRight size={14} />
+            )}
           </span>
           <span className="root-folder-name" title={currentDir}>{rootFolderName}</span>
           <span className="root-folder-actions" onClick={(e) => e.stopPropagation()}>
@@ -689,11 +700,11 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
               >
                 <span className="chevron" />
                 <span className="icon">
-                  {creatingType === 'file' ? (
-                    <FileText size={16} />
-                  ) : (
-                    <Folder size={16} />
-                  )}
+                  <FileIcon
+                    name={creatingType === 'file' ? 'untitled' : 'folder'}
+                    isDirectory={creatingType === 'folder'}
+                    size={16}
+                  />
                 </span>
                 <input
                   className="rename-input"

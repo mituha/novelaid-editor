@@ -10,7 +10,7 @@ import {
 import { useState, useEffect } from 'react';
 import './StatusBar.css';
 import { CountMetric } from '../../utils/CharCounter';
-import { FileIcon } from '../../utils/FileIcon';
+import FileIcon from '../../utils/FileIcon';
 
 interface StatusBarProps {
   metrics: CountMetric[];

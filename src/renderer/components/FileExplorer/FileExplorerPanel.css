@@ -178,23 +178,11 @@
   font-family: inherit;
 }
 
-.icon .lucide-folder {
-  color: var(--accent-color);
-}
-
-.file-custom-icon {
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.file-custom-icon img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+.icon .lucide-folder,
+.icon .lucide-library-big,
+.icon .lucide-book-image,
+.icon .lucide-message-square {
+  transition: color 0.2s, opacity 0.2s;
 }
 
 .folder-open {
@@ -203,15 +191,20 @@
 
 .folder-closed {
   color: var(--text-secondary);
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
 .folder-type-novel {
-  color: var(--accent-color) !important;
+  color: var(--accent-color);
+}
+
+.folder-type-image {
+  color: #ff922b;
+  /* Orange color for image folders */
 }
 
 .folder-type-chat {
-  color: #4dabf7 !important;
+  color: #4dabf7;
   /* Blue color for chat folders */
 }
 
