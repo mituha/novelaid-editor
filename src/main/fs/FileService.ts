@@ -92,6 +92,7 @@ export class FileService {
 
   /**
    * ディレクトリ名から、そのディレクトリ内での優先ドキュメントタイプを推定します。
+   * 名前から判定できない場合、親ディレクトリのタイプを継承します。
    */
   public getPreferredDocumentTypeForDirectory(dirPath: string): string {
     const dirName = path.basename(dirPath).toLowerCase();
@@ -99,6 +100,7 @@ export class FileService {
     // 仕様に基づいたキーワードによる判定
     const novelKeywords = ['novel', '小説'];
     const markdownKeywords = ['設定', 'プロット', '資料', 'wiki'];
+    const imageKeywords = ['image', '画像'];
 
     if (novelKeywords.some((kw) => dirName.includes(kw))) {
       return 'novel';
@@ -106,8 +108,19 @@ export class FileService {
     if (markdownKeywords.some((kw) => dirName.includes(kw))) {
       return 'markdown';
     }
+    if (imageKeywords.some((kw) => dirName.includes(kw))) {
+      return 'image';
+    }
 
-    // デフォルト
+    // 名前から判定できない場合、親フォルダのタイプを継承
+    const parent = path.dirname(dirPath);
+    if (parent !== dirPath && parent !== '.') {
+      // プロジェクトルートを超えて遡らないようにする (本来はプロジェクトルートで止めるのが理想だが、一旦dirnameで親へ)
+      // findProjectRoot の結果を使っても良いが、パフォーマンスを考慮して単純に親を見る
+      return this.getPreferredDocumentTypeForDirectory(parent);
+    }
+
+    // どこまで遡っても判定できない場合はデフォルト
     return 'novel';
   }
 
