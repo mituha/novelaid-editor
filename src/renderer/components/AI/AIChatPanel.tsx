@@ -50,7 +50,7 @@ interface AIChatPanelProps {
   rightActivePath: string | null;
   leftTabs: Tab[];
   rightTabs: Tab[];
-  tabContents: Record<string, any>;
+  documents: Record<string, any>;
 }
 
 export default function AIChatPanel({
@@ -58,7 +58,7 @@ export default function AIChatPanel({
   rightActivePath,
   leftTabs,
   rightTabs,
-  tabContents,
+  documents: documents,
 }: AIChatPanelProps) {
   const { settings } = useSettings();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
@@ -133,7 +133,7 @@ export default function AIChatPanel({
       rightActivePath,
       leftTabs,
       rightTabs,
-      tabContents,
+      documents,
     );
 
     if (contextText) {

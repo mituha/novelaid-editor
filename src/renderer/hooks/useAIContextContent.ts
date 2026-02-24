@@ -14,7 +14,7 @@ export function useAIContextContent() {
     rightActivePath: string | null,
     leftTabs: Tab[],
     rightTabs: Tab[],
-    tabContents: Record<string, any>
+    documents: Record<string, any>
   ): Promise<string> => {
     const paths = new Set<string>();
 
@@ -39,8 +39,8 @@ export function useAIContextContent() {
       }
 
       let content = "";
-      if (tabContents[path]) {
-        content = tabContents[path].content;
+      if (documents[path]) {
+        content = documents[path].content;
       } else {
         // オープンされていない場合はディスクから直接読み込む
         try {

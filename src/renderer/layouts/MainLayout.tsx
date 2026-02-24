@@ -31,7 +31,7 @@ export default function MainLayout() {
   const [rightActivePath, setRightActivePath] = useState<string | null>(null);
   const [activeSide, setActiveSide] = useState<'left' | 'right'>('left');
   const [isSplit, setIsSplit] = useState(false);
-  const [tabContents, setTabContents] = useState<
+  const [documents, setDocuments] = useState<
     Record<
       string,
       {
@@ -79,7 +79,7 @@ export default function MainLayout() {
   // Refs for accessing latest state in callbacks without re-subscribing
   // （closeTabByPath より前に宣言して前方参照エラーを回避）
   const tabsRef = useRef({ left: leftTabs, right: rightTabs });
-  const tabContentsRef = useRef(tabContents);
+  const documentsRef = useRef(documents);
 
   const clearTimer = useCallback((path: string) => {
     if (autoSaveTimerRef.current[path]) {
@@ -94,10 +94,10 @@ export default function MainLayout() {
       clearTimer(path);
 
       if (reason === 'deleted') {
-        // tabContentsRef に deleted フラグを即座にセット（同期・直接ミュート）
+        // documentsRef に deleted フラグを即座にセット（同期・直接ミュート）
         // React state の非同期更新を待たずに handleSaveByPath がスキップできるようにするため
-        if (tabContentsRef.current[path]) {
-          tabContentsRef.current[path] = { ...tabContentsRef.current[path], deleted: true };
+        if (documentsRef.current[path]) {
+          documentsRef.current[path] = { ...documentsRef.current[path], deleted: true };
         }
       }
 
@@ -126,7 +126,7 @@ export default function MainLayout() {
       if (!side || side === 'left') closeInSide('left');
       if (!side || side === 'right') closeInSide('right');
 
-      setTabContents((prevContents) => {
+      setDocuments((prevContents) => {
         const newContents = { ...prevContents };
         // 他のペインに同じファイルが残っていないか、あるいはサイドが指定されていない（一括削除）場合のみ消去
         const stillInAnyTabs = () => {
@@ -165,7 +165,7 @@ export default function MainLayout() {
         setRightTabs([]);
         setLeftActivePath(null);
         setRightActivePath(null);
-        setTabContents({});
+        setDocuments({});
       }
 
       const {
@@ -211,7 +211,7 @@ export default function MainLayout() {
         contentsUpdate[r.path] = { ...r.data, lastSource: 'external' };
       });
 
-      setTabContents((prevContent) => ({ ...prevContent, ...contentsUpdate }));
+      setDocuments((prevContent) => ({ ...prevContent, ...contentsUpdate }));
 
       if (leftResults.length > 0) {
         setLeftTabs(
@@ -314,15 +314,15 @@ export default function MainLayout() {
   }, [leftTabs, rightTabs]);
 
   useEffect(() => {
-    tabContentsRef.current = tabContents;
-  }, [tabContents]);
+    documentsRef.current = documents;
+  }, [documents]);
 
   // Handle external file changes
   useEffect(() => {
     const cleanup = window.electron.fs.onFileChange(async ({ event, path }) => {
       console.log(`[MainLayout] FS Event: ${event} ${path}`);
       const { left: currentLeftTabs, right: currentRightTabs } = tabsRef.current;
-      const currentTabContents = tabContentsRef.current;
+      const currentDocuments = documentsRef.current;
 
       if (event === 'change') {
         const findTab = (tabs: Tab[]) => tabs.find((t) => t.path === path);
@@ -356,7 +356,7 @@ export default function MainLayout() {
 
             // Note: We need to use function updates for state setters to ensure we don't clobber other concurrent updates,
             // even though we are inside an event handler.
-            setTabContents((prev) => ({ ...prev, [path]: data }));
+            setDocuments((prev) => ({ ...prev, [path]: data }));
 
             // Mark as not dirty
             setLeftTabs((current) =>
@@ -378,7 +378,7 @@ export default function MainLayout() {
         // Handle file deletion
         setLeftTabs((prev) => prev.filter((t) => t.path !== path));
         setRightTabs((prev) => prev.filter((t) => t.path !== path));
-        setTabContents((prev) => {
+        setDocuments((prev) => {
           const next = { ...prev };
           delete next[path];
           return next;
@@ -402,7 +402,7 @@ export default function MainLayout() {
       const fileName =
         path.split('\\').pop() || path.split('/').pop() || 'Untitled';
 
-      setTabContents((prev) => ({
+      setDocuments((prev) => ({
         ...prev,
         [path]: { ...data, lastSource: 'external' }, // Initial load is external
       }));
@@ -610,7 +610,7 @@ export default function MainLayout() {
   );
 
   const handleSaveByPath = useCallback(async (path: string) => {
-    const data = tabContentsRef.current[path];
+    const data = documentsRef.current[path];
     if (!path || !data) return;
 
     // 削除済みフラグが立っている場合は保存しない
@@ -672,7 +672,7 @@ export default function MainLayout() {
 
   const handleContentChange = (path: string | null, side: 'left' | 'right') => (value: string | undefined) => {
     if (path) {
-      setTabContents((prev) => ({
+      setDocuments((prev) => ({
         ...prev,
         [path]: { ...prev[path], content: value || '', lastSource: `user-${side}` as any }, // どちらのペインが編集したか記録
       }));
@@ -695,7 +695,7 @@ export default function MainLayout() {
   const handleMetadataChange = useCallback(
     (path: string | null, metadata: Record<string, any>) => {
       if (path) {
-        setTabContents((prev) => ({
+        setDocuments((prev) => ({
           ...prev,
           [path]: {
             ...prev[path],
@@ -745,7 +745,7 @@ export default function MainLayout() {
     path?.startsWith('preview://') ? path.replace('preview://', '') : path;
 
   const activeContent = activeTabPath
-    ? tabContents[getOriginalPath(activeTabPath) || '']?.content
+    ? documents[getOriginalPath(activeTabPath) || '']?.content
     : '';
 
   const renderEditorOrPreview = (side: 'left' | 'right') => {
@@ -761,7 +761,7 @@ export default function MainLayout() {
 
     if (activePath.startsWith('preview://')) {
       const originalPath = activePath.replace('preview://', '');
-      const data = tabContents[originalPath];
+      const data = documents[originalPath];
       if (data?.language === 'markdown') {
         return <MarkdownPreview content={data.content || ''} />;
       }
@@ -782,7 +782,7 @@ export default function MainLayout() {
       return <WebBrowser initialUrl={url} />;
     }
 
-    const data = tabContents[activePath];
+    const data = documents[activePath];
     if (!data) {
       return (
         <div className="loading-editor">
@@ -837,7 +837,7 @@ export default function MainLayout() {
           rightActivePath={rightActivePath}
           leftTabs={leftTabs}
           rightTabs={rightTabs}
-          tabContents={tabContents}
+          documents={documents}
         />
       );
     }
@@ -872,7 +872,7 @@ export default function MainLayout() {
             if (leftActivePath === activePath) setLeftActivePath(newPath);
             if (rightActivePath === activePath) setRightActivePath(newPath);
 
-            setTabContents(prev => {
+            setDocuments(prev => {
                 const newContents = { ...prev };
                 newContents[newPath] = newContents[activePath];
                 delete newContents[activePath];
@@ -887,7 +887,7 @@ export default function MainLayout() {
 
     const handleNavigated = () => {
         // Clear navigation props to prevent re-triggering on remount/updates
-        setTabContents((current) => {
+        setDocuments((current) => {
             const currentTab = current[activePath];
             if (!currentTab) return current;
 
@@ -1059,27 +1059,27 @@ export default function MainLayout() {
             onFileSelect={handleFileSelect}
             activeContent={activeContent}
             activePath={activeTabPath}
-            metadata={activeTabPath ? tabContents[activeTabPath]?.metadata : undefined}
+            metadata={activeTabPath ? documents[activeTabPath]?.metadata : undefined}
             onMetadataChange={(metadata) => handleMetadataChange(activeTabPath, metadata)}
             onOpenWebBrowser={handleOpenWebBrowser}
             leftActivePath={leftActivePath}
             rightActivePath={rightActivePath}
             leftTabs={leftTabs}
             rightTabs={rightTabs}
-            tabContents={tabContents}
+            documents={documents}
           />
         </div>
       </div>
       <StatusBar
         metrics={CharCounter.getMetrics(
           activeTabPath && !activeTabPath.startsWith('preview://')
-            ? tabContents[activeTabPath]?.content || ''
+            ? documents[activeTabPath]?.content || ''
             : '',
           activeTabPath
         )}
         activePath={getOriginalPath(activeTabPath)}
-        language={activeTabPath ? tabContents[getOriginalPath(activeTabPath) || '']?.language : undefined}
-        metadata={activeTabPath ? tabContents[getOriginalPath(activeTabPath) || '']?.metadata : undefined}
+        language={activeTabPath ? documents[getOriginalPath(activeTabPath) || '']?.language : undefined}
+        metadata={activeTabPath ? documents[getOriginalPath(activeTabPath) || '']?.metadata : undefined}
         openSettings={openSettings}
         onGoHome={() => navigate('/')}
         onToggleLeftPane={handleToggleLeftPane}

@@ -52,7 +52,7 @@ interface ChViewProps {
   rightActivePath: string | null;
   leftTabs: Tab[];
   rightTabs: Tab[];
-  tabContents: Record<string, any>;
+  documents: Record<string, any>;
 }
 
 const formatTimestamp = (d: Date = new Date()) => {
@@ -84,7 +84,7 @@ export default function ChView({
   rightActivePath,
   leftTabs,
   rightTabs,
-  tabContents,
+  documents: documents,
 }: ChViewProps) {
   const { settings } = useSettings();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
@@ -212,7 +212,7 @@ export default function ChView({
       rightActivePath,
       leftTabs,
       rightTabs,
-      tabContents,
+      documents,
     );
 
     let finalInput = input;
