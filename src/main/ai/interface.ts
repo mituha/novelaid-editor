@@ -1,15 +1,17 @@
-
 export interface GenerateOptions {
   temperature?: number;
   maxTokens?: number;
   systemPrompt?: string;
+  tools?: any[]; // Tool definitions (provider-specific or generic)
 }
 
-export type MessageRole = 'system' | 'user' | 'assistant';
+export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
 
 export interface ChatMessage {
   role: MessageRole;
   content: string;
+  name?: string; // For tool results
+  tool_call_id?: string; // For tool responses
 }
 
 /**
@@ -19,7 +21,14 @@ export interface ChatMessage {
 export interface StreamChunk {
   type: 'text' | 'thought' | 'tool_call' | 'error';
   content: string;
-  metadata?: Record<string, any>;
+  metadata?: {
+    tool_call?: {
+      id: string;
+      name: string;
+      args: any;
+    };
+    [key: string]: any;
+  };
 }
 
 export interface AIProvider {

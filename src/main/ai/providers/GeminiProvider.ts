@@ -38,9 +38,12 @@ export class GeminiProvider extends BaseProvider {
     const result = await this.client.models.generateContent({
       model: this.modelName,
       contents: messages.map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
+        role: m.role === 'assistant' ? 'model' : m.role === 'tool' ? 'function' : 'user',
+        parts: m.role === 'tool'
+          ? [{ functionResponse: { name: m.name!, response: { content: m.content } } }]
+          : [{ text: m.content }],
       })),
+      tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
       config: {
         maxOutputTokens: options?.maxTokens,
         temperature: options?.temperature,
@@ -57,6 +60,7 @@ export class GeminiProvider extends BaseProvider {
     const stream = await this.client.models.generateContentStream({
       model: this.modelName,
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
       config: {
         maxOutputTokens: options?.maxTokens,
         temperature: options?.temperature,
@@ -72,6 +76,18 @@ export class GeminiProvider extends BaseProvider {
             yield { content: (part as any).thought, type: 'thought' };
           } else if (part.text) {
             yield { content: part.text, type: 'text' };
+          } else if ('functionCall' in part && part.functionCall) {
+            yield {
+              type: 'tool_call',
+              content: '',
+              metadata: {
+                tool_call: {
+                  id: (part as any).functionCall.id || `call_${Date.now()}`,
+                  name: part.functionCall.name,
+                  args: part.functionCall.args,
+                },
+              },
+            };
           }
         }
       } else {
@@ -88,9 +104,12 @@ export class GeminiProvider extends BaseProvider {
     const stream = await this.client.models.generateContentStream({
       model: this.modelName,
       contents: messages.map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
+        role: m.role === 'assistant' ? 'model' : m.role === 'tool' ? 'function' : 'user',
+        parts: m.role === 'tool'
+          ? [{ functionResponse: { name: m.name!, response: { content: m.content } } }]
+          : [{ text: m.content }],
       })),
+      tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
       config: {
         maxOutputTokens: options?.maxTokens,
         temperature: options?.temperature,
@@ -106,6 +125,18 @@ export class GeminiProvider extends BaseProvider {
             yield { content: (part as any).thought, type: 'thought' };
           } else if (part.text) {
             yield { content: part.text, type: 'text' };
+          } else if ('functionCall' in part && part.functionCall) {
+            yield {
+              type: 'tool_call',
+              content: '',
+              metadata: {
+                tool_call: {
+                  id: (part as any).functionCall.id || `call_${Date.now()}`,
+                  name: part.functionCall.name,
+                  args: part.functionCall.args,
+                },
+              },
+            };
           }
         }
       } else {
