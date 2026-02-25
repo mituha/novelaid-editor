@@ -1,14 +1,14 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DocumentArea from '../components/Editor/DocumentArea';
-import { Tab } from '../components/TabBar/TabBar';
+import { useDocument } from '../contexts/DocumentContext';
 import { SettingsModal } from '../components/Settings/SettingsModal';
 import { useSettings } from '../contexts/SettingsContext';
 import EditorSettingsTab from '../components/Settings/Tabs/EditorSettingsTab';
 import AISettingsTab from '../components/Settings/Tabs/AISettingsTab';
 import { AppearanceSettingsTab } from '../components/Settings/Tabs/AppearanceSettingsTab';
 import { CalibrationSettingsTab } from '../components/Settings/Tabs/CalibrationSettingsTab';
-import { RightPane } from '../components/RightPane/RightPane';
+import RightPane from '../components/RightPane/RightPane';
 import Resizer from '../components/Common/Resizer';
 import StatusBar from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
@@ -19,36 +19,20 @@ import './MainLayout.css';
 import { LeftPane } from '../components/LeftPane/LeftPane';
 
 export default function MainLayout() {
-  const [leftTabs, setLeftTabs] = useState<Tab[]>([]);
-  const [rightTabs, setRightTabs] = useState<Tab[]>([]);
-  const [leftActivePath, setLeftActivePath] = useState<string | null>(null);
-  const [rightActivePath, setRightActivePath] = useState<string | null>(null);
-  const [activeSide, setActiveSide] = useState<'left' | 'right'>('left');
-  const [isSplit, setIsSplit] = useState(false);
-  const [documents, setDocuments] = useState<
-    Record<
-      string,
-      {
-        content: string;
-        metadata: Record<string, any>;
-        lastSource?: 'user' | 'external';
-        initialLine?: number;
-        initialColumn?: number;
-        searchQuery?: string;
-        language?: string;
-        deleted?: boolean;
-      }
-    >
-  >({});
-  const navigate = useNavigate();
   const {
-    settings,
-    updateSettings,
-    openSettings,
-    registerSettingTab,
-    loadProjectSettings,
-    projectPath,
-  } = useSettings();
+    documents,
+    activeTabPath,
+    isSplit,
+    openDocument,
+    closeTab,
+    openDiff,
+    openWebBrowser,
+    saveDocument,
+  } = useDocument();
+
+  const navigate = useNavigate();
+  const { openSettings, registerSettingTab, loadProjectSettings } =
+    useSettings();
 
   const { activeLeftPanelId, activeRightPanelId, setActivePanel, getPanels } =
     usePanel();
@@ -65,211 +49,6 @@ export default function MainLayout() {
   const leftDisplayWidth = isLeftPaneNarrow ? 50 : leftPaneWidth;
   const rightDisplayWidth = isRightPaneNarrow ? 50 : rightPaneWidth;
 
-  const activeTabPath =
-    activeSide === 'left' ? leftActivePath : rightActivePath;
-  const savingPaths = useRef<Set<string>>(new Set());
-  const autoSaveTimerRef = useRef<Record<string, any>>({});
-  const restoredRef = useRef<string | null>(null);
-
-  // Refs for accessing latest state in callbacks without re-subscribing
-  // （closeTabByPath より前に宣言して前方参照エラーを回避）
-  const tabsRef = useRef({ left: leftTabs, right: rightTabs });
-  const documentsRef = useRef(documents);
-
-  const clearTimer = useCallback((path: string) => {
-    if (autoSaveTimerRef.current[path]) {
-      clearTimeout(autoSaveTimerRef.current[path]);
-      delete autoSaveTimerRef.current[path];
-    }
-  }, []);
-
-  const closeTabByPath = useCallback(
-    (path: string, reason?: string, side?: 'left' | 'right') => {
-      // タイマーをキャンセルすることで自動保存を防ぐ
-      clearTimer(path);
-
-      if (reason === 'deleted') {
-        // documentsRef に deleted フラグを即座にセット（同期・直接ミュート）
-        // React state の非同期更新を待たずに handleSaveByPath がスキップできるようにするため
-        if (documentsRef.current[path]) {
-          documentsRef.current[path] = {
-            ...documentsRef.current[path],
-            deleted: true,
-          };
-        }
-      }
-
-      const closeInSide = (targetSide: 'left' | 'right') => {
-        const setTabs = targetSide === 'left' ? setLeftTabs : setRightTabs;
-        const activePath =
-          targetSide === 'left' ? leftActivePath : rightActivePath;
-        const setActivePath =
-          targetSide === 'left' ? setLeftActivePath : setRightActivePath;
-
-        setTabs((prev) => {
-          const newTabs = prev.filter((tab) => tab.path !== path);
-
-          if (activePath === path) {
-            const closedTabIndex = prev.findIndex((tab) => tab.path === path);
-            if (newTabs.length > 0) {
-              const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
-              setActivePath(newTabs[nextIndex].path);
-            } else {
-              setActivePath(null);
-            }
-          }
-          return newTabs;
-        });
-      };
-
-      if (!side || side === 'left') closeInSide('left');
-      if (!side || side === 'right') closeInSide('right');
-
-      setDocuments((prevContents) => {
-        const newContents = { ...prevContents };
-        // 他のペインに同じファイルが残っていないか、あるいはサイドが指定されていない（一括削除）場合のみ消去
-        const stillInAnyTabs = () => {
-          if (!side) return false;
-          const otherSide = side === 'left' ? 'right' : 'left';
-          const otherTabs = tabsRef.current[otherSide];
-          return otherTabs.some((t) => t.path === path);
-        };
-
-        if (!stillInAnyTabs()) {
-          delete newContents[path];
-        }
-        return newContents;
-      });
-    },
-    [leftActivePath, rightActivePath, clearTimer],
-  );
-
-  // Restore open files from settings
-  useEffect(() => {
-    if (
-      !projectPath ||
-      !settings.lastOpenFiles ||
-      restoredRef.current === projectPath
-    ) {
-      return;
-    }
-
-    const restore = async () => {
-      const previousProject = restoredRef.current;
-      restoredRef.current = projectPath;
-
-      // If switching to a NEW project, clear current tabs first
-      if (previousProject && previousProject !== projectPath) {
-        setLeftTabs([]);
-        setRightTabs([]);
-        setLeftActivePath(null);
-        setRightActivePath(null);
-        setDocuments({});
-      }
-
-      const {
-        left,
-        right,
-        leftActive,
-        rightActive,
-        isSplit: savedSplit,
-        activeSide: savedSide,
-      } = settings.lastOpenFiles!;
-
-      if (savedSplit !== undefined) setIsSplit(savedSplit);
-      if (savedSide !== undefined) setActiveSide(savedSide);
-
-      const restoreFiles = async (files: { path: string; name: string }[]) => {
-        const results = await Promise.all(
-          files.map(async (t) => {
-            try {
-              const data = await window.electron.ipcRenderer.invoke(
-                'fs:readDocument',
-                t.path,
-              );
-              return { path: t.path, name: t.name, data };
-            } catch (e) {
-              // eslint-disable-next-line no-console
-              console.error(`Failed to restore ${t.path}`, e);
-              return null;
-            }
-          }),
-        );
-        return results.filter(
-          (r): r is { path: string; name: string; data: any } => r !== null,
-        );
-      };
-
-      const [leftResults, rightResults] = await Promise.all([
-        restoreFiles(left),
-        restoreFiles(right),
-      ]);
-
-      const contentsUpdate: any = {};
-      [...leftResults, ...rightResults].forEach((r) => {
-        contentsUpdate[r.path] = { ...r.data, lastSource: 'external' };
-      });
-
-      setDocuments((prevContent) => ({ ...prevContent, ...contentsUpdate }));
-
-      if (leftResults.length > 0) {
-        setLeftTabs(
-          leftResults.map((r) => ({
-            name: r.name,
-            path: r.path,
-            isDirty: false,
-          })),
-        );
-        if (leftActive) setLeftActivePath(leftActive);
-      }
-
-      if (rightResults.length > 0) {
-        setRightTabs(
-          rightResults.map((r) => ({
-            name: r.name,
-            path: r.path,
-            isDirty: false,
-          })),
-        );
-        if (rightActive) setRightActivePath(rightActive);
-      }
-    };
-
-    restore();
-  }, [projectPath, settings.lastOpenFiles]);
-
-  // Persist open files to settings
-  useEffect(() => {
-    // Only save if we have finished restoring for the current project
-    if (!projectPath || restoredRef.current !== projectPath) return;
-
-    const lastOpenFiles = {
-      left: leftTabs.map((t) => ({ path: t.path, name: t.name })),
-      right: rightTabs.map((t) => ({ path: t.path, name: t.name })),
-      leftActive: leftActivePath,
-      rightActive: rightActivePath,
-      activeSide,
-      isSplit,
-    };
-
-    // Deep compare to avoid unnecessary writes
-    const currentSerialized = JSON.stringify(lastOpenFiles);
-    const savedSerialized = JSON.stringify(settings.lastOpenFiles);
-
-    if (currentSerialized !== savedSerialized) {
-      updateSettings({ lastOpenFiles });
-    }
-  }, [
-    leftTabs,
-    rightTabs,
-    leftActivePath,
-    rightActivePath,
-    activeSide,
-    isSplit,
-    projectPath,
-    updateSettings,
-    settings.lastOpenFiles,
-  ]);
 
   const handleLeftResize = useCallback((delta: number) => {
     setLeftPaneWidth((prev) => Math.max(150, Math.min(600, prev + delta)));
@@ -307,123 +86,14 @@ export default function MainLayout() {
     }
   }, [isRightPaneNarrow, getPanels, setActivePanel]);
 
-  useEffect(() => {
-    tabsRef.current = { left: leftTabs, right: rightTabs };
-  }, [leftTabs, rightTabs]);
-
-  useEffect(() => {
-    documentsRef.current = documents;
-  }, [documents]);
-
-  // Handle external file changes
-  useEffect(() => {
-    const cleanup = window.electron.fs.onFileChange(async ({ event, path }) => {
-      console.log(`[MainLayout] FS Event: ${event} ${path}`);
-      const { left: currentLeftTabs, right: currentRightTabs } =
-        tabsRef.current;
-
-      if (event === 'change') {
-        const findTab = (tabs: Tab[]) => tabs.find((t) => t.path === path);
-        const lTab = findTab(currentLeftTabs);
-        const rTab = findTab(currentRightTabs);
-        const targetTab = lTab || rTab;
-
-        if (targetTab) {
-          if (savingPaths.current.has(path)) {
-            console.log(`[MainLayout] Ignoring self-save: ${path}`);
-            return;
-          }
-
-          // Check against the latest content implementation if possible,
-          // but relying on isDirty from refs is safer.
-          // Note: isDirty might be true if user typed but haven't saved.
-          if (targetTab.isDirty) {
-            // Confirm dialog ...
-            const confirmed = await window.electron.ipcRenderer.invoke(
-              'dialog:confirm',
-              `${targetTab.name} は外部で変更されました。ローカルの変更を破棄して再読み込みしますか？`,
-            );
-            if (!confirmed) return;
-          }
-
-          try {
-            const data = await window.electron.ipcRenderer.invoke(
-              'fs:readDocument',
-              path,
-            );
-
-            // Note: We need to use function updates for state setters to ensure we don't clobber other concurrent updates,
-            // even though we are inside an event handler.
-            setDocuments((prev) => ({ ...prev, [path]: data }));
-
-            // Mark as not dirty
-            setLeftTabs((current) =>
-              current.map((tab) =>
-                tab.path === path ? { ...tab, isDirty: false } : tab,
-              ),
-            );
-            setRightTabs((current) =>
-              current.map((tab) =>
-                tab.path === path ? { ...tab, isDirty: false } : tab,
-              ),
-            );
-          } catch (err) {
-            console.error('Failed to reload file', err);
-          }
-        }
-      } else if (event === 'unlink') {
-        clearTimer(path);
-        // Handle file deletion
-        setLeftTabs((prev) => prev.filter((t) => t.path !== path));
-        setRightTabs((prev) => prev.filter((t) => t.path !== path));
-        setDocuments((prev) => {
-          const next = { ...prev };
-          delete next[path];
-          return next;
-        });
-      }
-    });
-
-    return () => {
-      cleanup();
-    };
-  }, [clearTimer]); // Run once on mount (now depends on clearTimer)
-
-  // Apply theme to body
-  useEffect(() => {
-    const theme = settings.theme || 'dark';
-    document.body.setAttribute('data-theme', theme);
-  }, [settings.theme]);
-
   const handleFileSelect = useCallback(
     (
       path: string,
       data: { content: string; metadata: Record<string, any> },
     ) => {
-      const fileName =
-        path.split('\\').pop() || path.split('/').pop() || 'Untitled';
-
-      setDocuments((prev) => ({
-        ...prev,
-        [path]: { ...data, lastSource: 'external' }, // Initial load is external
-      }));
-
-      // Check where to open
-      if (activeSide === 'left') {
-        setLeftTabs((prev) => {
-          if (prev.find((t) => t.path === path)) return prev;
-          return [...prev, { name: fileName, path, isDirty: false }];
-        });
-        setLeftActivePath(path);
-      } else {
-        setRightTabs((prev) => {
-          if (prev.find((t) => t.path === path)) return prev;
-          return [...prev, { name: fileName, path, isDirty: false }];
-        });
-        setRightActivePath(path);
-      }
+      openDocument(path, data);
     },
-    [activeSide],
+    [openDocument],
   );
 
   useEffect(() => {
@@ -466,7 +136,8 @@ export default function MainLayout() {
             );
             handleFileSelect(path, data);
           } catch (error) {
-            console.error('Failed to open file via app:open-file:', error);
+              // eslint-disable-next-line no-console
+              console.error('Failed to open file via app:open-file:', error);
           }
         },
       );
@@ -480,11 +151,7 @@ export default function MainLayout() {
             typeof pathOrArgs === 'string' ? undefined : pathOrArgs?.reason;
 
           if (!filePath) return;
-
-          console.log(
-            `[MainLayout] app:close-file [${reason ?? 'unknown'}]: ${filePath}`,
-          );
-          closeTabByPath(filePath, reason);
+          closeTab(filePath, undefined, reason);
         },
       );
 
@@ -499,338 +166,16 @@ export default function MainLayout() {
     registerSettingTab,
     openSettings,
     handleFileSelect,
-    closeTabByPath,
-    clearTimer,
+    closeTab,
   ]);
 
-  const handleTabClick = useCallback(
-    (side: 'left' | 'right') => (path: string) => {
-      setActiveSide(side);
-      if (side === 'left') {
-        setLeftActivePath(path);
-      } else {
-        setRightActivePath(path);
-      }
-    },
-    [],
-  );
-
-  const handleToggleSplit = () => {
-    setIsSplit((prev) => {
-      const next = !prev;
-      if (next) {
-        // When splitting, if the right side is empty, clone the current active tab to the right side
-        if (rightTabs.length === 0 && leftActivePath) {
-          const activeTab = leftTabs.find((t) => t.path === leftActivePath);
-          if (activeTab) {
-            setRightTabs([activeTab]);
-            setRightActivePath(leftActivePath);
-          }
-        } else if (!rightActivePath && leftActivePath) {
-          setRightActivePath(leftActivePath);
-        }
-      }
-      return next;
-    });
-  };
-
-  // 指定ファイル用のプレビュー画面を開きます
-  const handleOpenPreview = (path: string) => {
-    const previewPath = `preview://${path}`;
-    const previewName = `Preview: ${path.split('\\').pop() || 'Untitled'}`;
-
-    // プレビュー画面は元となるファイルの逆側に開く事で同時に閲覧可能とします。
-    const setTabs = activeSide === 'left' ? setRightTabs : setLeftTabs;
-    const setActivePath =
-      activeSide === 'left' ? setRightActivePath : setLeftActivePath;
-
-    setTabs((prev) => {
-      if (prev.find((tab) => tab.path === previewPath)) {
-        return prev;
-      }
-      return [
-        ...prev,
-        { path: previewPath, name: previewName, isDirty: false },
-      ];
-    });
-    setActivePath(previewPath);
-    // 分割画面を表示します
-    setIsSplit(true);
-  };
-
-  const handleOpenDiff = (path: string, staged: boolean) => {
-    const diffPath = `git-diff://${staged ? 'staged' : 'unstaged'}/${path}`;
-    const diffName = `Diff: ${path.split('\\').pop() || 'Untitled'} (${
-      staged ? 'Staged' : 'Changes'
-    })`;
-    const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
-    const setActivePath =
-      activeSide === 'left' ? setLeftActivePath : setRightActivePath;
-
-    setTabs((prev) => {
-      if (prev.find((tab) => tab.path === diffPath)) {
-        return prev;
-      }
-      return [...prev, { path: diffPath, name: diffName, isDirty: false }];
-    });
-    setActivePath(diffPath);
-  };
-
-  // 投稿用に指定URL用のブラウザ画面を開きます
-  const handleOpenWebBrowser = (url: string, title: string) => {
-    const webPath = `web-browser://${url}`;
-    const webName = `Web: ${title}`;
-
-    // ブラウザ画面は投稿、参照用であるためファイルの逆側に開く事で同時に閲覧可能とします。
-    const setTabs = activeSide === 'left' ? setRightTabs : setLeftTabs;
-    const setActivePath =
-      activeSide === 'left' ? setRightActivePath : setLeftActivePath;
-
-    setTabs((prev) => {
-      if (prev.find((tab) => tab.path === webPath)) {
-        return prev;
-      }
-      return [...prev, { path: webPath, name: webName, isDirty: false }];
-    });
-    setActivePath(webPath);
-
-    // 分割画面を表示します
-    setIsSplit(true);
-  };
-
-  // Auto-unsplit when one side becomes empty
-  useEffect(() => {
-    if (isSplit) {
-      if (leftTabs.length === 0 && rightTabs.length > 0) {
-        // Move right tabs to left if left is empty
-        setLeftTabs(rightTabs);
-        setLeftActivePath(rightActivePath);
-        setRightTabs([]);
-        setRightActivePath(null);
-        setIsSplit(false);
-        setActiveSide('left');
-      } else if (rightTabs.length === 0) {
-        // Just unsplit if right is empty
-        setIsSplit(false);
-        setActiveSide('left');
-      }
-    }
-  }, [isSplit, leftTabs, rightTabs, rightActivePath]);
-
-  const handleTabClose = useCallback(
-    (side: 'left' | 'right') => (path: string) => {
-      closeTabByPath(path, undefined, side);
-    },
-    [closeTabByPath],
-  );
-
-  const handleSaveByPath = useCallback(
-    async (path: string) => {
-      const data = documentsRef.current[path];
-      if (!path || !data) return;
-
-      // 削除済みフラグが立っている場合は保存しない
-      // （削除前に onBlur や auto-save タイマーが発火しても復活させないため）
-      if (data.deleted) {
-        console.log(`[MainLayout] 削除済みのため保存をスキップ: ${path}`);
-        return;
-      }
-
-      // Safety check: Don't save if the file is no longer in any tab
-      // (prevents recreation of deleted files by pending timers)
-      const allTabs = [...tabsRef.current.left, ...tabsRef.current.right];
-      if (!allTabs.find((t) => t.path === path)) {
-        console.log(
-          `[MainLayout] Skipping save for closed/deleted file: ${path}`,
-        );
-        return;
-      }
-
-      try {
-        console.log(`[MainLayout] Saving ${path}...`);
-        savingPaths.current.add(path);
-        await window.electron.ipcRenderer.invoke('fs:saveDocument', path, data);
-
-        // Update dirty state
-        const updateClean = (tabs: Tab[]) =>
-          tabs.map((tab) =>
-            tab.path === path ? { ...tab, isDirty: false } : tab,
-          );
-
-        setLeftTabs(updateClean);
-        setRightTabs(updateClean);
-
-        // Wait a bit to ensure watcher event is ignored
-        setTimeout(() => {
-          savingPaths.current.delete(path);
-        }, 500);
-
-        // If the rules file was saved, reload rules in CalibrationService
-        if (path.endsWith('kanji-rules.txt')) {
-          await window.electron.calibration.reloadRules();
-        }
-      } catch (err) {
-        console.error(err);
-        savingPaths.current.delete(path);
-      }
-    },
-    [setLeftTabs, setRightTabs],
-  );
-
-  const triggerAutoSave = useCallback(
-    (path: string) => {
-      if (autoSaveTimerRef.current[path]) {
-        clearTimeout(autoSaveTimerRef.current[path]);
-      }
-      autoSaveTimerRef.current[path] = setTimeout(() => {
-        handleSaveByPath(path);
-        delete autoSaveTimerRef.current[path];
-      }, 3000); // 3 seconds idle
-    },
-    [handleSaveByPath],
-  );
-
-  const handleRename = useCallback(
-    async (oldPath: string, newName: string) => {
-      if (!newName) return;
-      const fileNameWithExt = oldPath.split('\\').pop() || '';
-      const lastDotIndex = fileNameWithExt.lastIndexOf('.');
-      const fileName =
-        lastDotIndex !== -1
-          ? fileNameWithExt.substring(0, lastDotIndex)
-          : fileNameWithExt;
-      const fileExt =
-        lastDotIndex !== -1 ? fileNameWithExt.substring(lastDotIndex) : '';
-
-      if (newName === fileName) return;
-      clearTimer(oldPath);
-
-      const dir = oldPath.substring(0, oldPath.lastIndexOf('\\'));
-      const newPath = `${dir}\\${newName}${fileExt}`;
-
-      try {
-        await window.electron.ipcRenderer.invoke('fs:rename', oldPath, newPath);
-
-        const updateTabs = (tabs: Tab[]) =>
-          tabs.map((t) =>
-            t.path === oldPath
-              ? { ...t, path: newPath, name: `${newName}${fileExt}` }
-              : t,
-          );
-
-        setLeftTabs((prev) => updateTabs(prev));
-        setRightTabs((prev) => updateTabs(prev));
-
-        if (leftActivePath === oldPath) setLeftActivePath(newPath);
-        if (rightActivePath === oldPath) setRightActivePath(newPath);
-
-        setDocuments((prev) => {
-          const newContents = { ...prev };
-          newContents[newPath] = newContents[oldPath];
-          delete newContents[oldPath];
-          return newContents;
-        });
-      } catch (error) {
-        console.error('Failed to rename file:', error);
-      }
-    },
-    [
-      clearTimer,
-      leftActivePath,
-      rightActivePath,
-      setLeftActivePath,
-      setRightActivePath,
-      setLeftTabs,
-      setRightTabs,
-    ],
-  );
-
-  const handleNavigated = useCallback(
-    (path: string) => {
-      setDocuments((current) => {
-        const currentTab = current[path];
-        if (!currentTab) return current;
-
-        const rest = { ...currentTab };
-        delete (rest as any).initialLine;
-        delete (rest as any).initialColumn;
-        delete (rest as any).searchQuery;
-
-        return {
-          ...current,
-          [path]: { ...rest },
-        };
-      });
-    },
-    [setDocuments],
-  );
-
-  const handleContentChange =
-    (path: string | null, side: 'left' | 'right') =>
-    (value: string | undefined) => {
-      if (path) {
-        setDocuments((prev) => ({
-          ...prev,
-          [path]: {
-            ...prev[path],
-            content: value || '',
-            lastSource: `user-${side}` as any,
-          }, // どちらのペインが編集したか記録
-        }));
-        // Mark as dirty in both lists
-        setLeftTabs((prev) =>
-          prev.map((tab) =>
-            tab.path === path ? { ...tab, isDirty: true } : tab,
-          ),
-        );
-        setRightTabs((prev) =>
-          prev.map((tab) =>
-            tab.path === path ? { ...tab, isDirty: true } : tab,
-          ),
-        );
-
-        triggerAutoSave(path);
-      }
-    };
-
-  const handleMetadataChange = useCallback(
-    (path: string | null, metadata: Record<string, any>) => {
-      if (path) {
-        setDocuments((prev) => ({
-          ...prev,
-          [path]: {
-            ...prev[path],
-            metadata: { ...prev[path]?.metadata, ...metadata },
-          }, // Keep lastSource
-        }));
-        setLeftTabs((prev) =>
-          prev.map((tab) =>
-            tab.path === path ? { ...tab, isDirty: true } : tab,
-          ),
-        );
-        setRightTabs((prev) =>
-          prev.map((tab) =>
-            tab.path === path ? { ...tab, isDirty: true } : tab,
-          ),
-        );
-
-        triggerAutoSave(path);
-      }
-    },
-    [triggerAutoSave],
-  );
-
   const handleSave = useCallback(async () => {
-    if (!activeTabPath) return;
-    // Clear any pending auto-save for this path
-    if (autoSaveTimerRef.current[activeTabPath]) {
-      clearTimeout(autoSaveTimerRef.current[activeTabPath]);
-      delete autoSaveTimerRef.current[activeTabPath];
+    if (activeTabPath) {
+      await saveDocument(activeTabPath);
     }
-    await handleSaveByPath(activeTabPath);
-  }, [activeTabPath, handleSaveByPath]);
+  }, [activeTabPath, saveDocument]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
@@ -845,9 +190,6 @@ export default function MainLayout() {
   const getOriginalPath = (path: string | null) =>
     path?.startsWith('preview://') ? path.replace('preview://', '') : path;
 
-  const activeContent = activeTabPath
-    ? documents[getOriginalPath(activeTabPath) || '']?.content
-    : '';
 
   return (
     <div className="layout-wrapper">
@@ -880,8 +222,8 @@ export default function MainLayout() {
           <LeftPane
             onFileSelect={handleFileSelect}
             onProjectOpened={(path) => loadProjectSettings(path)}
-            onOpenDiff={handleOpenDiff}
-            onOpenWebBrowser={handleOpenWebBrowser}
+            onOpenDiff={openDiff}
+            onOpenWebBrowser={openWebBrowser}
           />
         </div>
         {!isLeftPaneNarrow && <Resizer onResize={handleLeftResize} />}
@@ -898,73 +240,12 @@ export default function MainLayout() {
               position: 'relative',
             }}
           >
-            <DocumentArea
-              side="left"
-              activeSide={activeSide}
-              tabs={leftTabs}
-              activePath={leftActivePath}
-              isSplit={isSplit}
-              documents={documents}
-              onTabClick={handleTabClick('left')}
-              onTabClose={handleTabClose('left')}
-              onToggleSplit={handleToggleSplit}
-              onOpenPreview={handleOpenPreview}
-              onSetActive={() => setActiveSide('left')}
-              onContentChange={handleContentChange(leftActivePath, 'left')}
-              onSaveByPath={() =>
-                leftActivePath && handleSaveByPath(leftActivePath)
-              }
-              onRename={(newName) =>
-                leftActivePath
-                  ? handleRename(leftActivePath, newName)
-                  : Promise.resolve()
-              }
-              onNavigated={() =>
-                leftActivePath && handleNavigated(leftActivePath)
-              }
-              splitRatio={editorSplitRatio}
-              leftActivePath={leftActivePath}
-              rightActivePath={rightActivePath}
-              leftTabs={leftTabs}
-              rightTabs={rightTabs}
-            />
+            <DocumentArea side="left" splitRatio={editorSplitRatio} />
 
             {isSplit && (
               <>
                 <Resizer onResize={handleEditorSplitResize} />
-                <DocumentArea
-                  side="right"
-                  activeSide={activeSide}
-                  tabs={rightTabs}
-                  activePath={rightActivePath}
-                  isSplit={isSplit}
-                  documents={documents}
-                  onTabClick={handleTabClick('right')}
-                  onTabClose={handleTabClose('right')}
-                  onToggleSplit={handleToggleSplit}
-                  onOpenPreview={handleOpenPreview}
-                  onSetActive={() => setActiveSide('right')}
-                  onContentChange={handleContentChange(
-                    rightActivePath,
-                    'right',
-                  )}
-                  onSaveByPath={() =>
-                    rightActivePath && handleSaveByPath(rightActivePath)
-                  }
-                  onRename={(newName) =>
-                    rightActivePath
-                      ? handleRename(rightActivePath, newName)
-                      : Promise.resolve()
-                  }
-                  onNavigated={() =>
-                    rightActivePath && handleNavigated(rightActivePath)
-                  }
-                  splitRatio={editorSplitRatio}
-                  leftActivePath={leftActivePath}
-                  rightActivePath={rightActivePath}
-                  leftTabs={leftTabs}
-                  rightTabs={rightTabs}
-                />
+                  <DocumentArea side="right" splitRatio={editorSplitRatio} />
               </>
             )}
           </div>
@@ -980,23 +261,7 @@ export default function MainLayout() {
             overflow: 'hidden',
           }}
         >
-          <RightPane
-            onFileSelect={handleFileSelect}
-            activeContent={activeContent}
-            activePath={activeTabPath}
-            metadata={
-              activeTabPath ? documents[activeTabPath]?.metadata : undefined
-            }
-            onMetadataChange={(metadata) =>
-              handleMetadataChange(activeTabPath, metadata)
-            }
-            onOpenWebBrowser={handleOpenWebBrowser}
-            leftActivePath={leftActivePath}
-            rightActivePath={rightActivePath}
-            leftTabs={leftTabs}
-            rightTabs={rightTabs}
-            documents={documents}
-          />
+          <RightPane />
         </div>
       </div>
       <StatusBar

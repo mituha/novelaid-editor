@@ -1,5 +1,5 @@
 import React from 'react';
-import { TabBar, Tab } from '../TabBar/TabBar';
+import { TabBar } from '../TabBar/TabBar';
 import CodeEditor from './CodeEditor';
 import { FileNameHeader } from './FileNameHeader';
 import NovelPreview from '../Preview/NovelPreview';
@@ -8,64 +8,41 @@ import DiffViewer from '../Git/DiffViewer';
 import WebBrowser from '../Common/WebBrowser';
 import ChView from '../ch/ChView';
 
-interface DocumentData {
-  content: string;
-  metadata: Record<string, any>;
-  lastSource?: 'user' | 'external';
-  initialLine?: number;
-  initialColumn?: number;
-  searchQuery?: string;
-  language?: string;
-  deleted?: boolean;
-}
+import { useDocument } from '../../contexts/DocumentContext';
 
 interface DocumentAreaProps {
   side: 'left' | 'right';
-  activeSide: 'left' | 'right';
-  tabs: Tab[];
-  activePath: string | null;
-  isSplit: boolean;
-  documents: Record<string, DocumentData>;
-  onTabClick: (path: string) => void;
-  onTabClose: (path: string) => void;
-  onToggleSplit: () => void;
-  onOpenPreview: (path: string) => void;
-  onSetActive: () => void;
-  onContentChange: (value: string | undefined) => void;
-  onSaveByPath: () => void;
-  onRename: (newName: string) => Promise<void>;
-  onNavigated: () => void;
   splitRatio: number;
-  // For ChView
-  leftActivePath: string | null;
-  rightActivePath: string | null;
-  leftTabs: Tab[];
-  rightTabs: Tab[];
 }
 
 export default function DocumentArea({
   side,
-  activeSide,
-  tabs,
-  activePath,
-  isSplit,
-  documents,
-  onTabClick,
-  onTabClose,
-  onToggleSplit,
-  onOpenPreview,
-  onSetActive,
-  onContentChange,
-  onSaveByPath,
-  onRename,
-  onNavigated,
   splitRatio,
-  leftActivePath,
-  rightActivePath,
-  leftTabs,
-  rightTabs,
 }: DocumentAreaProps) {
+  const {
+    documents,
+    leftTabs,
+    rightTabs,
+    leftActivePath,
+    rightActivePath,
+    activeSide,
+    isSplit,
+    switchTab,
+    closeTab,
+    toggleSplit,
+    openPreview,
+    setActiveSide,
+    updateContent,
+    saveDocument,
+    renameDocument,
+    markNavigated,
+  } = useDocument();
+
+  const tabs = side === 'left' ? leftTabs : rightTabs;
+  const activePath = side === 'left' ? leftActivePath : rightActivePath;
   const isActive = activeSide === side;
+
+  const onSetActive = () => setActiveSide(side);
 
   const renderContent = () => {
     if (!activePath) {
@@ -145,7 +122,7 @@ export default function DocumentArea({
           key={activePath}
           content={data.content}
           path={activePath}
-          onContentChange={onContentChange as (val: string) => void}
+          onContentChange={(val) => updateContent(activePath, side, val)}
           leftActivePath={leftActivePath}
           rightActivePath={rightActivePath}
           leftTabs={leftTabs}
@@ -155,7 +132,6 @@ export default function DocumentArea({
       );
     }
 
-    // Extract filename for header
     const fileNameWithExt = activePath.split('\\').pop() || '';
     const lastDotIndex = fileNameWithExt.lastIndexOf('.');
     const fileName =
@@ -165,20 +141,23 @@ export default function DocumentArea({
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <FileNameHeader fileName={fileName} onRename={onRename} />
+        <FileNameHeader
+          fileName={fileName}
+          onRename={(newName) => renameDocument(activePath, newName)}
+        />
         <CodeEditor
           key={`${side}-${activePath}`}
           value={data.content}
           language={data.language}
-          lastSource={data.lastSource}
+          lastSource={data.lastSource as any}
           side={side}
-          onChange={onContentChange}
+          onChange={(val) => updateContent(activePath, side, val)}
           onFocus={onSetActive}
-          onBlur={onSaveByPath}
+          onBlur={() => saveDocument(activePath)}
           initialLine={data.initialLine}
           initialColumn={data.initialColumn}
           searchQuery={data.searchQuery}
-          onNavigated={onNavigated}
+          onNavigated={() => markNavigated(activePath)}
         />
       </div>
     );
@@ -216,11 +195,11 @@ export default function DocumentArea({
       <TabBar
         tabs={tabs}
         activeTabPath={activePath}
-        onTabClick={onTabClick}
-        onTabClose={onTabClose}
-        onToggleSplit={onToggleSplit}
+        onTabClick={(path) => switchTab(side, path)}
+        onTabClose={(path) => closeTab(path, side)}
+        onToggleSplit={toggleSplit}
         isSplit={isSplit}
-        onOpenPreview={onOpenPreview}
+        onOpenPreview={openPreview}
       />
       <div className="editor-pane">{renderContent()}</div>
     </div>

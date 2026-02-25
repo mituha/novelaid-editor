@@ -1,14 +1,36 @@
 import React from 'react';
 import { SidePane } from '../Common/SidePane';
+import { useDocument } from '../../contexts/DocumentContext';
 
-interface RightPaneProps {
-  activeContent?: string;
-  activePath?: string | null;
-  metadata?: Record<string, any>;
-  onMetadataChange?: (metadata: Record<string, any>) => void;
-  [key: string]: any;
+export default function RightPane() {
+  const {
+    documents,
+    activeTabPath,
+    updateMetadata,
+    leftActivePath,
+    rightActivePath,
+    leftTabs,
+    rightTabs,
+    openDocument,
+    openWebBrowser,
+  } = useDocument();
+
+  const activeDoc = activeTabPath ? documents[activeTabPath] : null;
+
+  const componentProps = {
+    onFileSelect: openDocument,
+    activeContent: activeDoc?.content || '',
+    activePath: activeTabPath,
+    metadata: activeDoc?.metadata,
+    onMetadataChange: (metadata: Record<string, any>) =>
+      activeTabPath && updateMetadata(activeTabPath, metadata),
+    onOpenWebBrowser: openWebBrowser,
+    leftActivePath,
+    rightActivePath,
+    leftTabs,
+    rightTabs,
+    documents,
+  };
+
+  return <SidePane location="right" componentProps={componentProps} />;
 }
-
-export const RightPane: React.FC<RightPaneProps> = (props) => {
-  return <SidePane location="right" componentProps={props} />;
-};

@@ -9,6 +9,7 @@ import './App.css';
 import { PanelProvider } from './contexts/PanelContext';
 import { MetadataProvider } from './contexts/MetadataContext';
 import { AIContextProvider } from './contexts/AIContextContext';
+import { DocumentProvider } from './contexts/DocumentContext';
 import ProjectLauncher from './components/Launcher/ProjectLauncher';
 
 function AppRoutes() {
@@ -60,7 +61,9 @@ export default function App() {
             <PanelProvider>
               <MetadataProvider>
                 <AIContextProvider>
-                  <AppRoutes />
+                  <DocumentProvider>
+                    <AppRoutes />
+                  </DocumentProvider>
                 </AIContextProvider>
               </MetadataProvider>
             </PanelProvider>
