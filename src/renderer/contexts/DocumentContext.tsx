@@ -11,6 +11,7 @@ export interface DocumentData {
   searchQuery?: string;
   language?: string;
   deleted?: boolean;
+  isPanel?: boolean;
 }
 
 interface DocumentContextType {
@@ -24,6 +25,7 @@ interface DocumentContextType {
   activeTabPath: string | null;
 
   openDocument: (path: string, data?: { content: string; metadata: Record<string, any> }) => void;
+  openPanelDocument: (path: string, initialData?: { content: string; metadata: Record<string, any> }) => Promise<void>;
   closeTab: (path: string, side?: 'left' | 'right', reason?: string) => void;
   switchTab: (side: 'left' | 'right', path: string) => void;
   setActiveSide: (side: 'left' | 'right') => void;
@@ -139,8 +141,10 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (data.deleted) return;
 
-    const allTabs = [...tabsRef.current.left, ...tabsRef.current.right];
-    if (!allTabs.find((t) => t.path === path)) return;
+    if (!data.isPanel) {
+      const allTabs = [...tabsRef.current.left, ...tabsRef.current.right];
+      if (!allTabs.find((t) => t.path === path)) return;
+    }
 
     try {
       savingPaths.current.add(path);
@@ -174,6 +178,34 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       delete autoSaveTimerRef.current[path];
     }, 3000);
   }, [saveDocument]);
+
+  const openPanelDocument = useCallback(async (path: string, initialData?: { content: string; metadata: Record<string, any> }) => {
+    try {
+      if (!documentsRef.current[path]) {
+        try {
+          const data = await window.electron.ipcRenderer.invoke('fs:readDocument', path);
+          setDocuments((prev) => ({
+            ...prev,
+            [path]: { ...data, lastSource: 'external', isPanel: true },
+          }));
+        } catch (e) {
+          if (initialData) {
+            setDocuments((prev) => ({
+              ...prev,
+              [path]: { ...initialData, lastSource: 'external', isPanel: true },
+            }));
+          }
+        }
+      } else {
+        setDocuments((prev) => ({
+          ...prev,
+          [path]: { ...prev[path], isPanel: true },
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to open panel document:', err);
+    }
+  }, []);
 
   const openDocument = useCallback((path: string, data?: { content: string; metadata: Record<string, any> }) => {
     const fileName = path.split('\\').pop() || path.split('/').pop() || 'Untitled';
@@ -476,6 +508,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isSplit,
         activeTabPath,
         openDocument,
+        openPanelDocument,
         closeTab,
         switchTab,
         setActiveSide,

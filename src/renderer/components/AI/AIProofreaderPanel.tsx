@@ -1,25 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { SpellCheck, ClipboardCheck, Send, SearchCheck } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
 import './AIProofreaderPanel.css';
-
-interface MessagePart {
-  type: 'text' | 'thought' | 'tool_call' | 'error';
-  content: string;
-}
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  parts: MessagePart[];
-  displayContent?: string;
-}
+import ChatMessageList, {
+  ChatMessage,
+  ChatMessagePart,
+} from '../Chat/ChatMessageList';
+import { useDocument } from '../../contexts/DocumentContext';
 
 interface AIProofreaderPanelProps {
+  // eslint-disable-next-line react/require-default-props
   activeContent?: string;
+  // eslint-disable-next-line react/require-default-props
   activePath?: string | null;
 }
 
@@ -65,8 +58,14 @@ export default function AIProofreaderPanel({
   activeContent = '',
   activePath = null,
 }: AIProofreaderPanelProps) {
-  const { settings } = useSettings();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { settings, projectPath } = useSettings();
+  const {
+    openPanelDocument,
+    updateDocument,
+    triggerAutoSave,
+    documents: ctxDocuments,
+  } = useDocument();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -79,14 +78,48 @@ export default function AIProofreaderPanel({
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  const panelPath = projectPath
+    ? `${projectPath}/.novelaid/ai-proofreader.ch`
+    : null;
+
+  useEffect(() => {
+    if (panelPath && openPanelDocument) {
+      openPanelDocument(panelPath, { content: '[]', metadata: {} });
+    }
+  }, [panelPath, openPanelDocument]);
+
+  useEffect(() => {
+    if (panelPath && ctxDocuments[panelPath] && messages.length === 0) {
+      try {
+        const { content } = ctxDocuments[panelPath];
+        if (content && content !== '[]') {
+          const parsed = JSON.parse(content);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed);
+          }
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to parse proofreader history', e);
+      }
+    }
+  }, [panelPath, ctxDocuments, messages.length]);
+
+  useEffect(() => {
+    if (panelPath && messages.length > 0 && updateDocument && !isStreaming) {
+      updateDocument(panelPath, { content: JSON.stringify(messages, null, 2) });
+      triggerAutoSave(panelPath);
+    }
+  }, [messages, panelPath, updateDocument, triggerAutoSave, isStreaming]);
+
   const startSession = useCallback(
-    (newMessages: Message[]) => {
+    (newMessages: ChatMessage[]) => {
       setMessages(newMessages);
       setIsStreaming(true);
       setInput('');
 
       const assistantMsgId = (Date.now() + 1).toString();
-      const assistantMessage: Message = {
+      const assistantMessage: ChatMessage = {
         id: assistantMsgId,
         role: 'assistant',
         parts: [],
@@ -111,9 +144,11 @@ export default function AIProofreaderPanel({
             prev.map((msg) => {
               if (msg.id !== assistantMsgId) return msg;
 
-              const lastPart = msg.parts[msg.parts.length - 1];
+              const lastPart = msg.parts
+                ? msg.parts[msg.parts.length - 1]
+                : undefined;
               if (lastPart && lastPart.type === typedChunk.type) {
-                const updatedParts = [...msg.parts];
+                const updatedParts = [...(msg.parts || [])];
                 updatedParts[updatedParts.length - 1] = {
                   ...lastPart,
                   content: lastPart.content + typedChunk.content,
@@ -123,9 +158,9 @@ export default function AIProofreaderPanel({
               return {
                 ...msg,
                 parts: [
-                  ...msg.parts,
+                  ...(msg.parts || []),
                   {
-                    type: typedChunk.type as MessagePart['type'],
+                    type: typedChunk.type as ChatMessagePart['type'],
                     content: typedChunk.content,
                   },
                 ],
@@ -155,7 +190,7 @@ export default function AIProofreaderPanel({
 
       const apiMessages = newMessages.map((m) => ({
         role: m.role,
-        content: m.parts.map((p) => p.content).join(''),
+        content: m.parts?.map((p) => p.content).join('') || m.content || '',
       }));
 
       window.electron.ipcRenderer.sendMessage(
@@ -172,7 +207,7 @@ export default function AIProofreaderPanel({
 
     const fullPrompt = `${action.prompt}\n\n${grammerContext}\n\n対象テキスト (File: ${activePath || 'Untitled'}):\n\`\`\`\n${activeContent}\n\`\`\``;
 
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       parts: [{ type: 'text', content: fullPrompt }],
@@ -185,7 +220,7 @@ export default function AIProofreaderPanel({
   const handleSendChat = () => {
     if (!input.trim() || isStreaming) return;
 
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       parts: [{ type: 'text', content: input }],
@@ -216,66 +251,14 @@ export default function AIProofreaderPanel({
       </div>
 
       <div className="proofreader-results">
-        {messages.length === 0 && (
+        {messages.length === 0 ? (
           <div className="empty-state">
             <ClipboardCheck size={48} opacity={0.2} />
             <p>校正アクションを選択して開始してください</p>
           </div>
+        ) : (
+          <ChatMessageList messages={messages} allPersonas={[]} />
         )}
-        {messages.map((msg) => (
-          <React.Fragment key={msg.id}>
-            <div className={`proofreader-msg ${msg.role}`}>
-              {msg.role === 'user' && <div className="message-sender">You</div>}
-              {msg.displayContent ? (
-                <div className="text-body summary-message">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {msg.displayContent}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                msg.role === 'user' &&
-                msg.parts.map((part, idx) => (
-                  <div
-                    key={`${msg.id}-user-part-${part.type}-${idx}`}
-                    className="text-body"
-                  >
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {part.content}
-                    </ReactMarkdown>
-                  </div>
-                ))
-              )}
-            </div>
-            {msg.role === 'assistant' &&
-              msg.parts.map((part, idx) => (
-                <div
-                  key={`${msg.id}-assistant-part-${part.type}-${idx}`}
-                  className={`proofreader-msg assistant part-type-${part.type}`}
-                >
-                  <div className="message-sender">
-                    {part.type === 'thought' ? 'AI Thought' : 'AI Assistant'}
-                  </div>
-                  {part.type === 'thought' ? (
-                    <details className="thought-details">
-                      <summary>Thinking...</summary>
-                      <div className="thought-body">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {part.content}
-                        </ReactMarkdown>
-                      </div>
-                    </details>
-                  ) : (
-                    <div className="text-body">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {part.content}
-                      </ReactMarkdown>
-                    </div>
-                  )}
-                </div>
-              ))}
-          </React.Fragment>
-        ))}
-        <div ref={messagesEndRef} />
       </div>
 
       <div className="proofreader-input-area">

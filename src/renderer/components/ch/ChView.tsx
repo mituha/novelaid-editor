@@ -9,21 +9,7 @@ import PersonaIcon from '../AI/PersonaIcon';
 import AIContextSelector from '../AI/AIContextSelector';
 import { useAIContextContent } from '../../hooks/useAIContextContent';
 import { useAutoResize } from '../../hooks/useAutoResize';
-
-interface ChMessagePart {
-  type: 'text' | 'thought' | 'tool_call' | 'error';
-  content: string;
-}
-
-interface ChMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  agentId?: string;
-  name?: string;
-  content?: string; // For simple text messages
-  parts?: ChMessagePart[]; // For structured messages
-  timestamp: string; // yyyyMMddHHmmss
-}
+import ChatMessageList, { ChatMessage } from '../Chat/ChatMessageList';
 
 interface ChFileStructure {
   version: string;
@@ -36,7 +22,7 @@ interface ChFileStructure {
     defaultRoleId?: string;
     parameters?: Record<string, any>;
   };
-  messages: ChMessage[];
+  messages: ChatMessage[];
 }
 
 interface Tab {
@@ -93,7 +79,6 @@ export default function ChView({
   const [isStreaming, setIsStreaming] = useState(false);
   const [fileData, setFileData] = useState<ChFileStructure | null>(null);
   const activeAssistantMsgIdRef = useRef<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useAutoResize(textareaRef, input);
@@ -122,14 +107,6 @@ export default function ChView({
       console.error('Failed to parse .ch file', e);
     }
   }, [content, path]); // Re-run when content or path changes (path change handled by key mostly)
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [fileData?.messages]);
 
   const saveFile = useCallback(
     (newData: ChFileStructure) => {
@@ -220,7 +197,7 @@ export default function ChView({
       finalInput = `Context:\n${contextText}\nUser: ${input}`;
     }
 
-    const userMsg: ChMessage = {
+    const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content: input,
@@ -230,7 +207,7 @@ export default function ChView({
     const assistantMsgId = (Date.now() + 1).toString();
     activeAssistantMsgIdRef.current = assistantMsgId;
 
-    const assistantMsg: ChMessage = {
+    const assistantMsg: ChatMessage = {
       id: assistantMsgId,
       role: 'assistant',
       agentId: fileData.metadata.defaultPersonaId,
@@ -313,50 +290,10 @@ export default function ChView({
         </div>
       </div>
 
-      <div className="ch-messages">
-        {fileData.messages.map((msg) => (
-          <div key={msg.id} className={`ch-message-row ${msg.role}`}>
-            {msg.role === 'assistant' && (
-              <div className="ch-message-avatar">
-                <PersonaIcon
-                  persona={allPersonas.find((p) => p.id === msg.agentId)}
-                  size={32}
-                />
-              </div>
-            )}
-            <div className={`ch-message-bubble ${msg.role}`}>
-              {msg.role === 'user' ? (
-                <div className="ch-message-text">{msg.content}</div>
-              ) : (
-                <div className="ch-message-parts">
-                  {msg.parts?.map((part, i) => (
-                    // eslint-disable-next-line react/no-array-index-key
-                    <div
-                      key={`${msg.id}-part-${i}`}
-                      className={`part-${part.type}`}
-                    >
-                      {part.type === 'thought' ? (
-                        <details className="ch-thought">
-                          <summary>Thinking...</summary>
-                          <div className="ch-thought-content">
-                            {part.content}
-                          </div>
-                        </details>
-                      ) : (
-                        <NovelMarkdown content={part.content} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="ch-timestamp">
-                {displayTimestamp(msg.timestamp)}
-              </div>
-            </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
+      <ChatMessageList
+        messages={fileData.messages}
+        allPersonas={allPersonas}
+      />
 
       <div className="ch-input-area">
         <textarea

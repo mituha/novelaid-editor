@@ -1,51 +1,29 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
-import {
-  Persona,
-  CHAT_ROLES,
-} from '../../../common/constants/personas';
+import { Persona, CHAT_ROLES } from '../../../common/constants/personas';
 import './AIChatPanel.css';
-import NovelMarkdown from './NovelMarkdown';
 import { usePersonas } from '../../hooks/usePersonas';
-import PersonaIcon from './PersonaIcon';
 import PersonaSelector from './PersonaSelector';
 import RoleSelector from './RoleSelector';
 import AIContextSelector from './AIContextSelector';
 import { useAIContextContent } from '../../hooks/useAIContextContent';
 import { useAutoResize } from '../../hooks/useAutoResize';
+import ChatMessageList, {
+  ChatMessage,
+  ChatMessagePart,
+} from '../Chat/ChatMessageList';
+import { useDocument } from '../../contexts/DocumentContext';
 
 interface Tab {
   name: string;
   path: string;
 }
 
-interface MessagePart {
-  type: 'text' | 'thought' | 'tool_call' | 'error';
-  content: string;
-}
 // grammerContext removed, handled by system prompt in backend
-interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system'; // 'system' for UI markers
-  parts: MessagePart[];
-  displayContent?: string;
-  personaId?: string;
-  timestamp: number;
-}
-
 
 interface AIChatPanelProps {
-  activeContent: string;
-  activePath: string | null;
   leftActivePath: string | null;
   rightActivePath: string | null;
   leftTabs: Tab[];
@@ -58,9 +36,15 @@ export default function AIChatPanel({
   rightActivePath,
   leftTabs,
   rightTabs,
-  documents: documents,
+  documents,
 }: AIChatPanelProps) {
-  const { settings } = useSettings();
+  const { settings, projectPath } = useSettings();
+  const {
+    openPanelDocument,
+    updateDocument,
+    triggerAutoSave,
+    documents: ctxDocuments,
+  } = useDocument();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
   const { getContextText } = useAIContextContent();
   const [input, setInput] = useState('');
@@ -94,7 +78,7 @@ export default function AIChatPanel({
     [],
   );
 
-  const [messages, setMessages] = useState<Message[]>(getInitialMessages());
+  const [messages, setMessages] = useState<ChatMessage[]>(getInitialMessages());
   const [contextStartIndex, setContextStartIndex] = useState(0);
   const [pendingContextReset, setPendingContextReset] = useState(false);
 
@@ -110,13 +94,41 @@ export default function AIChatPanel({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [messages]);
+
+  const panelPath = projectPath ? `${projectPath}/.novelaid/ai-chat.ch` : null;
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (panelPath && openPanelDocument) {
+      openPanelDocument(panelPath, { content: '[]', metadata: {} });
+    }
+  }, [panelPath, openPanelDocument]);
+
+  useEffect(() => {
+    if (panelPath && ctxDocuments[panelPath] && messages.length === 0) {
+      try {
+        const { content } = ctxDocuments[panelPath];
+        if (content && content !== '[]') {
+          const parsed = JSON.parse(content);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed);
+          }
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to parse chat history', e);
+      }
+    }
+  }, [panelPath, ctxDocuments, messages.length]);
+
+  useEffect(() => {
+    if (panelPath && messages.length > 0 && updateDocument && !isStreaming) {
+      updateDocument(panelPath, { content: JSON.stringify(messages, null, 2) });
+      triggerAutoSave(panelPath);
+    }
+  }, [messages, panelPath, updateDocument, triggerAutoSave, isStreaming]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -140,7 +152,7 @@ export default function AIChatPanel({
       finalContent = `Context:\n${contextText}\nUser: ${input}`;
     }
 
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       parts: [{ type: 'text', content: finalContent }],
@@ -160,7 +172,7 @@ export default function AIChatPanel({
       );
       const personaName = persona?.name || 'なし';
 
-      const separatorMessage: Message = {
+      const separatorMessage: ChatMessage = {
         id: `sep-${Date.now()}`,
         role: 'system',
         parts: [
@@ -186,11 +198,11 @@ export default function AIChatPanel({
 
     // Prepare for assistant response
     const assistantMsgId = (Date.now() + 1).toString();
-    const assistantMessage: Message = {
+    const assistantMessage: ChatMessage = {
       id: assistantMsgId,
       role: 'assistant',
       parts: [],
-      personaId: selectedPersonaId,
+      agentId: selectedPersonaId,
       timestamp: Date.now(),
     };
     setMessages((prev) => [...prev, assistantMessage]);
@@ -215,10 +227,12 @@ export default function AIChatPanel({
           prev.map((msg) => {
             if (msg.id !== assistantMsgId) return msg;
 
-            const lastPart = msg.parts[msg.parts.length - 1];
+            const lastPart = msg.parts
+              ? msg.parts[msg.parts.length - 1]
+              : undefined;
             if (lastPart && lastPart.type === typedChunk.type) {
               // Append to existing part if same type
-              const updatedParts = [...msg.parts];
+              const updatedParts = [...(msg.parts || [])];
               updatedParts[updatedParts.length - 1] = {
                 ...lastPart,
                 content: lastPart.content + typedChunk.content,
@@ -229,9 +243,9 @@ export default function AIChatPanel({
             return {
               ...msg,
               parts: [
-                ...msg.parts,
+                ...(msg.parts || []),
                 {
-                  type: typedChunk.type as MessagePart['type'],
+                  type: typedChunk.type as ChatMessagePart['type'],
                   content: typedChunk.content,
                 },
               ],
@@ -277,7 +291,8 @@ export default function AIChatPanel({
       .slice(newContextStartIndex)
       .filter((m) => m.role !== 'system')
       .map((m) => {
-        const content = m.parts.map((p) => p.content).join('');
+        const content =
+          (m.parts || []).map((p) => p.content).join('') || m.content || '';
         return {
           role: m.role,
           content,
@@ -292,31 +307,12 @@ export default function AIChatPanel({
       selectedRoleId,
     );
   };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
-  };
-
-
-  const formatTime = (timestamp: number) => {
-    const d = new Date(timestamp);
-    const now = new Date();
-    const isToday =
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate();
-
-    const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d
-      .getMinutes()
-      .toString()
-      .padStart(2, '0')}`;
-    if (isToday) return timeStr;
-
-    return `${d.getFullYear()}/${(d.getMonth() + 1)
-      .toString()
-      .padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')} ${timeStr}`;
   };
 
   return (
@@ -335,76 +331,10 @@ export default function AIChatPanel({
           />
         </div>
       </div>
-      <div className="ai-chat-messages">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`message-row ${msg.role}`}>
-            {msg.role === 'system' ? (
-              <div className="system-separator">
-                <div className="line" />
-                <span>{msg.parts[0].content}</span>
-                <div className="line" />
-              </div>
-            ) : (
-              <>
-                {msg.role === 'assistant' && (
-                  <div className="message-avatar">
-                    <PersonaIcon
-                      persona={allPersonas.find((p) => p.id === msg.personaId)}
-                    />
-                  </div>
-                )}
-                <div className="message-content-col">
-                  <div className="message-bubble-group">
-                    <div className={`message-bubble ${msg.role}`}>
-                      {msg.role === 'user' ? (
-                        <div className="message-text">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {msg.displayContent ||
-                              msg.parts.map((p) => p.content).join('')}
-                          </ReactMarkdown>
-                        </div>
-                      ) : (
-                        <div className="message-parts">
-                          {msg.parts.map((part, index) =>
-                            part.type === 'thought' ? (
-                              <div
-                                /* eslint-disable-next-line react/no-array-index-key */
-                                key={`part-thought-${msg.id}-${part.type}-${index}`}
-                                className="thought-bubble"
-                              >
-                                <details className="thought-container">
-                                  <summary>Thinking...</summary>
-                                  <div className="thought-content">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                      {part.content}
-                                    </ReactMarkdown>
-                                  </div>
-                                </details>
-                              </div>
-                            ) : (
-                              <div
-                                /* eslint-disable-next-line react/no-array-index-key */
-                                key={`part-text-${msg.id}-${part.type}-${index}`}
-                                className="message-text"
-                              >
-                                <NovelMarkdown content={part.content} />
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="message-timestamp">
-                      {formatTime(msg.timestamp)}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
+      <ChatMessageList
+        messages={messages}
+        allPersonas={allPersonas}
+      />
       <div className="ai-chat-input-area">
         <textarea
           ref={textareaRef}

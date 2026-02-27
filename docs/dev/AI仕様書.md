@@ -6,8 +6,11 @@
 現在は以下のプロバイダーをサポートしています。
 
 *   **LMStudio**: ローカルLLM実行環境
+  + @lmstudio/sdk
 *   **Google GenAI (Gemini)**: Googleの生成AIモデル
+  + @google/genai
 *   **OpenAI**: OpenAI API および互換API
+  + openai
 
 ## アーキテクチャ
 
