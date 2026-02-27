@@ -1,11 +1,14 @@
 import React, { MouseEvent } from 'react';
-import { X, Columns, Eye } from 'lucide-react';
+import { X, Columns, Eye, BookOpen, Edit3, LayoutDashboard } from 'lucide-react';
 import './TabBar.css';
+
+export type DocumentViewType = 'editor' | 'canvas' | 'reader';
 
 export interface Tab {
   path: string;
   name: string;
   isDirty?: boolean;
+  viewType?: DocumentViewType;
 }
 
 interface TabBarProps {
@@ -15,6 +18,8 @@ interface TabBarProps {
   onTabClose: (path: string) => void;
   onToggleSplit?: () => void;
   onOpenPreview?: (path: string) => void;
+  onChangeViewType?: (path: string, viewType: DocumentViewType) => void;
+  activeDocumentType?: string;
   isSplit?: boolean;
 }
 
@@ -25,6 +30,8 @@ export function TabBar({
   onTabClose,
   onToggleSplit,
   onOpenPreview,
+  onChangeViewType,
+  activeDocumentType,
   isSplit = false,
 }: TabBarProps) {
   const handleClose = (e: MouseEvent, path: string) => {
@@ -37,6 +44,38 @@ export function TabBar({
       e.preventDefault();
       onTabClick(path);
     }
+  };
+
+  const activeTab = tabs.find(t => t.path === activeTabPath);
+  const activeViewType = activeTab?.viewType || 'editor';
+
+  const renderViewToggle = () => {
+    if (!activeTabPath || activeTabPath.startsWith('preview://') || activeTabPath.startsWith('git-diff://') || activeTabPath.startsWith('web-browser://')) return null;
+    if (activeDocumentType === 'image') return null;
+
+    const isEditor = activeViewType === 'editor';
+    const toggleTarget = activeDocumentType === 'chat' ? 'canvas' : 'reader';
+
+    return (
+      <div className="view-type-toggles" style={{ display: 'flex', gap: '4px', marginLeft: 'auto', marginRight: '8px' }}>
+        <button
+          type="button"
+          className={`pane-toggle-btn ${isEditor ? 'active' : ''}`}
+          onClick={() => onChangeViewType?.(activeTabPath, 'editor')}
+          title="編集"
+        >
+          <Edit3 size={16} />
+        </button>
+        <button
+          type="button"
+          className={`pane-toggle-btn ${!isEditor ? 'active' : ''}`}
+          onClick={() => onChangeViewType?.(activeTabPath, toggleTarget)}
+          title="閲覧"
+        >
+          {toggleTarget === 'canvas' ? <LayoutDashboard size={16} /> : <BookOpen size={16} />}
+        </button>
+      </div>
+    );
   };
 
   return (
@@ -68,6 +107,8 @@ export function TabBar({
         ))}
       </div>
 
+      {renderViewToggle()}
+
       {onToggleSplit && (
         <button
           type="button"
@@ -87,7 +128,7 @@ export function TabBar({
             type="button"
             className="pane-toggle-btn"
             onClick={() => onOpenPreview(activeTabPath)}
-            title="Open Preview"
+            title="プレビュー(別タブ)を開く"
             style={{ marginLeft: '8px' }}
           >
             <Eye size={16} />

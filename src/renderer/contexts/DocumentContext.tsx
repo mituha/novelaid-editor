@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { Tab } from '../components/TabBar/TabBar';
+import { Tab, DocumentViewType } from '../components/TabBar/TabBar';
 import { useSettings } from './SettingsContext';
 
 export interface DocumentData {
@@ -38,6 +38,7 @@ interface DocumentContextType {
   updateContent: (path: string, side: 'left' | 'right', value: string | undefined) => void;
   updateMetadata: (path: string, metadata: Record<string, any>) => void;
   markNavigated: (path: string) => void;
+  changeViewType: (side: 'left' | 'right', path: string, viewType: DocumentViewType) => void;
 }
 
 const DocumentContext = createContext<DocumentContextType | undefined>(undefined);
@@ -95,15 +96,15 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
 
-    const closeInSide = (targetSide: 'left' | 'right') => {
+    const closeInSide = (targetSide: 'left' | 'right', pathOrPreviewPath: string) => {
       const setTabs = targetSide === 'left' ? setLeftTabs : setRightTabs;
       const activePath = targetSide === 'left' ? leftActivePath : rightActivePath;
       const setActivePath = targetSide === 'left' ? setLeftActivePath : setRightActivePath;
 
       setTabs((prev) => {
-        const newTabs = prev.filter((tab) => tab.path !== path);
-        if (activePath === path) {
-          const closedTabIndex = prev.findIndex((tab) => tab.path === path);
+        const newTabs = prev.filter((tab) => tab.path !== pathOrPreviewPath);
+        if (activePath === pathOrPreviewPath) {
+          const closedTabIndex = prev.findIndex((tab) => tab.path === pathOrPreviewPath);
           if (newTabs.length > 0) {
             const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
             setActivePath(newTabs[nextIndex].path);
@@ -115,8 +116,16 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
     };
 
-    if (!side || side === 'left') closeInSide('left');
-    if (!side || side === 'right') closeInSide('right');
+    if (!side || side === 'left') closeInSide('left', path);
+    if (!side || side === 'right') closeInSide('right', path);
+
+    if (!path.startsWith('preview://')) {
+      const previewPath = `preview://${path}`;
+      const previewInLeft = tabsRef.current.left.some(t => t.path === previewPath);
+      const previewInRight = tabsRef.current.right.some(t => t.path === previewPath);
+      if (previewInLeft) closeInSide('left', previewPath);
+      if (previewInRight) closeInSide('right', previewPath);
+    }
 
     setDocuments((prevContents) => {
       const stillInAnyTabs = () => {
@@ -207,7 +216,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  const openDocument = useCallback((path: string, data?: { content: string; metadata: Record<string, any> }) => {
+  const openDocument = useCallback((path: string, data?: { content: string; metadata: Record<string, any>, language?: string }) => {
     const fileName = path.split('\\').pop() || path.split('/').pop() || 'Untitled';
 
     if (data) {
@@ -217,16 +226,24 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }));
     }
 
+    const getInitialViewType = (docLang?: string): DocumentViewType => {
+      if (docLang === 'chat') return 'canvas';
+      if (docLang === 'image') return 'reader';
+      return 'editor';
+    };
+
     if (activeSide === 'left') {
       setLeftTabs((prev) => {
         if (prev.find((t) => t.path === path)) return prev;
-        return [...prev, { name: fileName, path, isDirty: false }];
+        const currentLang = data?.language || documentsRef.current[path]?.language;
+        return [...prev, { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentLang) }];
       });
       setLeftActivePath(path);
     } else {
       setRightTabs((prev) => {
         if (prev.find((t) => t.path === path)) return prev;
-        return [...prev, { name: fileName, path, isDirty: false }];
+        const currentLang = data?.language || documentsRef.current[path]?.language;
+        return [...prev, { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentLang) }];
       });
       setRightActivePath(path);
     }
@@ -238,6 +255,15 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLeftActivePath(path);
     } else {
       setRightActivePath(path);
+    }
+  }, []);
+
+  const changeViewType = useCallback((side: 'left' | 'right', path: string, viewType: DocumentViewType) => {
+    const updateTabs = (tabs: Tab[]) => tabs.map((t) => (t.path === path ? { ...t, viewType } : t));
+    if (side === 'left') {
+      setLeftTabs(updateTabs);
+    } else {
+      setRightTabs(updateTabs);
     }
   }, []);
 
@@ -521,6 +547,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateContent,
         updateMetadata,
         markNavigated,
+        changeViewType,
       }}
     >
       {children}

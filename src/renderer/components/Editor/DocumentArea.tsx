@@ -15,10 +15,7 @@ interface DocumentAreaProps {
   splitRatio: number;
 }
 
-export default function DocumentArea({
-  side,
-  splitRatio,
-}: DocumentAreaProps) {
+export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
   const {
     documents,
     leftTabs,
@@ -36,11 +33,14 @@ export default function DocumentArea({
     saveDocument,
     renameDocument,
     markNavigated,
+    changeViewType,
   } = useDocument();
 
   const tabs = side === 'left' ? leftTabs : rightTabs;
   const activePath = side === 'left' ? leftActivePath : rightActivePath;
   const isActive = activeSide === side;
+  const activeTab = tabs.find((t) => t.path === activePath);
+  const viewType = activeTab?.viewType || 'editor';
 
   const onSetActive = () => setActiveSide(side);
 
@@ -116,7 +116,7 @@ export default function DocumentArea({
       );
     }
 
-    if (activePath.endsWith('.ch')) {
+    if (viewType === 'canvas' && data.language === 'chat') {
       return (
         <ChView
           key={activePath}
@@ -130,6 +130,13 @@ export default function DocumentArea({
           documents={documents}
         />
       );
+    }
+
+    if (viewType === 'reader') {
+      if (data.language === 'markdown') {
+        return <MarkdownPreview content={data.content || ''} />;
+      }
+      return <NovelPreview content={data.content || ''} />;
     }
 
     const fileNameWithExt = activePath.split('\\').pop() || '';
@@ -200,6 +207,14 @@ export default function DocumentArea({
         onToggleSplit={toggleSplit}
         isSplit={isSplit}
         onOpenPreview={openPreview}
+        onChangeViewType={(path, vt) => changeViewType(side, path, vt)}
+        activeDocumentType={
+          activePath
+            ? documents[
+                activePath.replace('preview://', '').replace('git-diff://', '')
+              ]?.language
+            : undefined
+        }
       />
       <div className="editor-pane">{renderContent()}</div>
     </div>
