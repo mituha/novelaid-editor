@@ -129,6 +129,27 @@
   color: var(--text-secondary);
 }
 
+.chat-tool-call {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 0.5em;
+  border-left: 3px solid var(--accent-color, #3b82f6);
+}
+
+.chat-tool-call .tool-icon {
+  font-size: 1rem;
+}
+
+.chat-tool-call .tool-name {
+  font-family: monospace;
+}
+
 .part-error {
   color: #ef4444;
   background-color: rgba(239, 68, 68, 0.1);

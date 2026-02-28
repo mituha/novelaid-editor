@@ -6,6 +6,7 @@ import './ChatMessageList.css';
 export interface ChatMessagePart {
   type: 'text' | 'thought' | 'tool_call' | 'error';
   content: string;
+  metadata?: any;
 }
 
 export interface ChatMessage {
@@ -121,6 +122,15 @@ export default function ChatMessageList({
                                   <NovelMarkdown content={part.content} />
                                 </div>
                               </details>
+                            ) : part.type === 'tool_call' ? (
+                              <div className="chat-tool-call">
+                                <span className="tool-icon">🔍</span>
+                                <span className="tool-name">
+                                  {part.metadata?.tool_call?.name
+                                    ? `${part.metadata.tool_call.name} を実行中...`
+                                    : 'ツールを実行中...'}
+                                </span>
+                              </div>
                             ) : (
                               <NovelMarkdown content={part.content} />
                             )}

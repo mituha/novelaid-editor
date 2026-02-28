@@ -37,12 +37,23 @@ export class GeminiProvider extends BaseProvider {
   ): Promise<string> {
     const result = await this.client.models.generateContent({
       model: this.modelName,
-      contents: messages.map((m) => ({
-        role: m.role === 'assistant' ? 'model' : m.role === 'tool' ? 'function' : 'user',
-        parts: m.role === 'tool'
-          ? [{ functionResponse: { name: m.name!, response: { content: m.content } } }]
-          : [{ text: m.content }],
-      })),
+      contents: messages.map((m) => {
+        const role = m.role === 'assistant' ? 'model' : m.role === 'tool' ? 'function' : 'user';
+        let parts: any[] = [];
+        if (m.role === 'tool') {
+          parts = [{ functionResponse: { name: m.name!, response: { content: m.content } } }];
+        } else if (m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0) {
+          if (m.content) {
+            parts.push({ text: m.content });
+          }
+          parts.push(...m.tool_calls.map((tc) => ({
+            functionCall: { name: tc.name, args: tc.args },
+          })));
+        } else {
+          parts = [{ text: m.content }];
+        }
+        return { role, parts };
+      }),
       tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
       config: {
         maxOutputTokens: options?.maxTokens,
@@ -103,12 +114,23 @@ export class GeminiProvider extends BaseProvider {
   ): AsyncGenerator<StreamChunk> {
     const stream = await this.client.models.generateContentStream({
       model: this.modelName,
-      contents: messages.map((m) => ({
-        role: m.role === 'assistant' ? 'model' : m.role === 'tool' ? 'function' : 'user',
-        parts: m.role === 'tool'
-          ? [{ functionResponse: { name: m.name!, response: { content: m.content } } }]
-          : [{ text: m.content }],
-      })),
+      contents: messages.map((m) => {
+        const role = m.role === 'assistant' ? 'model' : m.role === 'tool' ? 'function' : 'user';
+        let parts: any[] = [];
+        if (m.role === 'tool') {
+          parts = [{ functionResponse: { name: m.name!, response: { content: m.content } } }];
+        } else if (m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0) {
+          if (m.content) {
+            parts.push({ text: m.content });
+          }
+          parts.push(...m.tool_calls.map((tc) => ({
+            functionCall: { name: tc.name, args: tc.args },
+          })));
+        } else {
+          parts = [{ text: m.content }];
+        }
+        return { role, parts };
+      }),
       tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
       config: {
         maxOutputTokens: options?.maxTokens,

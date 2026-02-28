@@ -12,6 +12,7 @@ export interface ChatMessage {
   content: string;
   name?: string; // For tool results
   tool_call_id?: string; // For tool responses
+  tool_calls?: { id: string; name: string; args: any }[]; // For assistant requesting tool execution
 }
 
 /**

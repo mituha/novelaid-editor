@@ -4,11 +4,21 @@ import { ProviderFactory } from './ProviderFactory';
 import { PERSONAS, CHAT_ROLES } from '../../common/constants/personas';
 import { MetadataService } from '../metadataService';
 import { readDocument } from '../metadata';
+import { ToolService } from './tools/ToolService';
+import { searchDocumentsTool, readDocumentTool } from './tools/definitions/documentTools';
 
 export class AIService {
   private static instance: AIService;
 
-  private constructor() {}
+  private constructor() {
+    this.registerTools();
+  }
+
+  private registerTools() {
+    const toolService = ToolService.getInstance();
+    toolService.registerTool(searchDocumentsTool);
+    toolService.registerTool(readDocumentTool);
+  }
 
   public static getInstance(): AIService {
     if (!AIService.instance) {
@@ -88,12 +98,60 @@ export class AIService {
     try {
       const provider = this.createProvider(config);
       const apiMessages = await this.prepareMessages(messages, personaId, roleId);
+      const toolService = ToolService.getInstance();
+      const tools = config.disableTools ? undefined : toolService.getToolDefinitions();
 
-      const stream = provider.streamChat(apiMessages);
+      let isDone = false;
+      let loopCount = 0;
+      const MAX_LOOPS = 5;
 
-      for await (const chunk of stream) {
-        event.reply('ai:streamChat:data', chunk, path);
+      while (!isDone && loopCount < MAX_LOOPS) {
+        loopCount++;
+        const stream = provider.streamChat(apiMessages, { tools, ...config });
+
+        let toolCallChunk: any = null;
+        let assistantText = '';
+
+        for await (const chunk of stream) {
+          if (chunk.type === 'tool_call') {
+            toolCallChunk = chunk;
+            event.reply('ai:streamChat:data', chunk, path);
+          } else {
+            if (chunk.type === 'text') {
+              assistantText += chunk.content;
+            }
+            event.reply('ai:streamChat:data', chunk, path);
+          }
+        }
+
+        if (toolCallChunk && toolCallChunk.metadata?.tool_call) {
+          const call = toolCallChunk.metadata.tool_call;
+
+          apiMessages.push({
+            role: 'assistant',
+            content: assistantText,
+            tool_calls: [{ id: call.id, name: call.name, args: call.args }],
+          });
+
+          let toolResultContent = '';
+          try {
+            const res = await toolService.executeTool(call.name, call.args);
+            toolResultContent = typeof res === 'string' ? res : JSON.stringify(res);
+          } catch (err: any) {
+            toolResultContent = JSON.stringify({ error: err.message });
+          }
+
+          apiMessages.push({
+            role: 'tool',
+            content: toolResultContent,
+            name: call.name,
+            tool_call_id: call.id,
+          });
+        } else {
+          isDone = true;
+        }
       }
+
       event.reply('ai:streamChat:end', path);
     } catch (error) {
       console.error('[AIService] Stream Chat Error:', error);
