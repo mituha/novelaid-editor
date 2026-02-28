@@ -15,7 +15,7 @@ import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
 import FileIcon from '../../utils/FileIcon';
 
-const BASE_INDENT = 8;
+const BASE_INDENT = -8;
 const INDENT_STEP = 16;
 
 /** パスを正規化（バックスラッシュ → スラッシュ） */
@@ -80,13 +80,14 @@ interface FileExplorerProps {
   onFileSelect: (path: string, data: any) => void;
 }
 
-function OpenEditorItem({ tab, side, activeTabPath, onFileSelect, closeTab }: { tab: Tab, side: 'left' | 'right', activeTabPath: string | null, onFileSelect: (path: string, data: any) => void, closeTab: (path: string, side?: 'left' | 'right') => void }) {
+function OpenEditorItem({ tab, side, activeTabPath, onFileSelect, closeTab, level = 1 }: { tab: Tab, side: 'left' | 'right', activeTabPath: string | null, onFileSelect: (path: string, data: any) => void, closeTab: (path: string, side?: 'left' | 'right') => void, level?: number }) {
   const fileName = tab.name;
   const isActive = tab.path === activeTabPath;
   return (
     <div
       className={`file-item open-editor-item ${isActive ? 'active' : ''}`}
       onClick={(e) => { e.stopPropagation(); onFileSelect(tab.path, undefined); }}
+      style={{ paddingLeft: `${BASE_INDENT + level * INDENT_STEP}px` }}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', tab.path);
@@ -711,12 +712,12 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
               {openLeftFiles.length > 0 && (
                 <>
                   <div
-                    className="open-editors-group-title"
-                    style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7, padding: '4px 8px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    className="open-editors-group-title file-item"
+                    style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7, padding: `4px 8px 4px ${BASE_INDENT}px`, textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     onClick={(e) => { e.stopPropagation(); setLeftEditorsExpanded(v => !v); }}
                   >
                     <span className="chevron root-chevron" style={{ opacity: 1 }}>
-                      {leftEditorsExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      {leftEditorsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </span>
                     左エディター
                   </div>
@@ -730,12 +731,12 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
               {openRightFiles.length > 0 && (
                 <>
                   <div
-                    className="open-editors-group-title"
-                    style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7, padding: '4px 8px', marginTop: '4px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    className="open-editors-group-title file-item"
+                    style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7, padding: `4px 8px 4px ${BASE_INDENT}px`, marginTop: '4px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     onClick={(e) => { e.stopPropagation(); setRightEditorsExpanded(v => !v); }}
                   >
                     <span className="chevron root-chevron" style={{ opacity: 1 }}>
-                      {rightEditorsExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      {rightEditorsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </span>
                     右エディター
                   </div>
