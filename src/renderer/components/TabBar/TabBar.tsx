@@ -83,7 +83,7 @@ export function TabBar({
     const toggleTarget = activeDocumentType === 'chat' ? 'canvas' : 'reader';
 
     return (
-      <div className="view-type-toggles" style={{ display: 'flex', gap: '4px', marginLeft: 'auto', marginRight: '8px' }}>
+      <>
         <button
           type="button"
           className={`pane-toggle-btn ${isEditor ? 'active' : ''}`}
@@ -100,7 +100,7 @@ export function TabBar({
         >
           {toggleTarget === 'canvas' ? <LayoutDashboard size={16} /> : <BookOpen size={16} />}
         </button>
-      </div>
+      </>
     );
   };
 
@@ -175,34 +175,33 @@ export function TabBar({
         ))}
       </div>
 
-      {renderViewToggle()}
+      <div className="tab-bar-actions">
+        {renderViewToggle()}
 
-      {onToggleSplit && (
-        <button
-          type="button"
-          className={`pane-toggle-btn ${isSplit ? 'active' : ''}`}
-          onClick={onToggleSplit}
-          title={isSplit ? 'Unsplit Editor' : 'Split Editor'}
-          style={{ marginLeft: '8px' }}
-        >
-          <Columns size={16} />
-        </button>
-      )}
-
-      {onOpenPreview &&
-        activeTab &&
-        activeTab.viewType !== 'preview' && (
+        {onToggleSplit && (
           <button
             type="button"
-            className="pane-toggle-btn"
-            onClick={() => onOpenPreview(activeTabPath!)}
-            title="プレビュー(別タブ)を開く"
-            style={{ marginLeft: '8px' }}
+            className={`pane-toggle-btn ${isSplit ? 'active' : ''}`}
+            onClick={onToggleSplit}
+            title={isSplit ? 'Unsplit Editor' : 'Split Editor'}
           >
-            <Eye size={16} />
+            <Columns size={16} />
           </button>
         )}
 
+        {onOpenPreview &&
+          activeTab &&
+          activeTab.viewType !== 'preview' && (
+            <button
+              type="button"
+              className="pane-toggle-btn"
+              onClick={() => onOpenPreview(activeTabPath!)}
+              title="プレビュー(別タブ)を開く"
+            >
+              <Eye size={16} />
+            </button>
+          )}
+      </div>
     </div>
   );
 }

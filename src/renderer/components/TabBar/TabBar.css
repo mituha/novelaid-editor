@@ -11,16 +11,16 @@
   display: flex;
   flex: 1;
   overflow-x: auto;
+  overflow-y: hidden;
   height: 100%;
+  min-width: 0;
+  scrollbar-width: none;
+  /* Firefox */
 }
 
-/* Hide scrollbar for cleaner look */
+/* Hide scrollbar since we handle it via wheel and it can cause layout shifts */
 .tabs-container::-webkit-scrollbar {
-  height: 4px;
-}
-
-.tabs-container::-webkit-scrollbar-thumb {
-  background-color: #444;
+  display: none;
 }
 
 .tab-item {
@@ -105,8 +105,23 @@
   color: #fff;
 }
 
+.pane-toggle-btn.active {
+  background-color: var(--bg-active);
+  color: var(--accent-color);
+  border-top: 2px solid var(--accent-color);
+}
+
 .pane-toggle-btn.inactive {
   opacity: 0.5;
+}
+
+.tab-bar-actions {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin-left: auto;
+  padding: 0 4px;
+  flex-shrink: 0;
 }
 
 /* File Icon inside Tab */
@@ -127,6 +142,7 @@
   align-items: center;
   height: 100%;
   border-right: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .tab-dropdown-btn {
