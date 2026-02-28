@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
+import {
+  MoreHorizontal,
+  Trash2,
+  ArrowUpFromLine,
+  ArrowDownFromLine,
+} from 'lucide-react';
 import NovelMarkdown from '../AI/NovelMarkdown';
 import PersonaIcon from '../AI/PersonaIcon';
 import './ChatMessageList.css';
@@ -23,6 +29,7 @@ export interface ChatMessage {
 interface ChatMessageListProps {
   messages: ChatMessage[];
   allPersonas: any[];
+  onMessagesChange?: (newMessages: ChatMessage[]) => void;
 }
 
 const displayTimestamp = (ts?: string | number) => {
@@ -50,8 +57,10 @@ const displayTimestamp = (ts?: string | number) => {
 export default function ChatMessageList({
   messages,
   allPersonas,
+  onMessagesChange,
 }: ChatMessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,6 +69,50 @@ export default function ChatMessageList({
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  // Handle click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        activeMenuId &&
+        !(e.target as Element).closest('.chat-message-actions')
+      ) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeMenuId]);
+
+  const handleDeleteMessage = (id: string) => {
+    if (!onMessagesChange) return;
+    onMessagesChange(messages.filter((m) => m.id !== id));
+    setActiveMenuId(null);
+  };
+
+  const handleClearBefore = (id: string) => {
+    if (!onMessagesChange) return;
+    const index = messages.findIndex((m) => m.id === id);
+    if (index > -1) {
+      onMessagesChange(messages.slice(index));
+    }
+    setActiveMenuId(null);
+  };
+
+  const handleClearAfter = (id: string) => {
+    if (!onMessagesChange) return;
+    const index = messages.findIndex((m) => m.id === id);
+    if (index > -1) {
+      onMessagesChange(messages.slice(0, index + 1));
+    }
+    setActiveMenuId(null);
+  };
+
+  const handleClearAll = () => {
+    if (!onMessagesChange) return;
+    onMessagesChange([]);
+    setActiveMenuId(null);
+  };
 
   return (
     <div className="chat-message-list">
@@ -86,6 +139,63 @@ export default function ChatMessageList({
                 </div>
               )}
               <div className="chat-message-content-col">
+                <div className="chat-message-header">
+                  {msg.role === 'assistant' && (
+                    <div className="chat-message-sender-name">
+                      {msg.name ||
+                        (msg.agentId
+                          ? allPersonas.find((p) => p.id === msg.agentId)?.name
+                          : 'AI Assistant')}
+                    </div>
+                  )}
+                  {msg.timestamp && (
+                    <div className="chat-message-timestamp">
+                      {displayTimestamp(msg.timestamp)}
+                    </div>
+                  )}
+
+                  {onMessagesChange && (
+                    <div className="chat-message-actions">
+                      <button
+                        type="button"
+                        className="chat-message-action-btn"
+                        onClick={() =>
+                          setActiveMenuId(
+                            activeMenuId === msg.id ? null : msg.id,
+                          )
+                        }
+                      >
+                        <MoreHorizontal size={14} />
+                      </button>
+                      {activeMenuId === msg.id && (
+                        <div className="chat-message-action-menu">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMessage(msg.id)}
+                          >
+                            <Trash2 size={14} /> このメッセージを削除
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleClearBefore(msg.id)}
+                          >
+                            <ArrowUpFromLine size={14} /> これより前をクリア
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleClearAfter(msg.id)}
+                          >
+                            <ArrowDownFromLine size={14} /> これより後をクリア
+                          </button>
+                          <button type="button" onClick={handleClearAll}>
+                            <Trash2 size={14} /> 履歴をすべてクリア
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="chat-message-bubble-group">
                   <div className={`chat-message-bubble ${msg.role}`}>
                     {msg.role === 'user' ? (
@@ -102,13 +212,6 @@ export default function ChatMessageList({
                       </div>
                     ) : (
                       <div className="chat-message-parts">
-                        <div className="chat-message-sender-name">
-                          {msg.name ||
-                            (msg.agentId
-                              ? allPersonas.find((p) => p.id === msg.agentId)
-                                  ?.name
-                              : 'AI Assistant')}
-                        </div>
                         {msg.parts?.map((part, i) => (
                           <div
                             // eslint-disable-next-line react/no-array-index-key
@@ -139,11 +242,6 @@ export default function ChatMessageList({
                       </div>
                     )}
                   </div>
-                  {msg.timestamp && (
-                    <div className="chat-timestamp">
-                      {displayTimestamp(msg.timestamp)}
-                    </div>
-                  )}
                 </div>
               </div>
             </>

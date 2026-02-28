@@ -256,7 +256,11 @@ export default function AIProofreaderPanel({
             <p>校正アクションを選択して開始してください</p>
           </div>
         ) : (
-          <ChatMessageList messages={messages} allPersonas={[]} />
+          <ChatMessageList
+            messages={messages}
+            allPersonas={[]}
+            onMessagesChange={setMessages}
+          />
         )}
       </div>
 

@@ -314,7 +314,18 @@ export default function AIChatPanel({
           />
         </div>
       </div>
-      <ChatMessageList messages={messages} allPersonas={allPersonas} />
+      <ChatMessageList
+        messages={messages}
+        allPersonas={allPersonas}
+        onMessagesChange={(newMessages) => {
+          if (newMessages.length === 0) {
+            setMessages(getInitialMessages());
+            setContextStartIndex(0);
+          } else {
+            setMessages(newMessages);
+          }
+        }}
+      />
       <div className="ai-chat-input-area">
         <AIChatInput
           value={input}
