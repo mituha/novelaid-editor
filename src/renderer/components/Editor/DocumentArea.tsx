@@ -10,6 +10,14 @@ import ChView from '../ch/ChView';
 
 import { useDocument } from '../../contexts/DocumentContext';
 
+const getCodeEditorLanguage = (docType?: string): string => {
+  if (!docType) return 'novel';
+  if (['javascript', 'typescript', 'json', 'css', 'html', 'markdown'].includes(docType)) {
+    return docType;
+  }
+  return 'novel';
+};
+
 interface DocumentAreaProps {
   side: 'left' | 'right';
   splitRatio: number;
@@ -56,7 +64,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     if (activePath.startsWith('preview://')) {
       const originalPath = activePath.replace('preview://', '');
       const data = documents[originalPath];
-      if (data?.language === 'markdown') {
+      if (data?.documentType === 'markdown') {
         return <MarkdownPreview content={data.content || ''} />;
       }
       return <NovelPreview content={data?.content || ''} />;
@@ -83,7 +91,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       );
     }
 
-    if (data.language === 'image') {
+    if (data.documentType === 'image') {
       const normalized = activePath.replace(/\\/g, '/');
       const encodedPath = normalized
         .split('/')
@@ -116,7 +124,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       );
     }
 
-    if (viewType === 'canvas' && data.language === 'chat') {
+    if (viewType === 'canvas' && data.documentType === 'chat') {
       return (
         <ChView
           key={activePath}
@@ -133,7 +141,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     }
 
     if (viewType === 'reader') {
-      if (data.language === 'markdown') {
+      if (data.documentType === 'markdown') {
         return <MarkdownPreview content={data.content || ''} />;
       }
       return <NovelPreview content={data.content || ''} />;
@@ -155,7 +163,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
         <CodeEditor
           key={`${side}-${activePath}`}
           value={data.content}
-          language={data.language}
+          language={getCodeEditorLanguage(data.documentType)}
           lastSource={data.lastSource as any}
           side={side}
           onChange={(val) => updateContent(activePath, side, val)}
@@ -212,7 +220,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
           activePath
             ? documents[
                 activePath.replace('preview://', '').replace('git-diff://', '')
-              ]?.language
+              ]?.documentType
             : undefined
         }
       />

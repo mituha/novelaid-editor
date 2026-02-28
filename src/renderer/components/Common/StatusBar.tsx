@@ -15,7 +15,7 @@ import FileIcon from '../../utils/FileIcon';
 interface StatusBarProps {
   metrics: CountMetric[];
   activePath: string | null;
-  language?: string;
+  documentType?: string;
   metadata?: Record<string, any>;
   openSettings: () => void;
   onGoHome: () => void;
@@ -28,7 +28,7 @@ interface StatusBarProps {
 export default function StatusBar({
   metrics,
   activePath,
-  language = '',
+  documentType = '',
   metadata = {},
   openSettings,
   onGoHome,
@@ -93,16 +93,16 @@ export default function StatusBar({
               <FileIcon
                 name={fileName || ''}
                 path={activePath}
-                language={language}
+                documentType={documentType}
                 metadata={metadata}
                 size={14}
               />
             </div>
           )}
           <span className="file-name">{fileName}</span>
-          {language && (
+          {documentType && (
             <span className="document-type">
-              {language.charAt(0).toUpperCase() + language.slice(1)}
+              {documentType.charAt(0).toUpperCase() + documentType.slice(1)}
             </span>
           )}
         </div>

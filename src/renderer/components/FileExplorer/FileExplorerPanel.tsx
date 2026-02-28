@@ -69,7 +69,7 @@ interface FileNode {
   name: string;
   isDirectory: boolean;
   path: string;
-  language?: string;
+  documentType?: string;
   metadata?: Record<string, any>;
 }
 
@@ -329,7 +329,7 @@ function FileTreeItem({
           <FileIcon
             name={file.name}
             path={file.path}
-            language={file.language}
+            documentType={file.documentType}
             metadata={file.metadata}
             size={16}
             isDirectory={file.isDirectory}

@@ -211,7 +211,7 @@ export class FileService {
           name: dirent.name,
           isDirectory,
           path: fullPath,
-          language: isDirectory
+          documentType: isDirectory
             ? await this.getPreferredDocumentTypeForDirectory(fullPath)
             : await this.getDocumentType(fullPath),
           metadata: isDirectory

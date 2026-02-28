@@ -18,7 +18,7 @@ import React from 'react';
 interface FileIconProps {
   name: string;
   path?: string;
-  language?: string;
+  documentType?: string;
   metadata?: Record<string, any>;
   size?: number;
   isDirectory?: boolean;
@@ -29,7 +29,7 @@ interface FileIconProps {
 export default function FileIcon({
   name,
   path,
-  language,
+  documentType,
   metadata,
   size = 16,
   isDirectory = false,
@@ -84,29 +84,29 @@ export default function FileIcon({
   // 2. フォルダーの場合の判定
   if (isDirectory) {
     const stateClass = isOpen ? 'folder-open' : 'folder-closed';
-    const typeClass = language ? `folder-type-${language}` : '';
+    const typeClass = documentType ? `folder-type-${documentType}` : '';
     const fullClassName = `${stateClass} ${typeClass} ${className}`.trim();
 
-    if (language === 'novel') {
+    if (documentType === 'novel') {
       return <LibraryBig size={size} className={fullClassName} />;
     }
-    if (language === 'image') {
+    if (documentType === 'image') {
       return <BookImage size={size} className={fullClassName} />;
     }
-    if (language === 'chat') {
+    if (documentType === 'chat') {
       return <MessageSquare size={size} className={fullClassName} />;
     }
     return <Folder size={size} className={fullClassName} />;
   }
 
   // 3. ファイルの場合の判定（拡張子やドキュメントタイプに基づく）
-  if (language === 'chat' || name.endsWith('.ch')) {
+  if (documentType === 'chat' || name.endsWith('.ch')) {
     return <MessageSquare size={size} className={className} />;
   }
-  if (language === 'novel') {
+  if (documentType === 'novel') {
     return <BookText size={size} className={className} />;
   }
-  if (language === 'image') {
+  if (documentType === 'image') {
     return <ImageIcon size={size} className={className} />;
   }
   if (name.endsWith('.json')) {

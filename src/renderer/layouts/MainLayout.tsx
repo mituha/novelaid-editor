@@ -272,9 +272,9 @@ export default function MainLayout() {
           activeTabPath,
         )}
         activePath={getOriginalPath(activeTabPath)}
-        language={
+        documentType={
           activeTabPath
-            ? documents[getOriginalPath(activeTabPath) || '']?.language
+            ? documents[getOriginalPath(activeTabPath) || '']?.documentType
             : undefined
         }
         metadata={

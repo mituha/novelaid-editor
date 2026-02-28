@@ -7,7 +7,7 @@ export interface DocumentData {
   content: string;
   metadata: Record<string, any>;
   lineOffset?: number;
-  language?: string;
+  documentType?: string;
 }
 
 const NOVELAID_DIR = '.novelaid';
@@ -29,9 +29,9 @@ export function calculateLineOffset(content: string): number {
 
 
 export async function readDocument(filePath: string): Promise<DocumentData> {
-  const language = await FileService.getInstance().getDocumentType(filePath);
+  const documentType = await FileService.getInstance().getDocumentType(filePath);
 
-  if (language === 'markdown' || language === 'novel') {
+  if (documentType === 'markdown' || documentType === 'novel') {
     const content = await fs.readFile(filePath, 'utf-8');
     const { data, content: body } = matter(content);
 
@@ -42,16 +42,16 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
       content: body,
       metadata: data,
       lineOffset,
-      language,
+      documentType,
     };
   }
 
   // 画像の場合はコンテンツを空のままとする
-  if (language === 'image') {
+  if (documentType === 'image') {
     return {
       content: '',
       metadata: {},
-      language,
+      documentType,
     };
   }
 
@@ -60,7 +60,7 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
   return {
     content,
     metadata: {},
-    language,
+    documentType,
   };
 }
 
@@ -68,9 +68,9 @@ export async function saveDocument(
   filePath: string,
   data: DocumentData,
 ): Promise<void> {
-  const language = data.language || await FileService.getInstance().getDocumentType(filePath);
+  const documentType = data.documentType || await FileService.getInstance().getDocumentType(filePath);
 
-  if (language === 'markdown' || language === 'novel') {
+  if (documentType === 'markdown' || documentType === 'novel') {
     const fileContent = matter.stringify(data.content, data.metadata);
     await fs.writeFile(filePath, fileContent, 'utf-8');
     return;

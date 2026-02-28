@@ -9,7 +9,7 @@ export interface DocumentData {
   initialLine?: number;
   initialColumn?: number;
   searchQuery?: string;
-  language?: string;
+  documentType?: string;
   deleted?: boolean;
   isPanel?: boolean;
 }
@@ -216,7 +216,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  const openDocument = useCallback((path: string, data?: { content: string; metadata: Record<string, any>, language?: string }) => {
+  const openDocument = useCallback((path: string, data?: { content: string; metadata: Record<string, any>, documentType?: string }) => {
     const fileName = path.split('\\').pop() || path.split('/').pop() || 'Untitled';
 
     if (data) {
@@ -226,24 +226,24 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }));
     }
 
-    const getInitialViewType = (docLang?: string): DocumentViewType => {
-      if (docLang === 'chat') return 'canvas';
-      if (docLang === 'image') return 'reader';
+    const getInitialViewType = (docType?: string): DocumentViewType => {
+      if (docType === 'chat') return 'canvas';
+      if (docType === 'image') return 'reader';
       return 'editor';
     };
 
     if (activeSide === 'left') {
       setLeftTabs((prev) => {
         if (prev.find((t) => t.path === path)) return prev;
-        const currentLang = data?.language || documentsRef.current[path]?.language;
-        return [...prev, { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentLang) }];
+        const currentType = data?.documentType || documentsRef.current[path]?.documentType;
+        return [...prev, { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentType) }];
       });
       setLeftActivePath(path);
     } else {
       setRightTabs((prev) => {
         if (prev.find((t) => t.path === path)) return prev;
-        const currentLang = data?.language || documentsRef.current[path]?.language;
-        return [...prev, { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentLang) }];
+        const currentType = data?.documentType || documentsRef.current[path]?.documentType;
+        return [...prev, { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentType) }];
       });
       setRightActivePath(path);
     }
