@@ -4,11 +4,14 @@ import {
   Files,
   FilePlus,
   FolderPlus,
+  X,
 } from 'lucide-react';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
+import { useDocument } from '../../contexts/DocumentContext';
 import { Panel } from '../../types/panel';
+import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
 import FileIcon from '../../utils/FileIcon';
 
@@ -75,6 +78,38 @@ interface FileNode {
 
 interface FileExplorerProps {
   onFileSelect: (path: string, data: any) => void;
+}
+
+function OpenEditorItem({ tab, side, activeTabPath, onFileSelect, closeTab }: { tab: Tab, side: 'left' | 'right', activeTabPath: string | null, onFileSelect: (path: string, data: any) => void, closeTab: (path: string, side?: 'left' | 'right') => void }) {
+  const fileName = tab.name;
+  const isActive = tab.path === activeTabPath;
+  return (
+    <div
+      className={`file-item open-editor-item ${isActive ? 'active' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onFileSelect(tab.path, undefined); }}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', tab.path);
+        e.dataTransfer.effectAllowed = 'copyMove';
+      }}
+    >
+      <span className="icon">
+        <FileIcon name={fileName} isDirectory={false} size={16} />
+      </span>
+      <span className="name" title={tab.path} style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '13px' }}>
+        {fileName}
+      </span>
+      {tab.isDirty && <span className="dirty-dot" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#fff', marginRight: 4 }} />}
+      <button
+        type="button"
+        className="action-btn editor-close-btn"
+        onClick={(e) => { e.stopPropagation(); closeTab(tab.path, side); }}
+        title="閉じる"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
 }
 
 function FileTreeItem({
@@ -428,6 +463,18 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
   const [rootIsExpanded, setRootIsExpanded] = useState(true);
   const [rootIsDragOver, setRootIsDragOver] = useState(false);
   const { currentDir } = useGit();
+  const { leftTabs, rightTabs, activeTabPath, closeTab } = useDocument();
+  const [openEditorsIsExpanded, setOpenEditorsIsExpanded] = useState(true);
+  const [leftEditorsExpanded, setLeftEditorsExpanded] = useState(true);
+  const [rightEditorsExpanded, setRightEditorsExpanded] = useState(true);
+
+  const openLeftFiles = React.useMemo(() => {
+    return leftTabs.filter((tab) => !tab.path.startsWith('preview://') && !tab.path.startsWith('git-diff://') && !tab.path.startsWith('web-browser://'));
+  }, [leftTabs]);
+
+  const openRightFiles = React.useMemo(() => {
+    return rightTabs.filter((tab) => !tab.path.startsWith('preview://') && !tab.path.startsWith('git-diff://') && !tab.path.startsWith('web-browser://'));
+  }, [rightTabs]);
 
   const refreshRoot = useCallback(async () => {
     if (!currentDir) {
@@ -635,6 +682,73 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
 
   return (
     <div className="file-explorer" onClick={() => setSelectedPath(null)}>
+      {/* 開いているエディター一覧 */}
+      {(openLeftFiles.length > 0 || openRightFiles.length > 0) && (
+        <div className="open-editors-section" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '4px', marginBottom: '4px' }}>
+          <div
+            className="root-folder-header"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenEditorsIsExpanded((v) => !v);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                setOpenEditorsIsExpanded((v) => !v);
+              }
+            }}
+            tabIndex={0}
+            role="button"
+          >
+            <span className="chevron root-chevron">
+              {openEditorsIsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <span className="root-folder-name">開いているファイル</span>
+          </div>
+
+          {openEditorsIsExpanded && (
+            <div className="open-editors-list" style={{ paddingLeft: '8px' }}>
+              {/* Left Pane Files */}
+              {openLeftFiles.length > 0 && (
+                <>
+                  <div
+                    className="open-editors-group-title"
+                    style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7, padding: '4px 8px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    onClick={(e) => { e.stopPropagation(); setLeftEditorsExpanded(v => !v); }}
+                  >
+                    <span className="chevron root-chevron" style={{ opacity: 1 }}>
+                      {leftEditorsExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                    </span>
+                    左エディター
+                  </div>
+                  {leftEditorsExpanded && openLeftFiles.map(tab => (
+                    <OpenEditorItem key={tab.path} tab={tab} side="left" activeTabPath={activeTabPath} closeTab={closeTab} onFileSelect={onFileSelect} />
+                  ))}
+                </>
+              )}
+
+              {/* Right Pane Files */}
+              {openRightFiles.length > 0 && (
+                <>
+                  <div
+                    className="open-editors-group-title"
+                    style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7, padding: '4px 8px', marginTop: '4px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    onClick={(e) => { e.stopPropagation(); setRightEditorsExpanded(v => !v); }}
+                  >
+                    <span className="chevron root-chevron" style={{ opacity: 1 }}>
+                      {rightEditorsExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                    </span>
+                    右エディター
+                  </div>
+                  {rightEditorsExpanded && openRightFiles.map(tab => (
+                    <OpenEditorItem key={tab.path} tab={tab} side="right" activeTabPath={activeTabPath} closeTab={closeTab} onFileSelect={onFileSelect} />
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ルートフォルダーヘッダー行（VSCode スタイル） */}
       {currentDir && (
         <div

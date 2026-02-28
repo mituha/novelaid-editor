@@ -230,3 +230,17 @@
   outline: 1px solid var(--accent-color);
   outline-offset: -1px;
 }
+
+.editor-close-btn {
+  opacity: 0;
+  margin-left: auto;
+}
+
+.file-item:hover .editor-close-btn {
+  opacity: 0.7;
+}
+
+.editor-close-btn:hover {
+  opacity: 1 !important;
+  color: var(--accent-color) !important;
+}
