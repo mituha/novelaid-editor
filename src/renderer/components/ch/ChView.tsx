@@ -64,6 +64,8 @@ export default function ChView({
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [fileData, setFileData] = useState<ChFileStructure | null>(null);
+  const [useTools, setUseTools] = useState(true);
+  const [useReasoning, setUseReasoning] = useState(true);
   const activeAssistantMsgIdRef = useRef<string | null>(null);
 
   // Initialize file data
@@ -224,7 +226,11 @@ export default function ChView({
     window.electron.ipcRenderer.sendMessage(
       'ai:streamChat',
       apiMessages,
-      settings.ai || {},
+      {
+        ...settings.ai,
+        disableTools: !useTools,
+        disableReasoning: !useReasoning,
+      },
       fileData.metadata.defaultPersonaId,
       fileData.metadata.defaultRoleId,
       path,
@@ -275,20 +281,22 @@ export default function ChView({
 
       <ChatMessageList messages={fileData.messages} allPersonas={allPersonas} />
 
-      <div className="ch-input-area">
-        <AIChatInput
-          value={input}
-          onChange={setInput}
-          onSend={handleSend}
-          isStreaming={isStreaming}
-          placeholder="メッセージを入力..."
-          showContextSelector
-          leftActivePath={leftActivePath}
-          rightActivePath={rightActivePath}
-          leftTabs={leftTabs}
-          rightTabs={rightTabs}
-        />
-      </div>
+      <AIChatInput
+        value={input}
+        onChange={setInput}
+        onSend={handleSend}
+        isStreaming={isStreaming}
+        placeholder="メッセージを入力..."
+        showContextSelector
+        leftActivePath={leftActivePath}
+        rightActivePath={rightActivePath}
+        leftTabs={leftTabs}
+        rightTabs={rightTabs}
+        useTools={useTools}
+        onUseToolsChange={setUseTools}
+        useReasoning={useReasoning}
+        onUseReasoningChange={setUseReasoning}
+      />
     </div>
   );
 }

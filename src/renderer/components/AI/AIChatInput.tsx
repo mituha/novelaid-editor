@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Wrench, Brain } from 'lucide-react';
 import { useAutoResize } from '../../hooks/useAutoResize';
 import AIContextSelector from './AIContextSelector';
 import './AIChatInput.css';
@@ -20,6 +20,10 @@ interface AIChatInputProps {
   rightActivePath?: string | null;
   leftTabs?: Tab[];
   rightTabs?: Tab[];
+  useTools?: boolean;
+  onUseToolsChange?: (use: boolean) => void;
+  useReasoning?: boolean;
+  onUseReasoningChange?: (use: boolean) => void;
 }
 
 export default function AIChatInput({
@@ -33,6 +37,10 @@ export default function AIChatInput({
   rightActivePath = null,
   leftTabs = [],
   rightTabs = [],
+  useTools = true,
+  onUseToolsChange,
+  useReasoning = true,
+  onUseReasoningChange,
 }: AIChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   useAutoResize(textareaRef, value);
@@ -57,6 +65,28 @@ export default function AIChatInput({
           rows={1}
           className="ai-chat-textarea"
         />
+        <div className="ai-chat-features-toggles">
+          {onUseToolsChange && (
+            <button
+              type="button"
+              className={`ai-chat-feature-toggle ${useTools ? 'active' : ''}`}
+              onClick={() => onUseToolsChange(!useTools)}
+              title={useTools ? 'ツール: ON' : 'ツール: OFF'}
+            >
+              <Wrench size={14} />
+            </button>
+          )}
+          {onUseReasoningChange && (
+            <button
+              type="button"
+              className={`ai-chat-feature-toggle ${useReasoning ? 'active' : ''}`}
+              onClick={() => onUseReasoningChange(!useReasoning)}
+              title={useReasoning ? '推論: ON' : '推論: OFF'}
+            >
+              <Brain size={14} />
+            </button>
+          )}
+        </div>
         <button
           type="button"
           className="ai-chat-send-btn"

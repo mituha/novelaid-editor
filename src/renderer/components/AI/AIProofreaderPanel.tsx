@@ -68,6 +68,8 @@ export default function AIProofreaderPanel({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [input, setInput] = useState('');
+  const [useTools, setUseTools] = useState(false);
+  const [useReasoning, setUseReasoning] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -192,13 +194,13 @@ export default function AIProofreaderPanel({
         content: m.parts?.map((p) => p.content).join('') || m.content || '',
       }));
 
-      window.electron.ipcRenderer.sendMessage(
-        'ai:streamChat',
-        apiMessages,
-        settings.ai || {},
-      );
+      window.electron.ipcRenderer.sendMessage('ai:streamChat', apiMessages, {
+        ...settings.ai,
+        disableTools: !useTools,
+        disableReasoning: !useReasoning,
+      });
     },
-    [settings.ai],
+    [settings.ai, useTools, useReasoning],
   );
 
   const handleAction = (action: ProofreadingAction) => {
@@ -264,16 +266,18 @@ export default function AIProofreaderPanel({
         )}
       </div>
 
-      <div className="proofreader-input-area">
-        <AIChatInput
-          value={input}
-          onChange={setInput}
-          onSend={handleSendChat}
-          isStreaming={isStreaming}
-          placeholder="校正結果について質問する..."
-          showContextSelector={false}
-        />
-      </div>
+      <AIChatInput
+        value={input}
+        onChange={setInput}
+        onSend={handleSendChat}
+        isStreaming={isStreaming}
+        placeholder="校正結果について質問する..."
+        showContextSelector={false}
+        useTools={useTools}
+        onUseToolsChange={setUseTools}
+        useReasoning={useReasoning}
+        onUseReasoningChange={setUseReasoning}
+      />
     </div>
   );
 }

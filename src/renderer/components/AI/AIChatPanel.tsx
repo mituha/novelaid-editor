@@ -76,6 +76,8 @@ export default function AIChatPanel({
   const [messages, setMessages] = useState<ChatMessage[]>(getInitialMessages());
   const [contextStartIndex, setContextStartIndex] = useState(0);
   const [pendingContextReset, setPendingContextReset] = useState(false);
+  const [useTools, setUseTools] = useState(true);
+  const [useReasoning, setUseReasoning] = useState(true);
 
   // Mark context break when persona or role changes
   useEffect(() => {
@@ -292,9 +294,14 @@ export default function AIChatPanel({
     window.electron.ipcRenderer.sendMessage(
       'ai:streamChat',
       apiMessages,
-      settings.ai || {},
+      {
+        ...settings.ai,
+        disableTools: !useTools,
+        disableReasoning: !useReasoning,
+      },
       selectedPersonaId,
       selectedRoleId,
+      panelPath,
     );
   };
 
@@ -326,20 +333,22 @@ export default function AIChatPanel({
           }
         }}
       />
-      <div className="ai-chat-input-area">
-        <AIChatInput
-          value={input}
-          onChange={setInput}
-          onSend={handleSend}
-          isStreaming={isStreaming}
-          placeholder="AIに相談する..."
-          showContextSelector
-          leftActivePath={leftActivePath}
-          rightActivePath={rightActivePath}
-          leftTabs={leftTabs}
-          rightTabs={rightTabs}
-        />
-      </div>
+      <AIChatInput
+        value={input}
+        onChange={setInput}
+        onSend={handleSend}
+        isStreaming={isStreaming}
+        placeholder="AIに相談する..."
+        showContextSelector
+        leftActivePath={leftActivePath}
+        rightActivePath={rightActivePath}
+        leftTabs={leftTabs}
+        rightTabs={rightTabs}
+        useTools={useTools}
+        onUseToolsChange={setUseTools}
+        useReasoning={useReasoning}
+        onUseReasoningChange={setUseReasoning}
+      />
     </div>
   );
 }

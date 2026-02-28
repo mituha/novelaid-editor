@@ -97,9 +97,15 @@ export class AIService {
   ): Promise<void> {
     try {
       const provider = this.createProvider(config);
-      const apiMessages = await this.prepareMessages(messages, personaId, roleId);
+      const apiMessages = await this.prepareMessages(
+        messages,
+        personaId,
+        roleId,
+      );
       const toolService = ToolService.getInstance();
-      const tools = config.disableTools ? undefined : toolService.getToolDefinitions();
+      const tools = config.disableTools
+        ? undefined
+        : toolService.getToolDefinitions();
 
       let isDone = false;
       let loopCount = 0;
@@ -114,6 +120,10 @@ export class AIService {
         let assistantText = '';
 
         for await (const chunk of stream) {
+          if (config.disableReasoning && chunk.type === 'thought') {
+            continue;
+          }
+
           if (chunk.type === 'tool_call') {
             console.log('[AIService] Received tool_call from provider:', chunk.metadata?.tool_call?.name);
             toolCallChunk = chunk;
