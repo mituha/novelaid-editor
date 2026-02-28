@@ -42,15 +42,17 @@ interface CalibrationIssue {
 
 interface CalibrationPanelProps {
   content: string;
+  activePath?: string | null;
+  documentType?: string;
 }
 
-export default function CalibrationPanel({ content }: CalibrationPanelProps) {
+export default function CalibrationPanel({ content, activePath, documentType }: CalibrationPanelProps) {
   const { settings } = useSettings();
   const calibration = settings.calibration;
 
   const handleIssueClick = (range: any) => {
     window.dispatchEvent(
-      new CustomEvent('calibration-jump', { detail: range }),
+      new CustomEvent('calibration-jump', { detail: { ...range, path: activePath } }),
     );
   };
 
@@ -62,7 +64,7 @@ export default function CalibrationPanel({ content }: CalibrationPanelProps) {
   useEffect(() => {
     let isMounted = true;
     const analyze = async () => {
-      if (!content) return;
+      if (!content || documentType !== 'novel') return;
       setLoading(true);
       try {
         const result = await window.electron.calibration.analyze(content, calibration);
@@ -95,7 +97,7 @@ export default function CalibrationPanel({ content }: CalibrationPanelProps) {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [content, calibration]);
+  }, [content, calibration, documentType]);
 
   const particleIssues = issues.filter((i) => i.type === 'particle_repetition');
   const consistencyIssues = issues.filter(
@@ -103,9 +105,23 @@ export default function CalibrationPanel({ content }: CalibrationPanelProps) {
   );
   const textlintIssues = issues.filter((i) => i.type === 'textlint');
 
+  // ファイル名を取得
+  const fileName = activePath ? activePath.split('\\').pop() || activePath.split('/').pop() : '';
+
+  if (documentType !== 'novel') {
+    return (
+      <div className="calibration-panel empty-container">
+        <div className="empty-state">小説ドキュメントを開いてください</div>
+      </div>
+    );
+  }
+
   return (
     <div className="calibration-panel">
       <div className="calibration-header">
+        <div className="calibration-target-file" title={activePath || ''}>
+          {fileName}
+        </div>
         <div className="calibration-tabs">
           <button
             type="button"
@@ -259,8 +275,16 @@ export const calibrationPanelConfig: Panel = {
   id: 'calibration',
   title: '文章校正',
   icon: <CheckCircle size={24} strokeWidth={1.5} />,
-  component: ({ activeContent }: any) => (
-    <CalibrationPanel content={activeContent || ''} />
-  ),
+  component: ({ activeContent, activePath, documents }: any) => {
+    const documentType = activePath ? documents?.[activePath]?.documentType : undefined;
+    
+    return (
+      <CalibrationPanel 
+        content={activeContent || ''} 
+        activePath={activePath}
+        documentType={documentType}
+      />
+    );
+  },
   defaultLocation: 'right',
 };

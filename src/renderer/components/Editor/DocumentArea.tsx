@@ -171,6 +171,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
           language={getCodeEditorLanguage(data.documentType)}
           lastSource={data.lastSource as any}
           side={side}
+          activePath={activePath}
           onChange={(val) => updateContent(activePath, side, val)}
           onFocus={onSetActive}
           onBlur={() => saveDocument(activePath)}

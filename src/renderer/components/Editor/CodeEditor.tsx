@@ -13,6 +13,7 @@ interface CodeEditorProps {
   value: string;
   lastSource?: string; // 'user' | 'user-left' | 'user-right' | 'external'
   side?: 'left' | 'right'; // このエディターがどちらのペインか
+  activePath?: string; // 対象のパス (calibration-jump のフィルタ用など)
   onChange: (value: string | undefined) => void;
   onFocus?: () => void;
   onBlur?: () => void;
@@ -27,6 +28,7 @@ export default function CodeEditor({
   value,
   lastSource,
   side,
+  activePath,
   onChange,
   onFocus = () => {},
   onBlur = () => {},
@@ -313,7 +315,11 @@ export default function CodeEditor({
 
       const handleCalibrationJump = (e: CustomEvent<any>) => {
           if (!editorRef.current) return;
-          const range = e.detail;
+          const { path, ...range } = e.detail;
+          
+          // 他ドキュメント用のjump指示なら何もしない
+          if (path && activePath && path !== activePath) return;
+
           const monacoRange = {
               startLineNumber: range.startLine,
               startColumn: range.startColumn,
