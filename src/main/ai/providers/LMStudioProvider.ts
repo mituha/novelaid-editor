@@ -21,7 +21,7 @@ export class LMStudioProvider extends BaseProvider {
     const model = await this.client.llm.model(this.modelName);
     const result = await model.respond(prompt, {
       temperature: options?.temperature,
-      maxPredictedTokens: options?.maxTokens,
+      maxTokens: options?.maxTokens,
     });
     return result.content;
   }
@@ -31,13 +31,44 @@ export class LMStudioProvider extends BaseProvider {
     options?: GenerateOptions,
   ): Promise<string> {
     const model = await this.client.llm.model(this.modelName);
-    const result = await model.respond(
-      messages.map((m) => ({ role: m.role, content: m.content })),
-      {
-        temperature: options?.temperature,
-        maxPredictedTokens: options?.maxTokens,
-      },
-    );
+
+    // LMStudio format mapping
+    const lmMessages: any[] = messages.map((m) => {
+      if (m.role === 'tool') {
+        return {
+          role: 'user', // Often tool results need to be returned as User strings or specific tool parts
+          content: `[Tool Result for ${m.name}]\n${m.content}`,
+        };
+      } else if (m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0) {
+        return {
+          role: 'assistant',
+          content: m.content || `[Called Tool: ${m.tool_calls.map(tc => tc.name).join(', ')}]`
+        };
+      }
+      return { role: m.role as "system" | "user" | "assistant", content: m.content || '' };
+    });
+
+    // We must map our Tools to LMStudio's Function tool format
+    let rawTools: any = undefined;
+    if (options?.tools && options.tools.length > 0) {
+      rawTools = {
+        type: 'toolArray',
+        tools: options.tools.map(t => ({
+          type: 'function',
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters,
+          }
+        }))
+      };
+    }
+
+    const result = await model.respond(lmMessages, {
+      temperature: options?.temperature,
+      maxTokens: options?.maxTokens,
+    //  rawTools, 現状、respondでのツール利用は非サポート？ actを使用する必要がある？
+    });
     return result.content;
   }
 
@@ -48,7 +79,7 @@ export class LMStudioProvider extends BaseProvider {
     const model = await this.client.llm.model(this.modelName);
     const prediction = model.respond(prompt, {
       temperature: options?.temperature,
-      maxPredictedTokens: options?.maxTokens,
+      maxTokens: options?.maxTokens,
     });
 
     for await (const chunk of prediction) {
@@ -72,15 +103,73 @@ export class LMStudioProvider extends BaseProvider {
     options?: GenerateOptions,
   ): AsyncGenerator<StreamChunk> {
     const model = await this.client.llm.model(this.modelName);
-    const prediction = model.respond(
-      messages.map((m) => ({ role: m.role, content: m.content })),
-      {
-        temperature: options?.temperature,
-        maxPredictedTokens: options?.maxTokens,
-      },
-    );
 
+    // LMStudio format mapping
+    const lmMessages: any[] = messages.map((m) => {
+      if (m.role === 'tool') {
+        return {
+          role: 'user', // Often tool results need to be returned as User strings or specific tool parts
+          content: `[Tool Result for ${m.name}]\n${m.content}`,
+        };
+      } else if (m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0) {
+        return {
+          role: 'assistant',
+          content: m.content || `[Called Tool: ${m.tool_calls.map(tc => tc.name).join(', ')}]`
+        };
+      }
+      return { role: m.role, content: m.content };
+    });
+
+    // We must map our Tools to LMStudio's Function tool format
+    let rawTools: any = undefined;
+    if (options?.tools && options.tools.length > 0) {
+      rawTools = {
+        type: 'toolArray',
+        tools: options.tools.map(t => ({
+          type: 'function',
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters,
+          }
+        }))
+      };
+    }
+
+    console.log(`[LMStudioProvider] streamChat started. Tools available:`, rawTools?.tools?.length || 0);
+    console.log(`[LMStudioProvider] Sending messages:`, JSON.stringify(lmMessages, null, 2));
+
+    const prediction = model.respond(lmMessages, {
+      temperature: options?.temperature,
+      maxTokens: options?.maxTokens,
+      rawTools,
+    });
+
+    let chunkCount = 0;
     for await (const chunk of prediction) {
+      chunkCount++;
+      // DEBUG: Log the first few chunks to see raw structure coming from SDK
+      if (chunkCount <= 3) {
+        console.log(`[LMStudioProvider] Raw chunk ${chunkCount}:`, JSON.stringify(chunk));
+      }
+
+      if ((chunk as any).type === 'toolCallRequest') {
+        const req = (chunk as any).toolCallRequest;
+        console.log(`[LMStudioProvider] Yielding toolCallRequest:`, req.name, req.arguments);
+        yield {
+          type: 'tool_call',
+          content: '',
+          metadata: {
+            tool_call: {
+              id: (chunk as any).toolCallRequestId || `call_${Date.now()}`,
+              name: req.name,
+              args: typeof req.arguments === 'string' ? JSON.parse(req.arguments) : req.arguments,
+            },
+          },
+        };
+        continue;
+      }
+
       const reasoningType = (chunk as any).reasoningType;
       if (
         reasoningType === 'reasoningStartTag' ||
@@ -90,7 +179,7 @@ export class LMStudioProvider extends BaseProvider {
       }
       const isReasoning = reasoningType === 'reasoning';
       yield {
-        content: chunk.content,
+        content: chunk.content || '',
         type: isReasoning ? 'thought' : 'text',
       };
     }

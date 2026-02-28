@@ -107,6 +107,7 @@ export class AIService {
 
       while (!isDone && loopCount < MAX_LOOPS) {
         loopCount++;
+        console.log(`[AIService] Starting streamChat loop ${loopCount}/${MAX_LOOPS}`);
         const stream = provider.streamChat(apiMessages, { tools, ...config });
 
         let toolCallChunk: any = null;
@@ -114,6 +115,7 @@ export class AIService {
 
         for await (const chunk of stream) {
           if (chunk.type === 'tool_call') {
+            console.log('[AIService] Received tool_call from provider:', chunk.metadata?.tool_call?.name);
             toolCallChunk = chunk;
             event.reply('ai:streamChat:data', chunk, path);
           } else {
@@ -126,6 +128,7 @@ export class AIService {
 
         if (toolCallChunk && toolCallChunk.metadata?.tool_call) {
           const call = toolCallChunk.metadata.tool_call;
+          console.log(`[AIService] Executing tool: ${call.name} with args:`, call.args);
 
           apiMessages.push({
             role: 'assistant',
@@ -137,8 +140,10 @@ export class AIService {
           try {
             const res = await toolService.executeTool(call.name, call.args);
             toolResultContent = typeof res === 'string' ? res : JSON.stringify(res);
+            console.log(`[AIService] Tool execution successful, result length: ${toolResultContent.length}`);
           } catch (err: any) {
             toolResultContent = JSON.stringify({ error: err.message });
+            console.log(`[AIService] Tool execution failed: ${err.message}`);
           }
 
           apiMessages.push({

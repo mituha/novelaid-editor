@@ -112,6 +112,7 @@ export class GeminiProvider extends BaseProvider {
     messages: ChatMessage[],
     options?: GenerateOptions,
   ): AsyncGenerator<StreamChunk> {
+    console.log(`[GeminiProvider] streamChat started. Tools available:`, options?.tools?.length || 0);
     const stream = await this.client.models.generateContentStream({
       model: this.modelName,
       contents: messages.map((m) => {
@@ -148,6 +149,7 @@ export class GeminiProvider extends BaseProvider {
           } else if (part.text) {
             yield { content: part.text, type: 'text' };
           } else if ('functionCall' in part && part.functionCall) {
+            console.log(`[GeminiProvider] Yielding functionCall:`, part.functionCall.name);
             yield {
               type: 'tool_call',
               content: '',
