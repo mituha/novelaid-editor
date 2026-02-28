@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { Tab, DocumentViewType } from '../components/TabBar/TabBar';
+import { Tab } from '../components/TabBar/TabBar';
 import { useSettings } from './SettingsContext';
-import { DocumentType } from '../../common/types';
+import { DocumentType, DocumentViewType } from '../../common/types';
 
 export interface DocumentData {
   content: string;
@@ -255,7 +255,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }));
       }
 
-      const getInitialViewType = (docType?: string): DocumentViewType => {
+      const getInitialViewType = (docType?: DocumentType): DocumentViewType => {
         if (docType === 'chat') return 'canvas';
         if (docType === 'image') return 'reader';
         return 'editor';

@@ -1,10 +1,9 @@
 import React, { MouseEvent, useRef, useState, useEffect } from 'react';
 import { X, Columns, Eye, BookOpen, Edit3, LayoutDashboard, ChevronDown } from 'lucide-react';
-import { DocumentType } from '../../../common/types';
+import { DocumentType, DocumentViewType } from '../../../common/types';
 import './TabBar.css';
 import FileIcon from '../../utils/FileIcon';
 
-export type DocumentViewType = 'editor' | 'canvas' | 'reader';
 
 export interface Tab {
   path: string;
