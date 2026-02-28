@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
-import NovelMarkdown from '../AI/NovelMarkdown';
 import './ChView.css';
 import { usePersonas } from '../../hooks/usePersonas';
 import PersonaSelector from '../AI/PersonaSelector';
 import RoleSelector from '../AI/RoleSelector';
-import PersonaIcon from '../AI/PersonaIcon';
-import AIContextSelector from '../AI/AIContextSelector';
 import { useAIContextContent } from '../../hooks/useAIContextContent';
-import { useAutoResize } from '../../hooks/useAutoResize';
 import ChatMessageList, { ChatMessage } from '../Chat/ChatMessageList';
+import AIChatInput from '../AI/AIChatInput';
 
 interface ChFileStructure {
   version: string;
@@ -51,17 +48,6 @@ const formatTimestamp = (d: Date = new Date()) => {
   return `${y}${m}${day}${h}${min}${s}`;
 };
 
-const displayTimestamp = (ts: string) => {
-  if (ts.length !== 14) return ts;
-  const y = ts.substring(0, 4);
-  const m = ts.substring(4, 6);
-  const d = ts.substring(6, 8);
-  const h = ts.substring(8, 10);
-  const min = ts.substring(10, 12);
-  const s = ts.substring(12, 14);
-  return `${y}/${m}/${d} ${h}:${min}:${s}`;
-};
-
 export default function ChView({
   content,
   path,
@@ -70,7 +56,7 @@ export default function ChView({
   rightActivePath,
   leftTabs,
   rightTabs,
-  documents: documents,
+  documents,
 }: ChViewProps) {
   const { settings } = useSettings();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
@@ -79,9 +65,6 @@ export default function ChView({
   const [isStreaming, setIsStreaming] = useState(false);
   const [fileData, setFileData] = useState<ChFileStructure | null>(null);
   const activeAssistantMsgIdRef = useRef<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useAutoResize(textareaRef, input);
 
   // Initialize file data
   useEffect(() => {
@@ -290,27 +273,16 @@ export default function ChView({
         </div>
       </div>
 
-      <ChatMessageList
-        messages={fileData.messages}
-        allPersonas={allPersonas}
-      />
+      <ChatMessageList messages={fileData.messages} allPersonas={allPersonas} />
 
       <div className="ch-input-area">
-        <textarea
-          ref={textareaRef}
+        <AIChatInput
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder={isStreaming ? 'AI生成中...' : 'メッセージを入力...'}
-          disabled={isStreaming}
-          rows={1}
-        />
-        <AIContextSelector
+          onChange={setInput}
+          onSend={handleSend}
+          isStreaming={isStreaming}
+          placeholder="メッセージを入力..."
+          showContextSelector
           leftActivePath={leftActivePath}
           rightActivePath={rightActivePath}
           leftTabs={leftTabs}

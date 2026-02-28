@@ -7,13 +7,12 @@ import './AIChatPanel.css';
 import { usePersonas } from '../../hooks/usePersonas';
 import PersonaSelector from './PersonaSelector';
 import RoleSelector from './RoleSelector';
-import AIContextSelector from './AIContextSelector';
 import { useAIContextContent } from '../../hooks/useAIContextContent';
-import { useAutoResize } from '../../hooks/useAutoResize';
 import ChatMessageList, {
   ChatMessage,
   ChatMessagePart,
 } from '../Chat/ChatMessageList';
+import AIChatInput from './AIChatInput';
 import { useDocument } from '../../contexts/DocumentContext';
 
 interface Tab {
@@ -41,8 +40,7 @@ export default function AIChatPanel({
   const { settings, projectPath } = useSettings();
   const {
     openPanelDocument,
-    updateDocument,
-    triggerAutoSave,
+    updateContent,
     documents: ctxDocuments,
   } = useDocument();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
@@ -51,9 +49,6 @@ export default function AIChatPanel({
   const [isStreaming, setIsStreaming] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>(''); // Empty means "None"
   const [selectedRoleId, setSelectedRoleId] = useState<string>('assistant');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useAutoResize(textareaRef, input);
 
   const getInitialMessages = useCallback(
     () => [
@@ -124,15 +119,10 @@ export default function AIChatPanel({
   }, [panelPath, ctxDocuments, messages.length]);
 
   useEffect(() => {
-    if (panelPath && messages.length > 0 && updateDocument && !isStreaming) {
-      updateDocument(panelPath, { content: JSON.stringify(messages, null, 2) });
-      triggerAutoSave(panelPath);
+    if (panelPath && messages.length > 0 && updateContent && !isStreaming) {
+      updateContent(panelPath, 'right', JSON.stringify(messages, null, 2));
     }
-  }, [messages, panelPath, updateDocument, triggerAutoSave, isStreaming]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-  };
+  }, [messages, panelPath, updateContent, isStreaming]);
 
   const handleSend = async () => {
     if (!input.trim() || isStreaming) return;
@@ -274,7 +264,7 @@ export default function AIChatPanel({
               ? {
                   ...msg,
                   parts: [
-                    ...msg.parts,
+                    ...(msg.parts || []),
                     { type: 'error', content: `\n[Error: ${error}]` },
                   ],
                 }
@@ -308,13 +298,6 @@ export default function AIChatPanel({
     );
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   return (
     <div className="ai-chat-panel">
       <div className="ai-chat-header">
@@ -331,21 +314,15 @@ export default function AIChatPanel({
           />
         </div>
       </div>
-      <ChatMessageList
-        messages={messages}
-        allPersonas={allPersonas}
-      />
+      <ChatMessageList messages={messages} allPersonas={allPersonas} />
       <div className="ai-chat-input-area">
-        <textarea
-          ref={textareaRef}
+        <AIChatInput
           value={input}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={isStreaming ? 'AIが入力中...' : 'AIに相談する...'}
-          disabled={isStreaming}
-          rows={1}
-        />
-        <AIContextSelector
+          onChange={setInput}
+          onSend={handleSend}
+          isStreaming={isStreaming}
+          placeholder="AIに相談する..."
+          showContextSelector
           leftActivePath={leftActivePath}
           rightActivePath={rightActivePath}
           leftTabs={leftTabs}

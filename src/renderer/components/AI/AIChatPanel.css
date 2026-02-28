@@ -209,40 +209,6 @@
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.ai-chat-input-area {
-  padding: 12px;
-  border-top: 1px solid #333;
-  background-color: #252526;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ai-chat-input-area textarea {
-  width: 100%;
-  min-height: 38px;
-  max-height: 200px;
-  background-color: #1e1e1e;
-  border: 1px solid #444;
-  color: #e1e1e1;
-  padding: 8px 12px;
-  resize: none;
-  font-family: inherit;
-  font-size: 14px;
-  border-radius: 8px;
-  transition: border-color 0.2s;
-  overflow-y: auto;
-  line-height: 1.5;
-}
-
-.ai-chat-input-area textarea:focus {
-  outline: none;
-  border-color: #007acc;
-}
-
-.chat-options {
-  margin-top: 8px;
-}
 
 /* Markdown Styles inside Bubbles */
 .message-text p {

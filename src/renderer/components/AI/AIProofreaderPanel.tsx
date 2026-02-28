@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { SpellCheck, ClipboardCheck, Send, SearchCheck } from 'lucide-react';
+import { SpellCheck, ClipboardCheck, SearchCheck } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
 import './AIProofreaderPanel.css';
@@ -7,6 +7,7 @@ import ChatMessageList, {
   ChatMessage,
   ChatMessagePart,
 } from '../Chat/ChatMessageList';
+import AIChatInput from './AIChatInput';
 import { useDocument } from '../../contexts/DocumentContext';
 
 interface AIProofreaderPanelProps {
@@ -61,8 +62,7 @@ export default function AIProofreaderPanel({
   const { settings, projectPath } = useSettings();
   const {
     openPanelDocument,
-    updateDocument,
-    triggerAutoSave,
+    updateContent,
     documents: ctxDocuments,
   } = useDocument();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -106,11 +106,10 @@ export default function AIProofreaderPanel({
   }, [panelPath, ctxDocuments, messages.length]);
 
   useEffect(() => {
-    if (panelPath && messages.length > 0 && updateDocument && !isStreaming) {
-      updateDocument(panelPath, { content: JSON.stringify(messages, null, 2) });
-      triggerAutoSave(panelPath);
+    if (panelPath && messages.length > 0 && updateContent && !isStreaming) {
+      updateContent(panelPath, 'right', JSON.stringify(messages, null, 2));
     }
-  }, [messages, panelPath, updateDocument, triggerAutoSave, isStreaming]);
+  }, [messages, panelPath, updateContent, isStreaming]);
 
   const startSession = useCallback(
     (newMessages: ChatMessage[]) => {
@@ -262,28 +261,14 @@ export default function AIProofreaderPanel({
       </div>
 
       <div className="proofreader-input-area">
-        <div className="chat-input-wrapper">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="校正結果について質問する..."
-            disabled={isStreaming}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendChat();
-              }
-            }}
-          />
-          <button
-            type="button"
-            className="send-btn"
-            onClick={handleSendChat}
-            disabled={isStreaming || !input.trim()}
-          >
-            <Send size={16} />
-          </button>
-        </div>
+        <AIChatInput
+          value={input}
+          onChange={setInput}
+          onSend={handleSendChat}
+          isStreaming={isStreaming}
+          placeholder="校正結果について質問する..."
+          showContextSelector={false}
+        />
       </div>
     </div>
   );
