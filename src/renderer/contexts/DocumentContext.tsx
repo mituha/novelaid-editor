@@ -444,7 +444,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Sync / Restore / Persist
   useEffect(() => {
-    if (!projectPath || !settings.lastOpenFiles || restoredRef.current === projectPath) return;
+    if (!projectPath || restoredRef.current === projectPath) return;
 
     const restore = async () => {
       const previousProject = restoredRef.current;
@@ -456,9 +456,13 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setLeftActivePath(null);
         setRightActivePath(null);
         setDocuments({});
+        setIsSplit(false);
+        setActiveSide('left');
       }
 
-      const { left, right, leftActive, rightActive, isSplit: savedSplit, activeSide: savedSide } = settings.lastOpenFiles!;
+      if (!settings.lastOpenFiles) return;
+
+      const { left, right, leftActive, rightActive, isSplit: savedSplit, activeSide: savedSide } = settings.lastOpenFiles;
       if (savedSplit !== undefined) setIsSplit(savedSplit);
       if (savedSide !== undefined) setActiveSide(savedSide);
 
