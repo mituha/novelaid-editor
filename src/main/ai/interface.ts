@@ -3,6 +3,7 @@ export interface GenerateOptions {
   maxTokens?: number;
   systemPrompt?: string;
   tools?: any[]; // Tool definitions (provider-specific or generic)
+  disableReasoning?: boolean; // Whether to suppress reasoning/thought processes
 }
 
 export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';

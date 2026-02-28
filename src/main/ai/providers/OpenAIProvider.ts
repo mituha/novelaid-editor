@@ -54,6 +54,11 @@ export class OpenAIProvider extends BaseProvider {
         max_tokens: options?.maxTokens,
       };
 
+      if (options?.disableReasoning) {
+        payload.reasoning_effort = 'low';
+        payload.include_reasoning = false;
+      }
+
       if (tools) {
         payload.tools = tools;
       }
@@ -145,6 +150,11 @@ export class OpenAIProvider extends BaseProvider {
       stream: true,
     };
 
+    if (options?.disableReasoning) {
+      payload.reasoning_effort = 'low';
+      payload.include_reasoning = false;
+    }
+
     if (tools) {
       payload.tools = tools;
     }
@@ -198,7 +208,7 @@ export class OpenAIProvider extends BaseProvider {
                 }
               }
 
-              if (delta.reasoning_content) {
+              if (delta.reasoning_content && !options?.disableReasoning) {
                 yield { content: delta.reasoning_content, type: 'thought' };
               }
               if (delta.content) {

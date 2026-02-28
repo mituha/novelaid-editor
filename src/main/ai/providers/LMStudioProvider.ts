@@ -80,6 +80,7 @@ export class LMStudioProvider extends BaseProvider {
     const prediction = model.respond(prompt, {
       temperature: options?.temperature,
       maxTokens: options?.maxTokens,
+      ...(options?.disableReasoning ? { reasoning: false } as any : {})
     });
 
     for await (const chunk of prediction) {
@@ -91,6 +92,9 @@ export class LMStudioProvider extends BaseProvider {
         continue;
       }
       const isReasoning = reasoningType === 'reasoning';
+      if (isReasoning && options?.disableReasoning) {
+        continue;
+      }
       yield {
         content: chunk.content,
         type: isReasoning ? 'thought' : 'text',
@@ -143,6 +147,7 @@ export class LMStudioProvider extends BaseProvider {
       temperature: options?.temperature,
       maxTokens: options?.maxTokens,
       rawTools,
+      ...(options?.disableReasoning ? { reasoning: false } as any : {})
     });
 
     let chunkCount = 0;
@@ -178,6 +183,9 @@ export class LMStudioProvider extends BaseProvider {
         continue;
       }
       const isReasoning = reasoningType === 'reasoning';
+      if (isReasoning && options?.disableReasoning) {
+        continue;
+      }
       yield {
         content: chunk.content || '',
         type: isReasoning ? 'thought' : 'text',

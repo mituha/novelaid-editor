@@ -120,10 +120,6 @@ export class AIService {
         let assistantText = '';
 
         for await (const chunk of stream) {
-          if (config.disableReasoning && chunk.type === 'thought') {
-            continue;
-          }
-
           if (chunk.type === 'tool_call') {
             console.log('[AIService] Received tool_call from provider:', chunk.metadata?.tool_call?.name);
             toolCallChunk = chunk;

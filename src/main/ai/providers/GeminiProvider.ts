@@ -54,11 +54,12 @@ export class GeminiProvider extends BaseProvider {
         }
         return { role, parts };
       }),
-      tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
       config: {
+        tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
         maxOutputTokens: options?.maxTokens,
         temperature: options?.temperature,
         systemInstruction: options?.systemPrompt,
+        thinkingConfig: options?.disableReasoning ? { thinkingBudget: 0 } : undefined,
       },
     });
     return result.text || '';
@@ -71,11 +72,12 @@ export class GeminiProvider extends BaseProvider {
     const stream = await this.client.models.generateContentStream({
       model: this.modelName,
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
       config: {
+        tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
         maxOutputTokens: options?.maxTokens,
         temperature: options?.temperature,
         systemInstruction: options?.systemPrompt,
+        thinkingConfig: options?.disableReasoning ? { thinkingBudget: 0 } : undefined,
       },
     });
 
@@ -84,7 +86,9 @@ export class GeminiProvider extends BaseProvider {
       if (parts) {
         for (const part of parts) {
           if ('thought' in part && (part as any).thought) {
-            yield { content: (part as any).thought, type: 'thought' };
+            if (!options?.disableReasoning) {
+              yield { content: (part as any).thought, type: 'thought' };
+            }
           } else if (part.text) {
             yield { content: part.text, type: 'text' };
           } else if ('functionCall' in part && part.functionCall) {
@@ -93,9 +97,9 @@ export class GeminiProvider extends BaseProvider {
               content: '',
               metadata: {
                 tool_call: {
-                  id: (part as any).functionCall.id || `call_${Date.now()}`,
-                  name: part.functionCall.name,
-                  args: part.functionCall.args,
+                  id: String((part as any).functionCall.id || `call_${Date.now()}`),
+                  name: part.functionCall.name || '',
+                  args: part.functionCall.args || {},
                 },
               },
             };
@@ -132,11 +136,12 @@ export class GeminiProvider extends BaseProvider {
         }
         return { role, parts };
       }),
-      tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
       config: {
+        tools: options?.tools ? [{ functionDeclarations: options.tools }] : undefined,
         maxOutputTokens: options?.maxTokens,
         temperature: options?.temperature,
         systemInstruction: options?.systemPrompt,
+        thinkingConfig: options?.disableReasoning ? { thinkingBudget: 0 } : undefined,
       },
     });
 
@@ -145,7 +150,9 @@ export class GeminiProvider extends BaseProvider {
       if (parts) {
         for (const part of parts) {
           if ('thought' in part && (part as any).thought) {
-            yield { content: (part as any).thought, type: 'thought' };
+            if (!options?.disableReasoning) {
+              yield { content: (part as any).thought, type: 'thought' };
+            }
           } else if (part.text) {
             yield { content: part.text, type: 'text' };
           } else if ('functionCall' in part && part.functionCall) {
@@ -155,9 +162,9 @@ export class GeminiProvider extends BaseProvider {
               content: '',
               metadata: {
                 tool_call: {
-                  id: (part as any).functionCall.id || `call_${Date.now()}`,
-                  name: part.functionCall.name,
-                  args: part.functionCall.args,
+                  id: String((part as any).functionCall.id || `call_${Date.now()}`),
+                  name: part.functionCall.name || '',
+                  args: part.functionCall.args || {},
                 },
               },
             };
