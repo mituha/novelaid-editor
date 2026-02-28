@@ -184,11 +184,7 @@ function FileTreeItem({
       setIsOpen(!isOpen);
     } else {
       try {
-        const data = await window.electron.ipcRenderer.invoke(
-          'fs:readDocument',
-          file.path,
-        );
-        onFileSelect(file.path, data);
+        onFileSelect(file.path, undefined);
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error('Failed to read document', err);

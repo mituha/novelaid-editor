@@ -2,6 +2,7 @@ import React from 'react';
 import { TabBar } from '../TabBar/TabBar';
 import CodeEditor from './CodeEditor';
 import { FileNameHeader } from './FileNameHeader';
+import NovelNavigator from './NovelNavigator';
 import NovelPreview from '../Preview/NovelPreview';
 import MarkdownPreview from '../Preview/MarkdownPreview';
 import DiffViewer from '../Git/DiffViewer';
@@ -12,7 +13,11 @@ import { useDocument } from '../../contexts/DocumentContext';
 
 const getCodeEditorLanguage = (docType?: string): string => {
   if (!docType) return 'novel';
-  if (['javascript', 'typescript', 'json', 'css', 'html', 'markdown'].includes(docType)) {
+  if (
+    ['javascript', 'typescript', 'json', 'css', 'html', 'markdown'].includes(
+      docType,
+    )
+  ) {
     return docType;
   }
   return 'novel';
@@ -174,6 +179,9 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
           searchQuery={data.searchQuery}
           onNavigated={() => markNavigated(activePath)}
         />
+        {data.documentType === 'novel' && (
+          <NovelNavigator activePath={activePath} />
+        )}
       </div>
     );
   };

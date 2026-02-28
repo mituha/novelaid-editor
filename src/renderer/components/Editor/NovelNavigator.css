@@ -1,0 +1,64 @@
+.novel-navigator {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 16px;
+    background-color: var(--vscode-editor-background);
+    color: var(--vscode-editor-foreground);
+    border-top: 1px solid var(--vscode-widget-border, transparent);
+    border-bottom: 1px solid var(--vscode-widget-border, transparent);
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.novel-navigator.navigator-top {
+    border-top: none;
+}
+
+.novel-navigator.navigator-bottom {
+    border-bottom: none;
+}
+
+.nav-button-container {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.nav-button-container.prev {
+    justify-content: flex-start;
+}
+
+.nav-button-container.next {
+    justify-content: flex-end;
+}
+
+.nav-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--vscode-textLink-foreground, #3794ff);
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    max-width: 100%;
+    transition: background-color 0.1s;
+}
+
+.nav-button:hover {
+    background-color: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.nav-button:active {
+    background-color: var(--vscode-list-activeSelectionBackground, #094771);
+    color: var(--vscode-list-activeSelectionForeground, #fff);
+}
+
+.nav-title.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

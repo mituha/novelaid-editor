@@ -89,9 +89,9 @@ export default function MainLayout() {
   const handleFileSelect = useCallback(
     (
       path: string,
-      data: { content: string; metadata: Record<string, any> },
+      data?: { content: string; metadata: Record<string, any> },
     ) => {
-      openDocument(path, data);
+      openDocument(path, { data });
     },
     [openDocument],
   );
@@ -130,11 +130,7 @@ export default function MainLayout() {
         'app:open-file',
         async (path: any) => {
           try {
-            const data = await window.electron.ipcRenderer.invoke(
-              'fs:readDocument',
-              path,
-            );
-            handleFileSelect(path, data);
+            await openDocument(path);
           } catch (error) {
               // eslint-disable-next-line no-console
               console.error('Failed to open file via app:open-file:', error);

@@ -24,7 +24,13 @@ interface DocumentContextType {
   isSplit: boolean;
   activeTabPath: string | null;
 
-  openDocument: (path: string, data?: { content: string; metadata: Record<string, any> }) => void;
+  openDocument: (
+    path: string,
+    options?: {
+      data?: { content: string; metadata: Record<string, any>; documentType?: string };
+      side?: 'left' | 'right';
+    }
+  ) => Promise<void>;
   openPanelDocument: (path: string, initialData?: { content: string; metadata: Record<string, any> }) => Promise<void>;
   closeTab: (path: string, side?: 'left' | 'right', reason?: string) => void;
   switchTab: (side: 'left' | 'right', path: string) => void;
@@ -216,38 +222,72 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  const openDocument = useCallback((path: string, data?: { content: string; metadata: Record<string, any>, documentType?: string }) => {
-    const fileName = path.split('\\').pop() || path.split('/').pop() || 'Untitled';
+  const openDocument = useCallback(
+    async (
+      path: string,
+      options?: {
+        data?: { content: string; metadata: Record<string, any>; documentType?: string };
+        side?: 'left' | 'right';
+      }
+    ) => {
+      const fileName = path.split('\\').pop() || path.split('/').pop() || 'Untitled';
+      const targetSide = options?.side || activeSide;
 
-    if (data) {
-      setDocuments((prev) => ({
-        ...prev,
-        [path]: { ...prev[path], ...data, lastSource: 'external' },
-      }));
-    }
+      let currentData = options?.data || documentsRef.current[path];
 
-    const getInitialViewType = (docType?: string): DocumentViewType => {
-      if (docType === 'chat') return 'canvas';
-      if (docType === 'image') return 'reader';
-      return 'editor';
-    };
+      if (!currentData) {
+        try {
+          currentData = await window.electron.ipcRenderer.invoke('fs:readDocument', path);
+          setDocuments((prev) => ({
+            ...prev,
+            [path]: { ...currentData, lastSource: 'external' },
+          }));
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to load document:', err);
+          return;
+        }
+      } else if (options?.data) {
+        setDocuments((prev) => ({
+          ...prev,
+          [path]: { ...prev[path], ...options.data, lastSource: 'external' },
+        }));
+      }
 
-    if (activeSide === 'left') {
-      setLeftTabs((prev) => {
-        if (prev.find((t) => t.path === path)) return prev;
-        const currentType = data?.documentType || documentsRef.current[path]?.documentType;
-        return [...prev, { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentType) }];
-      });
-      setLeftActivePath(path);
-    } else {
-      setRightTabs((prev) => {
-        if (prev.find((t) => t.path === path)) return prev;
-        const currentType = data?.documentType || documentsRef.current[path]?.documentType;
-        return [...prev, { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentType) }];
-      });
-      setRightActivePath(path);
-    }
-  }, [activeSide]);
+      const getInitialViewType = (docType?: string): DocumentViewType => {
+        if (docType === 'chat') return 'canvas';
+        if (docType === 'image') return 'reader';
+        return 'editor';
+      };
+
+      if (targetSide === 'left') {
+        setLeftTabs((prev) => {
+          if (prev.find((t) => t.path === path)) return prev;
+          const currentType =
+            currentData?.documentType || documentsRef.current[path]?.documentType;
+          return [
+            ...prev,
+            { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentType) },
+          ];
+        });
+        setLeftActivePath(path);
+        if (activeSide !== 'left') setActiveSide('left');
+      } else {
+        setRightTabs((prev) => {
+          if (prev.find((t) => t.path === path)) return prev;
+          const currentType =
+            currentData?.documentType || documentsRef.current[path]?.documentType;
+          return [
+            ...prev,
+            { name: fileName, path, isDirty: false, viewType: getInitialViewType(currentType) },
+          ];
+        });
+        setRightActivePath(path);
+        if (activeSide !== 'right') setActiveSide('right');
+      }
+    },
+    [activeSide]
+  );
 
   const switchTab = useCallback((side: 'left' | 'right', path: string) => {
     setActiveSide(side);
