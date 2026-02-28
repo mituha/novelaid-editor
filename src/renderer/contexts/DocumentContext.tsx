@@ -335,7 +335,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setTabs((prev) => {
       if (prev.find((tab) => tab.path === previewPath)) return prev;
-      return [...prev, { path: previewPath, name: previewName, isDirty: false }];
+      return [...prev, { path: previewPath, name: previewName, isDirty: false, viewType: 'preview' }];
     });
     setActivePath(previewPath);
     setIsSplit(true);
@@ -349,7 +349,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setTabs((prev) => {
       if (prev.find((tab) => tab.path === diffPath)) return prev;
-      return [...prev, { path: diffPath, name: diffName, isDirty: false }];
+      return [...prev, { path: diffPath, name: diffName, isDirty: false, documentType: 'git-diff' }];
     });
     setActivePath(diffPath);
   }, [activeSide]);
@@ -363,7 +363,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setTabs((prev) => {
       if (prev.find((tab) => tab.path === webPath)) return prev;
-      return [...prev, { path: webPath, name: webName, isDirty: false }];
+      return [...prev, { path: webPath, name: webName, isDirty: false, documentType: 'browser', viewType: 'canvas' }];
     });
     setActivePath(webPath);
     setIsSplit(true);

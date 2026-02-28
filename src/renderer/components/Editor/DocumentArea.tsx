@@ -67,7 +67,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       );
     }
 
-    if (activePath.startsWith('preview://')) {
+    if (viewType === 'preview') {
       const originalPath = activePath.replace('preview://', '');
       const data = documents[originalPath];
       if (data?.documentType === 'markdown') {
@@ -76,14 +76,14 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       return <NovelPreview content={data?.content || ''} />;
     }
 
-    if (activePath.startsWith('git-diff://')) {
+    if (activeTab?.documentType === 'git-diff') {
       const parts = activePath.replace('git-diff://', '').split('/');
       const staged = parts[0] === 'staged';
       const filePath = parts.slice(1).join('/');
       return <DiffViewer path={filePath} staged={staged} />;
     }
 
-    if (activePath.startsWith('web-browser://')) {
+    if (activeTab?.documentType === 'browser') {
       const url = activePath.replace('web-browser://', '');
       return <WebBrowser initialUrl={url} />;
     }

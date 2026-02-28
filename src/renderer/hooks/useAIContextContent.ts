@@ -4,6 +4,8 @@ import { useAIContext } from '../contexts/AIContextContext';
 interface Tab {
   name: string;
   path: string;
+  documentType?: string;
+  viewType?: string;
 }
 
 export function useAIContextContent() {
@@ -33,8 +35,8 @@ export function useAIContextContent() {
 
     let result = "";
     for (const path of paths) {
-      // プレビュー用パスや Git Diff 用パスなどはスキップ（または必要に応じて処理）
-      if (path.startsWith('preview://') || path.startsWith('git-diff://') || path.startsWith('web-browser://')) {
+      const tab = [...leftTabs, ...rightTabs].find(t => t.path === path);
+      if (tab?.viewType === 'preview' || tab?.documentType === 'git-diff' || tab?.documentType === 'browser') {
         continue;
       }
 

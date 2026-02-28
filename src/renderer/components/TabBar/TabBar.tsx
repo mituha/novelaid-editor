@@ -76,7 +76,7 @@ export function TabBar({
   const activeViewType = activeTab?.viewType || 'editor';
 
   const renderViewToggle = () => {
-    if (!activeTabPath || activeTabPath.startsWith('preview://') || activeTabPath.startsWith('git-diff://') || activeTabPath.startsWith('web-browser://')) return null;
+    if (!activeTab || activeTab.viewType === 'preview' || activeTab.documentType === 'git-diff' || activeTab.documentType === 'browser') return null;
     if (activeDocumentType === 'image') return null;
 
     const isEditor = activeViewType === 'editor';
@@ -87,7 +87,7 @@ export function TabBar({
         <button
           type="button"
           className={`pane-toggle-btn ${isEditor ? 'active' : ''}`}
-          onClick={() => onChangeViewType?.(activeTabPath, 'editor')}
+          onClick={() => activeTabPath && onChangeViewType?.(activeTabPath, 'editor')}
           title="編集"
         >
           <Edit3 size={16} />
@@ -95,7 +95,7 @@ export function TabBar({
         <button
           type="button"
           className={`pane-toggle-btn ${!isEditor ? 'active' : ''}`}
-          onClick={() => onChangeViewType?.(activeTabPath, toggleTarget)}
+          onClick={() => activeTabPath && onChangeViewType?.(activeTabPath, toggleTarget)}
           title="閲覧"
         >
           {toggleTarget === 'canvas' ? <LayoutDashboard size={16} /> : <BookOpen size={16} />}
@@ -190,12 +190,12 @@ export function TabBar({
       )}
 
       {onOpenPreview &&
-        activeTabPath &&
-        !activeTabPath.startsWith('preview://') && (
+        activeTab &&
+        activeTab.viewType !== 'preview' && (
           <button
             type="button"
             className="pane-toggle-btn"
-            onClick={() => onOpenPreview(activeTabPath)}
+            onClick={() => onOpenPreview(activeTabPath!)}
             title="プレビュー(別タブ)を開く"
             style={{ marginLeft: '8px' }}
           >

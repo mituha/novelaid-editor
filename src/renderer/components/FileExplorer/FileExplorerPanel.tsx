@@ -471,11 +471,11 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
   const [rightEditorsExpanded, setRightEditorsExpanded] = useState(true);
 
   const openLeftFiles = React.useMemo(() => {
-    return leftTabs.filter((tab) => !tab.path.startsWith('preview://') && !tab.path.startsWith('git-diff://') && !tab.path.startsWith('web-browser://'));
+    return leftTabs.filter((tab) => tab.viewType !== 'preview' && tab.documentType !== 'git-diff' && tab.documentType !== 'browser');
   }, [leftTabs]);
 
   const openRightFiles = React.useMemo(() => {
-    return rightTabs.filter((tab) => !tab.path.startsWith('preview://') && !tab.path.startsWith('git-diff://') && !tab.path.startsWith('web-browser://'));
+    return rightTabs.filter((tab) => tab.viewType !== 'preview' && tab.documentType !== 'git-diff' && tab.documentType !== 'browser');
   }, [rightTabs]);
 
   const refreshRoot = useCallback(async () => {

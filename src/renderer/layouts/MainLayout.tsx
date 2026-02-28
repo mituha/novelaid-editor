@@ -23,6 +23,8 @@ export default function MainLayout() {
     documents,
     activeTabPath,
     isSplit,
+    leftTabs,
+    rightTabs,
     openDocument,
     closeTab,
     openDiff,
@@ -183,8 +185,13 @@ export default function MainLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSave]);
 
-  const getOriginalPath = (path: string | null) =>
-    path?.startsWith('preview://') ? path.replace('preview://', '') : path;
+  const activeTab = [...leftTabs, ...rightTabs].find(t => t.path === activeTabPath);
+
+  const getOriginalPath = (path: string | null) => {
+    if (!path) return path;
+    const tab = [...leftTabs, ...rightTabs].find(t => t.path === path);
+    return tab?.viewType === 'preview' ? path.replace('preview://', '') : path;
+  };
 
 
   return (
@@ -262,22 +269,14 @@ export default function MainLayout() {
       </div>
       <StatusBar
         metrics={CharCounter.getMetrics(
-          activeTabPath && !activeTabPath.startsWith('preview://')
-            ? documents[activeTabPath]?.content || ''
+          activeTab && activeTab.viewType !== 'preview' && activeTab.documentType !== 'git-diff' && activeTab.documentType !== 'browser'
+            ? documents[activeTabPath!]?.content || ''
             : '',
           activeTabPath,
         )}
         activePath={getOriginalPath(activeTabPath)}
-        documentType={
-          activeTabPath
-            ? documents[getOriginalPath(activeTabPath) || '']?.documentType
-            : undefined
-        }
-        metadata={
-          activeTabPath
-            ? documents[getOriginalPath(activeTabPath) || '']?.metadata
-            : undefined
-        }
+        documentType={activeTab?.documentType}
+        metadata={activeTab ? documents[getOriginalPath(activeTabPath)!]?.metadata : undefined}
         openSettings={openSettings}
         onGoHome={() => navigate('/')}
         onToggleLeftPane={handleToggleLeftPane}
