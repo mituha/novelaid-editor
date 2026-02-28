@@ -1,6 +1,7 @@
-import React, { MouseEvent } from 'react';
-import { X, Columns, Eye, BookOpen, Edit3, LayoutDashboard } from 'lucide-react';
+import React, { MouseEvent, useRef, useState, useEffect } from 'react';
+import { X, Columns, Eye, BookOpen, Edit3, LayoutDashboard, ChevronDown } from 'lucide-react';
 import './TabBar.css';
+import FileIcon from '../../utils/FileIcon';
 
 export type DocumentViewType = 'editor' | 'canvas' | 'reader';
 
@@ -34,6 +35,30 @@ export function TabBar({
   activeDocumentType,
   isSplit = false,
 }: TabBarProps) {
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY !== 0 && tabsContainerRef.current) {
+      tabsContainerRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
   const handleClose = (e: MouseEvent, path: string) => {
     e.stopPropagation();
     onTabClose(path);
@@ -81,7 +106,48 @@ export function TabBar({
   return (
     <div className="tab-bar">
 
-      <div className="tabs-container">
+      {tabs.length > 0 && (
+        <div className="tab-dropdown-container" ref={dropdownRef}>
+          <button
+            type="button"
+            className="pane-toggle-btn tab-dropdown-btn"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            title="開いているタブ一覧"
+          >
+            <ChevronDown size={16} />
+          </button>
+          {isDropdownOpen && (
+            <div className="tab-dropdown-menu">
+              {tabs.map(tab => (
+                <div
+                  key={tab.path}
+                  className={`tab-dropdown-item ${tab.path === activeTabPath ? 'active' : ''}`}
+                  onClick={() => {
+                    onTabClick(tab.path);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  <FileIcon name={tab.name} isDirectory={false} className="tab-file-icon" />
+                  <span className="tab-dropdown-name">{tab.name}</span>
+                  {tab.isDirty && <span className="tab-dirty-indicator" />}
+                  <button
+                    type="button"
+                    className="tab-close-btn dropdown-close-btn"
+                    onClick={(e) => {
+                      handleClose(e, tab.path);
+                      if (tabs.length <= 1) setIsDropdownOpen(false);
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="tabs-container" ref={tabsContainerRef} onWheel={handleWheel}>
         {tabs.map((tab) => (
           <div
             key={tab.path}
@@ -93,6 +159,7 @@ export function TabBar({
             aria-selected={tab.path === activeTabPath}
             tabIndex={0}
           >
+            <FileIcon name={tab.name} isDirectory={false} className="tab-file-icon" />
             <span className="tab-name">{tab.name}</span>
             {tab.isDirty && <span className="tab-dirty-indicator" />}
             <button
