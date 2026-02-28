@@ -44,6 +44,9 @@ declare global {
       shell: {
         openExternal(url: string): Promise<void>;
       };
+      util: {
+        relative(from: string, to: string): Promise<string>;
+      };
     };
   }
 }

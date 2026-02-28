@@ -131,6 +131,11 @@ const electronHandler = {
       return ipcRenderer.invoke('shell:openExternal', url);
     },
   },
+  util: {
+    relative(from: string, to: string) {
+      return ipcRenderer.invoke('util:relative', from, to);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

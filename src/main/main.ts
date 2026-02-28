@@ -438,6 +438,10 @@ ipcMain.handle('metadata:queryChatEnabled', async () => {
     return metadataService.queryChatEnabled();
 });
 
+ipcMain.handle('util:relative', (_, from: string, to: string) => {
+  return path.relative(from, to).replace(/\\/g, '/');
+});
+
 ipcMain.on(
   'ai:streamChat',
   async (event, messages: any[], config: any, personaId?: string, roleId?: string, path?: string) => {

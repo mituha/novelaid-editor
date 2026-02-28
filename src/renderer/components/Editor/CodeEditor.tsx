@@ -316,7 +316,7 @@ export default function CodeEditor({
       const handleCalibrationJump = (e: CustomEvent<any>) => {
           if (!editorRef.current) return;
           const { path, ...range } = e.detail;
-          
+
           // 他ドキュメント用のjump指示なら何もしない
           if (path && activePath && path !== activePath) return;
 
@@ -421,7 +421,7 @@ export default function CodeEditor({
     if (domNode) {
       domNode.addEventListener(
         'drop',
-        (e: DragEvent) => {
+        async (e: DragEvent) => {
           const filePath = e.dataTransfer?.getData('text/plain');
           if (!filePath) return;
 
@@ -440,6 +440,24 @@ export default function CodeEditor({
           const dotIndex = fullName.lastIndexOf('.');
           const fileName = dotIndex > 0 ? fullName.slice(0, dotIndex) : fullName;
 
+          // マークダウンの場合は相対パスでのリンク形式、それ以外はファイル名のみ
+          let textToInsert = fileName;
+          if (language === 'markdown' && activePath) {
+            try {
+              // activePath のディレクトリからの相対パスを計算
+              // (activePath がファイルパスなので、一つ上の階層を基準にする)
+              const lastSep = activePath.lastIndexOf('\\') !== -1
+                ? activePath.lastIndexOf('\\')
+                : activePath.lastIndexOf('/');
+              const parentDir = activePath.substring(0, lastSep);
+              const relativePath = await window.electron.util.relative(parentDir, filePath);
+              textToInsert = `[${fileName}](${relativePath})`;
+            } catch (err) {
+              console.error('Failed to calculate relative path:', err);
+              textToInsert = `[${fileName}](${fullName})`;
+            }
+          }
+
           // ドロップ位置をカーソル位置として取得
           const target = editor.getTargetAtClientPoint(e.clientX, e.clientY);
           const position = target?.position ?? editor.getPosition();
@@ -453,7 +471,7 @@ export default function CodeEditor({
                 endLineNumber: position.lineNumber,
                 endColumn: position.column,
               },
-              text: fileName,
+              text: textToInsert,
               forceMoveMarkers: true,
             },
           ]);
