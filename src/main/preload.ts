@@ -8,6 +8,7 @@ export type Channels =
   | 'dialog:confirm'
   | 'fs:readDirectory'
   | 'fs:getDirectoryType'
+  | 'fs:getDocumentType'
   | 'fs:readFile'
   | 'fs:writeFile'
   | 'fs:createFile'
@@ -100,6 +101,9 @@ const electronHandler = {
       return () => {
         ipcRenderer.removeListener('fs:file-changed', subscription);
       };
+    },
+    getDocumentType(filePath: string) {
+      return ipcRenderer.invoke('fs:getDocumentType', filePath);
     },
   },
   metadata: {

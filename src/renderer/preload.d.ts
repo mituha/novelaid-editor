@@ -28,6 +28,7 @@ declare global {
       };
       fs: {
         onFileChange(func: (payload: any) => void): () => void;
+        getDocumentType(filePath: string): Promise<string>;
       };
       metadata: {
         queryByTag(tagOrTags: string | string[]): Promise<any[]>;

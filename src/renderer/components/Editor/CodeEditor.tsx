@@ -451,7 +451,17 @@ export default function CodeEditor({
                 : activePath.lastIndexOf('/');
               const parentDir = activePath.substring(0, lastSep);
               const relativePath = await window.electron.util.relative(parentDir, filePath);
-              textToInsert = `[${fileName}](${relativePath})`;
+
+              // .md, .txt 等は画像ではないとして事前に弾く
+              const ext = fullName.substring(fullName.lastIndexOf('.')).toLowerCase();
+              let isImage = false;
+              if (!['.md', '.markdown', '.txt'].includes(ext)) {
+                // ドキュメントタイプを取得して画像かどうかを判定
+                const docType = await window.electron.fs.getDocumentType(filePath);
+                isImage = docType === 'image';
+              }
+
+              textToInsert = `${isImage ? '!' : ''}[${fileName}](${relativePath})`;
             } catch (err) {
               console.error('Failed to calculate relative path:', err);
               textToInsert = `[${fileName}](${fullName})`;

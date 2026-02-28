@@ -133,6 +133,10 @@ ipcMain.handle('fs:getDirectoryType', async (_, dirPath: string) => {
   return FileService.getInstance().getPreferredDocumentTypeForDirectory(dirPath);
 });
 
+ipcMain.handle('fs:getDocumentType', async (_, filePath: string) => {
+  return await FileService.getInstance().getDocumentType(filePath);
+});
+
 ipcMain.handle('fs:readFile', async (_, filePath: string) => {
   return await FileService.getInstance().readFile(filePath);
 });
