@@ -8,10 +8,11 @@ import MarkdownPreview from '../Preview/MarkdownPreview';
 import DiffViewer from '../Git/DiffViewer';
 import WebBrowser from '../Common/WebBrowser';
 import ChView from '../ch/ChView';
+import { DocumentType } from '../../../common/types';
 
 import { useDocument } from '../../contexts/DocumentContext';
 
-const getCodeEditorLanguage = (docType?: string): string => {
+const getCodeEditorLanguage = (docType?: DocumentType): string => {
   if (!docType) return 'novel';
   if (
     ['javascript', 'typescript', 'json', 'css', 'html', 'markdown'].includes(

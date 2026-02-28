@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import React from 'react';
+import { DocumentType } from '../../common/types';
 
 /**
  * ファイルやフォルダーのアイコンを表示する共通コンポーネント
@@ -18,7 +19,7 @@ import React from 'react';
 interface FileIconProps {
   name: string;
   path?: string;
-  documentType?: string;
+  documentType?: DocumentType;
   metadata?: Record<string, any>;
   size?: number;
   isDirectory?: boolean;

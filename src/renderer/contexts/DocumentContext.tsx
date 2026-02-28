@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { Tab, DocumentViewType } from '../components/TabBar/TabBar';
 import { useSettings } from './SettingsContext';
+import { DocumentType } from '../../common/types';
 
 export interface DocumentData {
   content: string;
@@ -9,7 +10,7 @@ export interface DocumentData {
   initialLine?: number;
   initialColumn?: number;
   searchQuery?: string;
-  documentType?: string;
+  documentType?: DocumentType;
   deleted?: boolean;
   isPanel?: boolean;
 }
@@ -27,10 +28,10 @@ interface DocumentContextType {
   openDocument: (
     path: string,
     options?: {
-      data?: { content: string; metadata: Record<string, any>; documentType?: string };
-      side?: 'left' | 'right';
-    }
-  ) => Promise<void>;
+        data?: { content: string; metadata: Record<string, any>; documentType?: DocumentType };
+        side?: 'left' | 'right';
+      }
+    ) => Promise<void>;
   openPanelDocument: (path: string, initialData?: { content: string; metadata: Record<string, any> }) => Promise<void>;
   closeTab: (path: string, side?: 'left' | 'right', reason?: string) => void;
   switchTab: (side: 'left' | 'right', path: string) => void;
@@ -226,7 +227,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     async (
       path: string,
       options?: {
-        data?: { content: string; metadata: Record<string, any>; documentType?: string };
+        data?: { content: string; metadata: Record<string, any>; documentType?: DocumentType };
         side?: 'left' | 'right';
       }
     ) => {

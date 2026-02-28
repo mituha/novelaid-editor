@@ -2,12 +2,13 @@ import path from 'path';
 import fs from 'fs/promises';
 import matter from 'gray-matter';
 import { FileService } from './fs/FileService';
+import { DocumentType } from '../common/types';
 
 export interface DocumentData {
   content: string;
   metadata: Record<string, any>;
   lineOffset?: number;
-  documentType?: string;
+  documentType?: DocumentType;
 }
 
 const NOVELAID_DIR = '.novelaid';

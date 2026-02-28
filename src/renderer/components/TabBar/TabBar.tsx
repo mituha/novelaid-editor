@@ -1,5 +1,6 @@
 import React, { MouseEvent, useRef, useState, useEffect } from 'react';
 import { X, Columns, Eye, BookOpen, Edit3, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { DocumentType } from '../../../common/types';
 import './TabBar.css';
 import FileIcon from '../../utils/FileIcon';
 
@@ -8,6 +9,7 @@ export type DocumentViewType = 'editor' | 'canvas' | 'reader';
 export interface Tab {
   path: string;
   name: string;
+  documentType?: DocumentType;
   isDirty?: boolean;
   viewType?: DocumentViewType;
 }
@@ -20,7 +22,7 @@ interface TabBarProps {
   onToggleSplit?: () => void;
   onOpenPreview?: (path: string) => void;
   onChangeViewType?: (path: string, viewType: DocumentViewType) => void;
-  activeDocumentType?: string;
+  activeDocumentType?: DocumentType;
   isSplit?: boolean;
 }
 

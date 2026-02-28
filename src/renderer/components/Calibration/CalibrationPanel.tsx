@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Panel } from '../../types/panel';
+import { DocumentType } from '../../../common/types';
 import './CalibrationPanel.css';
 
 interface FrequencyResult {
@@ -43,7 +44,7 @@ interface CalibrationIssue {
 interface CalibrationPanelProps {
   content: string;
   activePath?: string | null;
-  documentType?: string;
+  documentType?: DocumentType;
 }
 
 export default function CalibrationPanel({ content, activePath, documentType }: CalibrationPanelProps) {
@@ -64,7 +65,7 @@ export default function CalibrationPanel({ content, activePath, documentType }: 
   useEffect(() => {
     let isMounted = true;
     const analyze = async () => {
-      if (!content || documentType !== 'novel') return;
+      if (!content || (documentType as string) !== 'novel') return;
       setLoading(true);
       try {
         const result = await window.electron.calibration.analyze(content, calibration);
@@ -108,7 +109,7 @@ export default function CalibrationPanel({ content, activePath, documentType }: 
   // ファイル名を取得
   const fileName = activePath ? activePath.split('\\').pop() || activePath.split('/').pop() : '';
 
-  if (documentType !== 'novel') {
+  if ((documentType as string) !== 'novel') {
     return (
       <div className="calibration-panel empty-container">
         <div className="empty-state">小説ドキュメントを開いてください</div>

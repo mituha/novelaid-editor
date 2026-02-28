@@ -3,6 +3,7 @@ import path from 'path';
 import { dialog, BrowserWindow } from 'electron';
 import { MetadataService } from '../metadataService';
 import { readDocument, saveDocument } from '../metadata';
+import { DocumentType } from '../../common/types';
 
 const LOG_PREFIX = '[FileService]';
 
@@ -43,13 +44,13 @@ export class FileService {
     return filePaths[0];
   }
 
-  public async getDocumentType(filePath: string): Promise<string> {
+  public async getDocumentType(filePath: string): Promise<DocumentType> {
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.ch') return 'chat';
     if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(ext))
       return 'image';
     if (ext === '.txt') return 'novel';
-    if (ext !== '.md' && ext !== '.markdown') return 'markdown';
+    if (ext !== '.md' && ext !== '.markdown') return 'unknown';
 
     // mdファイルに対する特別な処理の確認
     // 基本的にはmdをnovel用として扱っている場合の特殊処理用です
@@ -69,7 +70,7 @@ export class FileService {
           matchedType = type;
         }
       }
-      if (matchedType) return matchedType;
+      if (matchedType) return matchedType as DocumentType;
     }
     //特殊処理を行わなかったマークダウンファイルはマークダウンです
     //フォルダーの属性によるフォールバック処理は不要です。
@@ -129,13 +130,13 @@ export class FileService {
    * ディレクトリ名から、そのディレクトリ内での優先ドキュメントタイプを推定します。
    * 名前から判定できない場合、親ディレクトリのタイプを継承します。
    */
-  public async getPreferredDocumentTypeForDirectory(dirPath: string): Promise<string> {
+  public async getPreferredDocumentTypeForDirectory(dirPath: string): Promise<DocumentType> {
     const dirName = path.basename(dirPath).toLowerCase();
 
     // 1. 自分自身の .novelaidattributes `./` を確認
     const ownAttrs = await this.getAttributesForDirectory(dirPath);
     if (ownAttrs?.has('./')) {
-      return ownAttrs.get('./')!;
+      return ownAttrs.get('./')! as DocumentType;
     }
 
     // 2. 親の .novelaidattributes `dirName/` を確認
@@ -152,7 +153,7 @@ export class FileService {
             matchedType = type;
           }
         }
-        if (matchedType) return matchedType;
+        if (matchedType) return matchedType as DocumentType;
       }
     }
 

@@ -14,6 +14,7 @@ import { Panel } from '../../types/panel';
 import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
 import FileIcon from '../../utils/FileIcon';
+import { DocumentType } from '../../../common/types';
 
 const BASE_INDENT = -8;
 const INDENT_STEP = 16;
@@ -72,7 +73,7 @@ interface FileNode {
   name: string;
   isDirectory: boolean;
   path: string;
-  documentType?: string;
+  documentType?: DocumentType;
   metadata?: Record<string, any>;
 }
 
@@ -361,7 +362,7 @@ function FileTreeItem({
           <FileIcon
             name={file.name}
             path={file.path}
-            documentType={file.documentType}
+            documentType={file.documentType as DocumentType}
             metadata={file.metadata}
             size={16}
             isDirectory={file.isDirectory}
