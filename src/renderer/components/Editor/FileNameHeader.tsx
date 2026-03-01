@@ -1,45 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './FileNameHeader.css';
 
+import { useDocument } from '../../contexts/DocumentContext';
+
 interface FileNameHeaderProps {
-  fileName: string;
+  fileName: string; // fallback name
+  activePath: string | null;
   onRename: (newName: string) => void;
   isReadOnly?: boolean;
 }
 
 export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
   fileName,
+  activePath,
   onRename,
   isReadOnly = false,
 }) => {
+  const { getFileTitle } = useDocument();
   const [isEditing, setIsEditing] = useState(false);
-  const [value, setValue] = useState(fileName);
+  const [displayName, setDisplayName] = useState(fileName);
+  const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setValue(fileName);
-  }, [fileName]);
+    let isMounted = true;
+    if (activePath) {
+      getFileTitle(activePath).then((title) => {
+        if (isMounted) {
+          setDisplayName(title);
+        }
+      });
+    } else {
+      setDisplayName(fileName);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [activePath, fileName, getFileTitle]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
-      // inputRef.current.select(); // User requested to not select all
     }
   }, [isEditing]);
 
   const handleStartEditing = () => {
     if (!isReadOnly) {
+      setEditValue(displayName);
       setIsEditing(true);
-      setValue(fileName);
     }
   };
 
   const handleCommit = () => {
     setIsEditing(false);
-    if (value.trim() && value !== fileName) {
-      onRename(value);
-    } else {
-        setValue(fileName);
+    if (editValue.trim() && editValue !== displayName) {
+      onRename(editValue);
     }
   };
 
@@ -48,7 +63,6 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
       handleCommit();
     } else if (e.key === 'Escape') {
       setIsEditing(false);
-      setValue(fileName);
     }
   };
 
@@ -58,8 +72,8 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
         <input
           ref={inputRef}
           type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleCommit}
           onKeyDown={handleKeyDown}
           className="file-name-input"
@@ -72,9 +86,16 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
     <div
       className={`file-name-header ${isReadOnly ? 'readonly' : ''}`}
       onClick={handleStartEditing}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleStartEditing();
+        }
+      }}
       title={isReadOnly ? 'Read only' : 'Click to rename'}
+      role="button"
+      tabIndex={0}
     >
-      <span className="file-name-text">{fileName}</span>
+      <span className="file-name-text">{displayName}</span>
     </div>
   );
 };

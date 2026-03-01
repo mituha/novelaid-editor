@@ -157,6 +157,9 @@ const electronHandler = {
     normalize(p: string) {
       return ipcRenderer.invoke('path:normalize', p);
     },
+    parse(p: string) {
+      return ipcRenderer.invoke('path:parse', p);
+    },
   },
 };
 

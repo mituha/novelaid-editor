@@ -470,6 +470,15 @@ ipcMain.handle('path:normalize', (_, p: string) => {
   return path.normalize(p).replace(/\\/g, '/');
 });
 
+ipcMain.handle('path:parse', (_, p: string) => {
+  const parsed = path.parse(p);
+  return {
+    ...parsed,
+    root: parsed.root.replace(/\\/g, '/'),
+    dir: parsed.dir.replace(/\\/g, '/'),
+  };
+});
+
 ipcMain.on(
   'ai:streamChat',
   async (event, messages: any[], config: any, personaId?: string, roleId?: string, path?: string) => {

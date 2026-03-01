@@ -70,6 +70,7 @@ interface DocumentContextType {
     path: string,
     viewType: DocumentViewType,
   ) => void;
+  getFileTitle: (path: string) => Promise<string>;
 }
 
 const DocumentContext = createContext<DocumentContextType | undefined>(
@@ -644,6 +645,12 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, []);
 
+  const getFileTitle = useCallback(async (path: string) => {
+    if (!path) return '';
+    const parsed = await window.electron.path.parse(path);
+    return parsed.name;
+  }, []);
+
   // Sync / Restore / Persist
   useEffect(() => {
     if (!projectPath || restoredRef.current === projectPath) return;
@@ -901,6 +908,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       updateMetadata,
       markNavigated,
       changeViewType,
+      getFileTitle,
     }),
     [
       documents,
@@ -926,7 +934,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       updateMetadata,
       markNavigated,
       changeViewType,
-    ]
+      getFileTitle,
+    ],
   );
 
   return (

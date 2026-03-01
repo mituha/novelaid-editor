@@ -48,6 +48,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     renameDocument,
     markNavigated,
     changeViewType,
+    getFileTitle,
   } = useDocument();
 
   const tabs = side === 'left' ? leftTabs : rightTabs;
@@ -165,17 +166,11 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       return <NovelPreview content={data.content || ''} />;
     }
 
-    const fileNameWithExt = activePath.split('\\').pop() || '';
-    const lastDotIndex = fileNameWithExt.lastIndexOf('.');
-    const fileName =
-      lastDotIndex !== -1
-        ? fileNameWithExt.substring(0, lastDotIndex)
-        : fileNameWithExt;
-
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <FileNameHeader
-          fileName={fileName}
+          fileName={activeTab?.name || ''}
+          activePath={activePath}
           onRename={(newName) => renameDocument(activePath, newName)}
         />
         <CodeEditor

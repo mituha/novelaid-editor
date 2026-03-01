@@ -53,6 +53,7 @@ declare global {
         dirname(p: string): Promise<string>;
         extname(p: string): Promise<string>;
         normalize(p: string): Promise<string>;
+        parse(p: string): Promise<{ root: string; dir: string; base: string; ext: string; name: string }>;
       };
     };
   }
