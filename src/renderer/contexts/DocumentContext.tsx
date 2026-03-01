@@ -234,7 +234,10 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     ) => {
       const fileName = path.split('\\').pop() || path.split('/').pop() || 'Untitled';
-      const targetSide = options?.side || activeSide;
+      let targetSide = options?.side || activeSide;
+      if (options?.requestedViewType === 'preview') {
+        targetSide = 'left'; // preview展開時は元エディターを必ずleftに配置
+      }
 
       let currentData = options?.data || documentsRef.current[path];
 
@@ -258,13 +261,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       const getInitialViewType = (docType?: DocumentType): DocumentViewType => {
+        if (docType === 'chat') return 'canvas';
+        if (docType === 'image') return 'reader';
+
         if (options?.requestedViewType) {
           // preview は特別扱い（後続の処理で openPreview するため、タブとしては editor として開く）
           if (options.requestedViewType === 'preview') return 'editor';
           return options.requestedViewType;
         }
-        if (docType === 'chat') return 'canvas';
-        if (docType === 'image') return 'reader';
         return 'editor';
       };
 
@@ -301,7 +305,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // ここでは DocumentContext 内部の状態更新関数を直接利用して構築する。
         const previewPath = `preview://${path}`;
         const previewName = `Preview: ${fileName}`;
-        const targetPreviewSide = targetSide === 'left' ? 'right' : 'left';
+        const targetPreviewSide = options?.side || activeSide; // previewの配置は呼び出し元に合わせる
         const setPreviewTabs = targetPreviewSide === 'left' ? setLeftTabs : setRightTabs;
         const setPreviewActivePath = targetPreviewSide === 'left' ? setLeftActivePath : setRightActivePath;
 
@@ -493,19 +497,22 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (savedSplit !== undefined) setIsSplit(savedSplit);
       if (savedSide !== undefined) setActiveSide(savedSide);
 
-      const restoreFiles = async (files: { path: string; name: string }[]) => {
+      const restoreFiles = async (files: { path: string; name: string; viewType?: DocumentViewType; documentType?: DocumentType }[]) => {
         const results = await Promise.all(
           files.map(async (t) => {
             try {
-              const data = await window.electron.ipcRenderer.invoke('fs:readDocument', t.path);
-              return { path: t.path, name: t.name, data };
+              const data = await window.electron.ipcRenderer.invoke(
+                'fs:readDocument',
+                t.path,
+              );
+              return { path: t.path, name: t.name, data, viewType: t.viewType, documentType: t.documentType };
             } catch (e) {
               console.error(`Failed to restore ${t.path}`, e);
               return null;
             }
           }),
         );
-        return results.filter((r): r is { path: string; name: string; data: any } => r !== null);
+        return results.filter((r): r is { path: string; name: string; data: any; viewType?: DocumentViewType; documentType?: DocumentType } => r !== null);
       };
 
       const [leftResults, rightResults] = await Promise.all([restoreFiles(left), restoreFiles(right)]);
@@ -516,22 +523,43 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       setDocuments((prev) => ({ ...prev, ...contentsUpdate }));
       if (leftResults.length > 0) {
-        setLeftTabs(leftResults.map((r) => ({ name: r.name, path: r.path, isDirty: false })));
+        setLeftTabs(
+          leftResults.map((r) => ({
+            name: r.name,
+            path: r.path,
+            isDirty: false,
+            viewType: r.viewType || getFallbackViewTypeForRestore(r.data?.documentType || r.documentType),
+          })),
+        );
         if (leftActive) setLeftActivePath(leftActive);
       }
       if (rightResults.length > 0) {
-        setRightTabs(rightResults.map((r) => ({ name: r.name, path: r.path, isDirty: false })));
+        setRightTabs(
+          rightResults.map((r) => ({
+            name: r.name,
+            path: r.path,
+            isDirty: false,
+            viewType: r.viewType || getFallbackViewTypeForRestore(r.data?.documentType || r.documentType),
+          })),
+        );
         if (rightActive) setRightActivePath(rightActive);
       }
     };
+
+    const getFallbackViewTypeForRestore = (docType?: string): DocumentViewType => {
+      if (docType === 'chat') return 'canvas';
+      if (docType === 'image') return 'reader';
+      return 'editor';
+    };
+
     restore();
   }, [projectPath, settings.lastOpenFiles]);
 
   useEffect(() => {
     if (!projectPath || restoredRef.current !== projectPath) return;
     const lastOpenFiles = {
-      left: leftTabs.map((t) => ({ path: t.path, name: t.name })),
-      right: rightTabs.map((t) => ({ path: t.path, name: t.name })),
+      left: leftTabs.map((t) => ({ path: t.path, name: t.name, viewType: t.viewType, documentType: t.documentType })),
+      right: rightTabs.map((t) => ({ path: t.path, name: t.name, viewType: t.viewType, documentType: t.documentType })),
       leftActive: leftActivePath,
       rightActive: rightActivePath,
       activeSide,

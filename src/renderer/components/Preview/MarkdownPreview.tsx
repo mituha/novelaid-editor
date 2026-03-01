@@ -19,9 +19,11 @@ export default function MarkdownPreview({
 }: MarkdownPreviewProps) {
   const { settings } = useSettings();
   const theme = settings.theme || 'dark';
-  const { openDocument, openWebBrowser } = useDocument();
+  const { openDocument, openWebBrowser, closeTab } = useDocument();
 
-  const handleLinkClick = (url: string) => {
+  const handleLinkClick = (url: string, options?: { newTab?: boolean }) => {
+    const { newTab = false } = options || {};
+
     if (url.startsWith('http://') || url.startsWith('https://')) {
       openWebBrowser(url, url);
     } else if (filePath) {
@@ -35,6 +37,9 @@ export default function MarkdownPreview({
       const isAbsolute = decodedUrl.startsWith('/') || /^[a-zA-Z]:/.test(decodedUrl);
       let resolvedPath = decodedUrl;
 
+      // 相対パス内のディレクトリ遷移（/ や \）があるかどうか
+      const hasDirectoryTraversal = decodedUrl.includes('/') || decodedUrl.includes('\\');
+
       if (!isAbsolute) {
         const dir = filePath.replace(/[\\/][^\\/]+$/, '');
         const separator = filePath.includes('\\') ? '\\' : '/';
@@ -42,7 +47,14 @@ export default function MarkdownPreview({
       }
 
       // POSIX と Windows のパス区切りを OS 側で適宜解決させるため、そのまま openDocument へ渡す
-      openDocument(resolvedPath, { requestedViewType: viewType });
+      openDocument(resolvedPath, { requestedViewType: viewType }).then(() => {
+        // 同じディレクトリ階層の場合かつ新規タブ指定でない場合は、元のタブを閉じて「置き換え遷移」に見せる
+        if (!isAbsolute && !hasDirectoryTraversal && !newTab && filePath) {
+          const currentTabPath = viewType === 'preview' ? `preview://${filePath}` : filePath;
+          // ※side指定はcloseInSideが必要だが、closeTabは全ペインから消すため汎用的に機能する
+          closeTab(currentTabPath);
+        }
+      });
     }
   };
 

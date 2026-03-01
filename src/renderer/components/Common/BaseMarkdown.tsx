@@ -5,7 +5,7 @@ export interface BaseMarkdownProps {
   content: string;
   filePath?: string;
   className?: string; // e.g. "markdown-body" or "message-body"
-  onLinkClick?: (url: string) => void;
+  onLinkClick?: (url: string, options?: { newTab?: boolean }) => void;
 }
 
 // 共通の画像コンポーネント（Obsidian風サイズ指定対応＋ローカルパス解決）
@@ -121,7 +121,14 @@ export default function BaseMarkdown({
           onClick={(e) => {
             if (onLinkClick && props.href) {
               e.preventDefault();
-              onLinkClick(props.href);
+              onLinkClick(props.href, { newTab: false });
+            }
+          }}
+          onAuxClick={(e) => {
+            // 中ボタンクリック (button === 1) は新しいタブで開く挙動として扱う
+            if (e.button === 1 && onLinkClick && props.href) {
+              e.preventDefault();
+              onLinkClick(props.href, { newTab: true });
             }
           }}
         />
