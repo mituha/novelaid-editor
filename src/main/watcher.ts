@@ -1,4 +1,4 @@
-import chokidar from 'chokidar';
+import * as chokidar from 'chokidar';
 import { BrowserWindow } from 'electron';
 import { MetadataService } from './metadataService';
 
@@ -62,7 +62,7 @@ export class FileWatcher {
       .on('unlink', (filePath: string) => this.handleEvent('unlink', filePath))
       .on('addDir', (filePath: string) => this.handleEvent('addDir', filePath))
       .on('unlinkDir', (filePath: string) => this.handleEvent('unlinkDir', filePath))
-      .on('error', (error) => console.error(`${LOG_PREFIX} エラー: ${error}`));
+      .on('error', (error: Error) => console.error(`${LOG_PREFIX} エラー: ${error}`));
 
     console.log(`${LOG_PREFIX} start: 監視開始: ${projectPath}`);
   }

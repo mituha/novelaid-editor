@@ -135,15 +135,27 @@ const electronHandler = {
       return ipcRenderer.invoke('shell:openExternal', url);
     },
   },
-  util: {
+  path: {
     relative(from: string, to: string) {
-      return ipcRenderer.invoke('util:relative', from, to);
+      return ipcRenderer.invoke('path:relative', from, to);
     },
     join(...paths: string[]) {
-      return ipcRenderer.invoke('util:join', ...paths);
+      return ipcRenderer.invoke('path:join', ...paths);
     },
     resolve(...paths: string[]) {
-      return ipcRenderer.invoke('util:resolve', ...paths);
+      return ipcRenderer.invoke('path:resolve', ...paths);
+    },
+    basename(p: string, ext?: string) {
+      return ipcRenderer.invoke('path:basename', p, ext);
+    },
+    dirname(p: string) {
+      return ipcRenderer.invoke('path:dirname', p);
+    },
+    extname(p: string) {
+      return ipcRenderer.invoke('path:extname', p);
+    },
+    normalize(p: string) {
+      return ipcRenderer.invoke('path:normalize', p);
     },
   },
 };

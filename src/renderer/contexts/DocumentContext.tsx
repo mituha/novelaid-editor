@@ -233,7 +233,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         requestedViewType?: DocumentViewType;
       }
     ) => {
-      const fileName = path.split('\\').pop() || path.split('/').pop() || 'Untitled';
+      const fileName = (await window.electron.path.basename(path)) || 'Untitled';
       let targetSide = options?.side || activeSide;
       if (options?.requestedViewType === 'preview') {
         targetSide = 'left'; // preview展開時は元エディターを必ずleftに配置
@@ -356,9 +356,9 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   }, [leftTabs, rightTabs, leftActivePath, rightActivePath]);
 
-  const openPreview = useCallback((path: string) => {
+  const openPreview = useCallback(async (path: string) => {
     const previewPath = `preview://${path}`;
-    const previewName = `Preview: ${path.split('\\').pop() || 'Untitled'}`;
+    const previewName = `Preview: ${(await window.electron.path.basename(path)) || 'Untitled'}`;
     const targetSide = activeSide === 'left' ? 'right' : 'left';
     const setTabs = targetSide === 'left' ? setLeftTabs : setRightTabs;
     const setActivePath = targetSide === 'left' ? setLeftActivePath : setRightActivePath;
@@ -371,9 +371,9 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsSplit(true);
   }, [activeSide]);
 
-  const openDiff = useCallback((path: string, staged: boolean) => {
+  const openDiff = useCallback(async (path: string, staged: boolean) => {
     const diffPath = `git-diff://${staged ? 'staged' : 'unstaged'}/${path}`;
-    const diffName = `Diff: ${path.split('\\').pop() || 'Untitled'} (${staged ? 'Staged' : 'Changes'})`;
+    const diffName = `Diff: ${(await window.electron.path.basename(path)) || 'Untitled'} (${staged ? 'Staged' : 'Changes'})`;
     const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
     const setActivePath = activeSide === 'left' ? setLeftActivePath : setRightActivePath;
 
@@ -401,16 +401,18 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const renameDocument = useCallback(async (oldPath: string, newName: string) => {
     if (!newName) return;
-    const fileNameWithExt = oldPath.split('\\').pop() || '';
+    const fileNameWithExt = (await window.electron.path.basename(oldPath)) || '';
     const lastDotIndex = fileNameWithExt.lastIndexOf('.');
-    const fileName = lastDotIndex !== -1 ? fileNameWithExt.substring(0, lastDotIndex) : fileNameWithExt;
-    const fileExt = lastDotIndex !== -1 ? fileNameWithExt.substring(lastDotIndex) : '';
+    const fileName =
+      lastDotIndex !== -1 ? fileNameWithExt.substring(0, lastDotIndex) : fileNameWithExt;
+    const fileExt =
+      lastDotIndex !== -1 ? fileNameWithExt.substring(lastDotIndex) : '';
 
     if (newName === fileName) return;
     clearTimer(oldPath);
 
-    const dir = oldPath.substring(0, oldPath.lastIndexOf('\\'));
-    const newPath = `${dir}\\${newName}${fileExt}`;
+    const dir = await window.electron.path.dirname(oldPath);
+    const newPath = await window.electron.path.join(dir, `${newName}${fileExt}`);
 
     try {
       await window.electron.ipcRenderer.invoke('fs:rename', oldPath, newPath);
@@ -512,10 +514,15 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           }),
         );
-        return results.filter((r): r is { path: string; name: string; data: any; viewType?: DocumentViewType; documentType?: DocumentType } => r !== null);
+        return results.filter(
+          (r): r is { path: string; name: string; data: any; viewType: DocumentViewType | undefined; documentType: DocumentType | undefined } => r !== null
+        );
       };
 
-      const [leftResults, rightResults] = await Promise.all([restoreFiles(left), restoreFiles(right)]);
+      const [leftRaw, rightRaw] = await Promise.all([restoreFiles(left), restoreFiles(right)]);
+      const leftResults = leftRaw.filter((r) => r !== null) as NonNullable<typeof leftRaw[number]>[];
+      const rightResults = rightRaw.filter((r) => r !== null) as NonNullable<typeof rightRaw[number]>[];
+
       const contentsUpdate: any = {};
       [...leftResults, ...rightResults].forEach((r) => {
         contentsUpdate[r.path] = { ...r.data, lastSource: 'external' };

@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { useSettings } from '../../contexts/SettingsContext';
 import BaseMarkdown from '../Common/BaseMarkdown';
 import { useDocument } from '../../contexts/DocumentContext';
@@ -21,7 +20,7 @@ export default function MarkdownPreview({
   const theme = settings.theme || 'dark';
   const { openDocument, openWebBrowser, closeTab } = useDocument();
 
-  const handleLinkClick = (url: string, options?: { newTab?: boolean }) => {
+  const handleLinkClick = async (url: string, options?: { newTab?: boolean }) => {
     const { newTab = false } = options || {};
 
     if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -41,9 +40,8 @@ export default function MarkdownPreview({
       const hasDirectoryTraversal = decodedUrl.includes('/') || decodedUrl.includes('\\');
 
       if (!isAbsolute) {
-        const dir = filePath.replace(/[\\/][^\\/]+$/, '');
-        const separator = filePath.includes('\\') ? '\\' : '/';
-        resolvedPath = `${dir}${separator}${decodedUrl}`;
+        const dir = await window.electron.path.dirname(filePath);
+        resolvedPath = await window.electron.path.join(dir, decodedUrl);
       }
 
       // POSIX と Windows のパス区切りを OS 側で適宜解決させるため、そのまま openDocument へ渡す
@@ -72,11 +70,7 @@ export default function MarkdownPreview({
   );
 }
 
-MarkdownPreview.propTypes = {
-  content: PropTypes.string.isRequired,
-  filePath: PropTypes.string,
-  viewType: PropTypes.string,
-};
+
 
 MarkdownPreview.defaultProps = {
   filePath: '',

@@ -450,7 +450,7 @@ export default function CodeEditor({
                 ? activePath.lastIndexOf('\\')
                 : activePath.lastIndexOf('/');
               const parentDir = activePath.substring(0, lastSep);
-              const relativePath = await window.electron.util.relative(parentDir, filePath);
+              const relativePath = await window.electron.path.relative(parentDir, filePath);
 
               // .md, .txt 等は画像ではないとして事前に弾く
               const ext = fullName.substring(fullName.lastIndexOf('.')).toLowerCase();

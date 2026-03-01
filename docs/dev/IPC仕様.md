@@ -57,7 +57,7 @@ LLM を使用した生成やチャット機能を担当します。
 | `metadata:query` | invoke | タグ等によるファイル検索 | `tagOrTags: string \| string[]`| `Promise<any[]>` |
 | `metadata:scan-progress`| send | スキャン進捗通知 (Main -> Renderer)| - | `{progress, status}` |
 
-### 5. ウィンドウ・システム (`window:`, `app:`, `dialog:`, `shell:`, `util:`)
+### 5. ウィンドウ・システム (`window:`, `app:`, `dialog:`, `shell:`, `path:`)
 OS 固有機能やユーティリティを担当します。
 
 | チャンネル名 | 方式 | 説明 | 引数 | 戻り値 |
@@ -70,7 +70,7 @@ OS 固有機能やユーティリティを担当します。
 | `dialog:openDirectory`| invoke | ディレクトリ選択ダイアログ | - | `Promise<string \| null>` |
 | `dialog:confirm` | invoke | 確認ダイアログの表示 | `message: string` | `Promise<boolean>` |
 | `shell:openExternal` | invoke | 外部ブラウザ等でURLを開く | `url: string` | `Promise<void>` |
-| `util:relative` | invoke | 相対パスの計算 | `from: string, to: string` | `string` |
+| `path:relative` | invoke | 相対パスの計算 | `from: string, to: string` | `string` |
 
 ## 実装上の注意
 

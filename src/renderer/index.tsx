@@ -5,6 +5,7 @@ import ja from 'monaco-editor-nls/locale/ja.json';
 setLocaleData(ja);
 
 // Dynamic import to ensure monaco-editor is loaded after setLocaleData
+// @ts-ignore
 import('./App').then(async ({ default: App }) => {
   const { loader } = await import('@monaco-editor/react');
   const monaco = await import('monaco-editor');

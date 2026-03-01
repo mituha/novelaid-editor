@@ -45,10 +45,14 @@ declare global {
       shell: {
         openExternal(url: string): Promise<void>;
       };
-      util: {
+      path: {
         relative(from: string, to: string): Promise<string>;
         join(...paths: string[]): Promise<string>;
         resolve(...paths: string[]): Promise<string>;
+        basename(p: string, ext?: string): Promise<string>;
+        dirname(p: string): Promise<string>;
+        extname(p: string): Promise<string>;
+        normalize(p: string): Promise<string>;
       };
     };
   }

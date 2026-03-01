@@ -442,12 +442,32 @@ ipcMain.handle('metadata:queryChatEnabled', async () => {
     return metadataService.queryChatEnabled();
 });
 
-ipcMain.handle('util:relative', (_, from: string, to: string) => {
+ipcMain.handle('path:relative', (_, from: string, to: string) => {
   return path.relative(from, to).replace(/\\/g, '/');
 });
 
-ipcMain.handle('util:resolve', (_, ...paths: string[]) => {
+ipcMain.handle('path:resolve', (_, ...paths: string[]) => {
   return path.resolve(...paths).replace(/\\/g, '/');
+});
+
+ipcMain.handle('path:join', (_, ...paths: string[]) => {
+  return path.join(...paths).replace(/\\/g, '/');
+});
+
+ipcMain.handle('path:basename', (_, p: string, ext?: string) => {
+  return path.basename(p, ext);
+});
+
+ipcMain.handle('path:dirname', (_, p: string) => {
+  return path.dirname(p).replace(/\\/g, '/');
+});
+
+ipcMain.handle('path:extname', (_, p: string) => {
+  return path.extname(p);
+});
+
+ipcMain.handle('path:normalize', (_, p: string) => {
+  return path.normalize(p).replace(/\\/g, '/');
 });
 
 ipcMain.on(
