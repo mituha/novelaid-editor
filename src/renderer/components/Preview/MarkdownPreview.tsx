@@ -21,6 +21,25 @@ function MarkdownImage({
   title?: string;
 }) {
   let finalSrc = src;
+  let finalAlt = alt;
+  let imgWidth: number | string | undefined;
+  let imgHeight: number | string | undefined;
+
+  // Obsidian style image size parsing: ![alt|100](url) or ![alt|100x200](url)
+  if (finalAlt && finalAlt.includes('|')) {
+    const lastPipeIndex = finalAlt.lastIndexOf('|');
+    const potentialSize = finalAlt.substring(lastPipeIndex + 1).trim();
+
+    if (/^\d+$/.test(potentialSize)) {
+      imgWidth = parseInt(potentialSize, 10);
+      finalAlt = finalAlt.substring(0, lastPipeIndex);
+    } else if (/^\d+x\d+$/.test(potentialSize)) {
+      const [w, h] = potentialSize.split('x');
+      imgWidth = parseInt(w, 10);
+      imgHeight = parseInt(h, 10);
+      finalAlt = finalAlt.substring(0, lastPipeIndex);
+    }
+  }
 
   if (
     src &&
@@ -55,7 +74,15 @@ function MarkdownImage({
     }
   }
 
-  return <img src={finalSrc} alt={alt} title={title} />;
+  return (
+    <img
+      src={finalSrc}
+      alt={finalAlt}
+      title={title}
+      width={imgWidth}
+      height={imgHeight}
+    />
+  );
 }
 
 export default function MarkdownPreview({
