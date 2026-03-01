@@ -75,6 +75,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
           <MarkdownPreview
             content={data.content || ''}
             filePath={originalPath}
+            viewType="preview"
           />
         );
       }
@@ -154,7 +155,11 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     if (viewType === 'reader') {
       if (data.documentType === 'markdown') {
         return (
-          <MarkdownPreview content={data.content || ''} filePath={activePath} />
+          <MarkdownPreview
+            content={data.content || ''}
+            filePath={activePath}
+            viewType="reader"
+          />
         );
       }
       return <NovelPreview content={data.content || ''} />;

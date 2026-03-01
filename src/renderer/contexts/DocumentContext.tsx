@@ -30,6 +30,7 @@ interface DocumentContextType {
     options?: {
         data?: { content: string; metadata: Record<string, any>; documentType?: DocumentType };
         side?: 'left' | 'right';
+        requestedViewType?: DocumentViewType;
       }
     ) => Promise<void>;
   openPanelDocument: (path: string, initialData?: { content: string; metadata: Record<string, any> }) => Promise<void>;
@@ -229,6 +230,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       options?: {
         data?: { content: string; metadata: Record<string, any>; documentType?: DocumentType };
         side?: 'left' | 'right';
+        requestedViewType?: DocumentViewType;
       }
     ) => {
       const fileName = path.split('\\').pop() || path.split('/').pop() || 'Untitled';
@@ -256,6 +258,11 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       const getInitialViewType = (docType?: DocumentType): DocumentViewType => {
+        if (options?.requestedViewType) {
+          // preview は特別扱い（後続の処理で openPreview するため、タブとしては editor として開く）
+          if (options.requestedViewType === 'preview') return 'editor';
+          return options.requestedViewType;
+        }
         if (docType === 'chat') return 'canvas';
         if (docType === 'image') return 'reader';
         return 'editor';
@@ -285,6 +292,25 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         setRightActivePath(path);
         if (activeSide !== 'right') setActiveSide('right');
+      }
+
+      // requestedViewType === 'preview' の場合は、タブ開設直後にプレビューも展開する
+      if (options?.requestedViewType === 'preview') {
+        // useCallback の依存関係で openPreview を直接呼べない課題があるため、
+        // 類似の処理をここで安全に行うか、useEffect または setTimeout 等で非同期的に処理するアプローチをとる。
+        // ここでは DocumentContext 内部の状態更新関数を直接利用して構築する。
+        const previewPath = `preview://${path}`;
+        const previewName = `Preview: ${fileName}`;
+        const targetPreviewSide = targetSide === 'left' ? 'right' : 'left';
+        const setPreviewTabs = targetPreviewSide === 'left' ? setLeftTabs : setRightTabs;
+        const setPreviewActivePath = targetPreviewSide === 'left' ? setLeftActivePath : setRightActivePath;
+
+        setPreviewTabs((prev) => {
+          if (prev.find((tab) => tab.path === previewPath)) return prev;
+          return [...prev, { path: previewPath, name: previewName, isDirty: false, viewType: 'preview' }];
+        });
+        setPreviewActivePath(previewPath);
+        setIsSplit(true);
       }
     },
     [activeSide]

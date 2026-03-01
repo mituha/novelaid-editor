@@ -5,6 +5,7 @@ export interface BaseMarkdownProps {
   content: string;
   filePath?: string;
   className?: string; // e.g. "markdown-body" or "message-body"
+  onLinkClick?: (url: string) => void;
 }
 
 // 共通の画像コンポーネント（Obsidian風サイズ指定対応＋ローカルパス解決）
@@ -87,6 +88,7 @@ export default function BaseMarkdown({
   content,
   filePath,
   className = '',
+  onLinkClick,
 }: BaseMarkdownProps) {
   const [ReactMarkdown, setReactMarkdown] = useState<any>(null);
   const [remarkGfm, setRemarkGfm] = useState<any>(null);
@@ -113,9 +115,20 @@ export default function BaseMarkdown({
   const components = useMemo(
     () => ({
       img: (props: any) => <BaseMarkdownImage {...props} filePath={filePath} />,
+      a: (props: any) => (
+        <a
+          {...props}
+          onClick={(e) => {
+            if (onLinkClick && props.href) {
+              e.preventDefault();
+              onLinkClick(props.href);
+            }
+          }}
+        />
+      ),
       // TODO: コードブロックなどの共通拡張処理が必要になればここに追加する
     }),
-    [filePath],
+    [filePath, onLinkClick],
   );
 
   if (!ReactMarkdown || !remarkGfm || !rehypeRaw) {
