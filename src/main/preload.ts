@@ -139,6 +139,12 @@ const electronHandler = {
     relative(from: string, to: string) {
       return ipcRenderer.invoke('util:relative', from, to);
     },
+    join(...paths: string[]) {
+      return ipcRenderer.invoke('util:join', ...paths);
+    },
+    resolve(...paths: string[]) {
+      return ipcRenderer.invoke('util:resolve', ...paths);
+    },
   },
 };
 

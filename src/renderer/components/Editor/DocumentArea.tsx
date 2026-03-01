@@ -71,7 +71,12 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       const originalPath = activePath.replace('preview://', '');
       const data = documents[originalPath];
       if (data?.documentType === 'markdown') {
-        return <MarkdownPreview content={data.content || ''} />;
+        return (
+          <MarkdownPreview
+            content={data.content || ''}
+            filePath={originalPath}
+          />
+        );
       }
       return <NovelPreview content={data?.content || ''} />;
     }
@@ -148,7 +153,9 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
 
     if (viewType === 'reader') {
       if (data.documentType === 'markdown') {
-        return <MarkdownPreview content={data.content || ''} />;
+        return (
+          <MarkdownPreview content={data.content || ''} filePath={activePath} />
+        );
       }
       return <NovelPreview content={data.content || ''} />;
     }

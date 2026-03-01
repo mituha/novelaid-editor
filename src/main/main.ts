@@ -446,6 +446,10 @@ ipcMain.handle('util:relative', (_, from: string, to: string) => {
   return path.relative(from, to).replace(/\\/g, '/');
 });
 
+ipcMain.handle('util:resolve', (_, ...paths: string[]) => {
+  return path.resolve(...paths).replace(/\\/g, '/');
+});
+
 ipcMain.on(
   'ai:streamChat',
   async (event, messages: any[], config: any, personaId?: string, roleId?: string, path?: string) => {

@@ -1,12 +1,66 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { useSettings } from '../../contexts/SettingsContext';
 import './MarkdownPreview.css';
 
 interface MarkdownPreviewProps {
   content: string;
+  filePath?: string;
 }
 
-export default function MarkdownPreview({ content }: MarkdownPreviewProps) {
+function MarkdownImage({
+  src,
+  alt,
+  filePath,
+  title,
+}: {
+  src: string;
+  alt?: string;
+  filePath?: string;
+  title?: string;
+}) {
+  let finalSrc = src;
+
+  if (
+    src &&
+    !src.startsWith('http') &&
+    !src.startsWith('data:') &&
+    !src.startsWith('nvfs:') &&
+    filePath
+  ) {
+    try {
+      // react-markdown は src をエンコードしてしまうためデコードする
+      const decodedSrc = decodeURIComponent(src);
+
+      const isAbsolute =
+        decodedSrc.startsWith('/') || /^[a-zA-Z]:/.test(decodedSrc);
+
+      let fullPath = decodedSrc;
+      if (!isAbsolute) {
+        // filePath のディレクトリを基準に解決
+        const dir = filePath.replace(/[\\/][^\\/]+$/, '');
+        const separator = filePath.includes('\\') ? '\\' : '/';
+        fullPath = `${dir}${separator}${decodedSrc}`;
+      }
+
+      const normalized = fullPath.replace(/\\/g, '/');
+      const encodedPath = normalized
+        .split('/')
+        .map((segment) => encodeURIComponent(segment))
+        .join('/');
+      finalSrc = `nvfs://local/${encodedPath}`;
+    } catch (err) {
+      console.error('Failed to resolve image path synchronously:', err);
+    }
+  }
+
+  return <img src={finalSrc} alt={alt} title={title} />;
+}
+
+export default function MarkdownPreview({
+  content,
+  filePath,
+}: MarkdownPreviewProps) {
   const { settings } = useSettings();
   const theme = settings.theme || 'dark';
 
@@ -26,12 +80,21 @@ export default function MarkdownPreview({ content }: MarkdownPreviewProps) {
       });
   }, []);
 
+  const components = useMemo(
+    () => ({
+      img: (props: any) => <MarkdownImage {...props} filePath={filePath} />,
+    }),
+    [filePath],
+  );
+
   return (
     <div className="markdown-preview-container" data-theme={theme}>
       <div className="markdown-preview-content">
         <div className="markdown-body">
           {ReactMarkdown && remarkGfm ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+              {content}
+            </ReactMarkdown>
           ) : (
             <div>Loading preview...</div>
           )}
@@ -40,3 +103,25 @@ export default function MarkdownPreview({ content }: MarkdownPreviewProps) {
     </div>
   );
 }
+
+MarkdownImage.propTypes = {
+  src: PropTypes.string.isRequired,
+  alt: PropTypes.string,
+  filePath: PropTypes.string,
+  title: PropTypes.string,
+};
+
+MarkdownImage.defaultProps = {
+  alt: '',
+  filePath: '',
+  title: '',
+};
+
+MarkdownPreview.propTypes = {
+  content: PropTypes.string.isRequired,
+  filePath: PropTypes.string,
+};
+
+MarkdownPreview.defaultProps = {
+  filePath: '',
+};

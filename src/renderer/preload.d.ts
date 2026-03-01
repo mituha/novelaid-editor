@@ -47,6 +47,8 @@ declare global {
       };
       util: {
         relative(from: string, to: string): Promise<string>;
+        join(...paths: string[]): Promise<string>;
+        resolve(...paths: string[]): Promise<string>;
       };
     };
   }
