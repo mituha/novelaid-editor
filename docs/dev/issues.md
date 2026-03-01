@@ -77,4 +77,35 @@ Monaco Editor の機能だが、動作していない？
 互換調整ではないが、ファイルの結合機能とか欲しくなりそう。
 登録したファイル、フォルダーに対する一括処理用のパネルを用意しても良いかも？
 
+## ライブラリのバージョン
+
+eslintのバージョンをv8からv9に一旦上げたのだが、GitHub上でのpublishが通らなくなったいた。
+なお、その際、ローカルの`npm i`もエラーが出るようになっていたので、一旦ある程度元に戻した。
+ただし、上手く戻せていない可能性もある。
+エラーになるのは postinstall の処理中。
+また、一旦 `node_modules` を削除してインストールもやり直している。
+```pwsh
+# キャッシュをクリア
+npm cache clean --force
+# 再インストール
+npm i
+```
+それでも治らない。
+```
+Unable to find electron's version number, either install it or specify an explicit version
+```
+```pwsh
+node_modules/.bin/electron -v
+v40.6.1
+```
+
+https://github.com/electron-userland/electron-builder/issues/9143
+electron-builderのバグっぽい。
+ルートとrelease/appの両方にpackage.jsonがあるのが原因の模様。
+release/appの方でもelectronをインストールすることで回避できた。
+
+eslintのバージョン問題はそのうち順に解消するものとします。
+
+
+
 
