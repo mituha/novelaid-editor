@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useSettings } from '../../contexts/SettingsContext';
+import { transformNovelSyntax } from '../../../common/utils/novelUtils';
 import './MarkdownPreview.css';
 
 interface MarkdownPreviewProps {
@@ -66,12 +67,18 @@ export default function MarkdownPreview({
 
   const [ReactMarkdown, setReactMarkdown] = useState<any>(null);
   const [remarkGfm, setRemarkGfm] = useState<any>(null);
+  const [rehypeRaw, setRehypeRaw] = useState<any>(null);
 
   useEffect(() => {
-    Promise.all([import('react-markdown'), import('remark-gfm')])
-      .then(([markdownModule, gfmModule]) => {
+    Promise.all([
+      import('react-markdown'),
+      import('remark-gfm'),
+      import('rehype-raw'),
+    ])
+      .then(([markdownModule, gfmModule, rehypeRawModule]) => {
         setReactMarkdown(() => markdownModule.default);
         setRemarkGfm(() => gfmModule.default);
+        setRehypeRaw(() => rehypeRawModule.default);
         return null;
       })
       .catch((err) => {
@@ -91,9 +98,13 @@ export default function MarkdownPreview({
     <div className="markdown-preview-container" data-theme={theme}>
       <div className="markdown-preview-content">
         <div className="markdown-body">
-          {ReactMarkdown && remarkGfm ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-              {content}
+          {ReactMarkdown && remarkGfm && rehypeRaw ? (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw as any]}
+              components={components}
+            >
+              {transformNovelSyntax(content)}
             </ReactMarkdown>
           ) : (
             <div>Loading preview...</div>

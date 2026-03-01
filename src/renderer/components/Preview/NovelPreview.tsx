@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Languages, Type } from 'lucide-react';
-import { NOVEL_PATTERNS } from '../../../common/constants/novel';
+import { transformNovelSyntax } from '../../../common/utils/novelUtils';
 import './NovelPreview.css';
 
 interface NovelPreviewProps {
@@ -13,24 +13,8 @@ export default function NovelPreview({ content }: NovelPreviewProps) {
   const parseNovelContent = (text: string) => {
     if (!text) return [];
 
-    let processed = text;
-
-    // 1. Handle Ruby
-    // Replace pipe versions first, then non-pipe versions
-    processed = processed.replace(
-      NOVEL_PATTERNS.RUBY_WITH_PIPE,
-      '<ruby>$1<rt>$2</rt></ruby>',
-    );
-    processed = processed.replace(
-      NOVEL_PATTERNS.RUBY_WITHOUT_PIPE,
-      '<ruby>$1<rt>$2</rt></ruby>',
-    );
-
-    // 2. Handle Bouten (Double brackets)
-    processed = processed.replace(
-      NOVEL_PATTERNS.BOUTEN,
-      '<span class="bouten">$1</span>',
-    );
+    // 共通ユーティリティでルビと傍点の処理を実施
+    const processed = transformNovelSyntax(text);
 
     // 3. Handle newlines
     const lines = processed.split('\n');
