@@ -1,88 +1,12 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { useSettings } from '../../contexts/SettingsContext';
-import { transformNovelSyntax } from '../../../common/utils/novelUtils';
+import BaseMarkdown from '../Common/BaseMarkdown';
 import './MarkdownPreview.css';
 
 interface MarkdownPreviewProps {
   content: string;
   filePath?: string;
-}
-
-function MarkdownImage({
-  src,
-  alt,
-  filePath,
-  title,
-}: {
-  src: string;
-  alt?: string;
-  filePath?: string;
-  title?: string;
-}) {
-  let finalSrc = src;
-  let finalAlt = alt;
-  let imgWidth: number | string | undefined;
-  let imgHeight: number | string | undefined;
-
-  // Obsidian style image size parsing: ![alt|100](url) or ![alt|100x200](url)
-  if (finalAlt && finalAlt.includes('|')) {
-    const lastPipeIndex = finalAlt.lastIndexOf('|');
-    const potentialSize = finalAlt.substring(lastPipeIndex + 1).trim();
-
-    if (/^\d+$/.test(potentialSize)) {
-      imgWidth = parseInt(potentialSize, 10);
-      finalAlt = finalAlt.substring(0, lastPipeIndex);
-    } else if (/^\d+x\d+$/.test(potentialSize)) {
-      const [w, h] = potentialSize.split('x');
-      imgWidth = parseInt(w, 10);
-      imgHeight = parseInt(h, 10);
-      finalAlt = finalAlt.substring(0, lastPipeIndex);
-    }
-  }
-
-  if (
-    src &&
-    !src.startsWith('http') &&
-    !src.startsWith('data:') &&
-    !src.startsWith('nvfs:') &&
-    filePath
-  ) {
-    try {
-      // react-markdown は src をエンコードしてしまうためデコードする
-      const decodedSrc = decodeURIComponent(src);
-
-      const isAbsolute =
-        decodedSrc.startsWith('/') || /^[a-zA-Z]:/.test(decodedSrc);
-
-      let fullPath = decodedSrc;
-      if (!isAbsolute) {
-        // filePath のディレクトリを基準に解決
-        const dir = filePath.replace(/[\\/][^\\/]+$/, '');
-        const separator = filePath.includes('\\') ? '\\' : '/';
-        fullPath = `${dir}${separator}${decodedSrc}`;
-      }
-
-      const normalized = fullPath.replace(/\\/g, '/');
-      const encodedPath = normalized
-        .split('/')
-        .map((segment) => encodeURIComponent(segment))
-        .join('/');
-      finalSrc = `nvfs://local/${encodedPath}`;
-    } catch (err) {
-      console.error('Failed to resolve image path synchronously:', err);
-    }
-  }
-
-  return (
-    <img
-      src={finalSrc}
-      alt={finalAlt}
-      title={title}
-      width={imgWidth}
-      height={imgHeight}
-    />
-  );
 }
 
 export default function MarkdownPreview({
@@ -92,68 +16,18 @@ export default function MarkdownPreview({
   const { settings } = useSettings();
   const theme = settings.theme || 'dark';
 
-  const [ReactMarkdown, setReactMarkdown] = useState<any>(null);
-  const [remarkGfm, setRemarkGfm] = useState<any>(null);
-  const [rehypeRaw, setRehypeRaw] = useState<any>(null);
-
-  useEffect(() => {
-    Promise.all([
-      import('react-markdown'),
-      import('remark-gfm'),
-      import('rehype-raw'),
-    ])
-      .then(([markdownModule, gfmModule, rehypeRawModule]) => {
-        setReactMarkdown(() => markdownModule.default);
-        setRemarkGfm(() => gfmModule.default);
-        setRehypeRaw(() => rehypeRawModule.default);
-        return null;
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to load markdown modules:', err);
-      });
-  }, []);
-
-  const components = useMemo(
-    () => ({
-      img: (props: any) => <MarkdownImage {...props} filePath={filePath} />,
-    }),
-    [filePath],
-  );
-
   return (
     <div className="markdown-preview-container" data-theme={theme}>
       <div className="markdown-preview-content">
-        <div className="markdown-body">
-          {ReactMarkdown && remarkGfm && rehypeRaw ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw as any]}
-              components={components}
-            >
-              {transformNovelSyntax(content)}
-            </ReactMarkdown>
-          ) : (
-            <div>Loading preview...</div>
-          )}
-        </div>
+        <BaseMarkdown
+          content={content}
+          filePath={filePath}
+          className="markdown-body"
+        />
       </div>
     </div>
   );
 }
-
-MarkdownImage.propTypes = {
-  src: PropTypes.string.isRequired,
-  alt: PropTypes.string,
-  filePath: PropTypes.string,
-  title: PropTypes.string,
-};
-
-MarkdownImage.defaultProps = {
-  alt: '',
-  filePath: '',
-  title: '',
-};
 
 MarkdownPreview.propTypes = {
   content: PropTypes.string.isRequired,

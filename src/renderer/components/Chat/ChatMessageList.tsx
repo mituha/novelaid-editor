@@ -5,7 +5,7 @@ import {
   ArrowUpFromLine,
   ArrowDownFromLine,
 } from 'lucide-react';
-import NovelMarkdown from '../AI/NovelMarkdown';
+import MessageMarkdown from '../AI/MessageMarkdown';
 import PersonaIcon from '../AI/PersonaIcon';
 import './ChatMessageList.css';
 
@@ -200,7 +200,7 @@ export default function ChatMessageList({
                   <div className={`chat-message-bubble ${msg.role}`}>
                     {msg.role === 'user' ? (
                       <div className="chat-message-text">
-                        <NovelMarkdown
+                        <MessageMarkdown
                           content={
                             msg.displayContent ||
                             msg.content ||
@@ -222,7 +222,7 @@ export default function ChatMessageList({
                               <details className="chat-thought">
                                 <summary>Thinking...</summary>
                                 <div className="chat-thought-content">
-                                  <NovelMarkdown content={part.content} />
+                                  <MessageMarkdown content={part.content} />
                                 </div>
                               </details>
                             ) : part.type === 'tool_call' ? (
@@ -235,7 +235,7 @@ export default function ChatMessageList({
                                 </span>
                               </div>
                             ) : (
-                              <NovelMarkdown content={part.content} />
+                              <MessageMarkdown content={part.content} />
                             )}
                           </div>
                         ))}
