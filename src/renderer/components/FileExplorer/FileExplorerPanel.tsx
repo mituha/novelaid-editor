@@ -15,12 +15,13 @@ import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
 import FileIcon from '../../utils/FileIcon';
 import { DocumentType } from '../../../common/types';
+import { toDocumentPath } from '../../../common/utils/pathUtils';
 
 const BASE_INDENT = -8;
 const INDENT_STEP = 16;
 
 /** パスを正規化（バックスラッシュ → スラッシュ） */
-const normalizePath = (p: string) => p.replace(/\\/g, '/');
+const normalizePath = toDocumentPath;
 
 /**
  * ドラッグ&ドロップによるファイル移動/コピーを実行する共通処理。
@@ -81,13 +82,30 @@ interface FileExplorerProps {
   onFileSelect: (path: string, data: any) => void;
 }
 
-function OpenEditorItem({ tab, side, activeTabPath, onFileSelect, closeTab, level = 1 }: { tab: Tab, side: 'left' | 'right', activeTabPath: string | null, onFileSelect: (path: string, data: any) => void, closeTab: (path: string, side?: 'left' | 'right') => void, level?: number }) {
+function OpenEditorItem({
+  tab,
+  side,
+  activeTabPath,
+  onFileSelect,
+  closeTab,
+  level = 1,
+}: {
+  tab: Tab;
+  side: 'left' | 'right';
+  activeTabPath: string | null;
+  onFileSelect: (path: string, data: any) => void;
+  closeTab: (path: string, side?: 'left' | 'right') => void;
+  level?: number;
+}) {
   const fileName = tab.name;
   const isActive = tab.path === activeTabPath;
   return (
     <div
       className={`file-item open-editor-item ${isActive ? 'active' : ''}`}
-      onClick={(e) => { e.stopPropagation(); onFileSelect(tab.path, undefined); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onFileSelect(tab.path, undefined);
+      }}
       style={{ paddingLeft: `${BASE_INDENT + level * INDENT_STEP}px` }}
       draggable
       onDragStart={(e) => {
@@ -98,14 +116,38 @@ function OpenEditorItem({ tab, side, activeTabPath, onFileSelect, closeTab, leve
       <span className="icon">
         <FileIcon name={fileName} isDirectory={false} size={16} />
       </span>
-      <span className="name" title={tab.path} style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '13px' }}>
+      <span
+        className="name"
+        title={tab.path}
+        style={{
+          flex: 1,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          fontSize: '13px',
+        }}
+      >
         {fileName}
       </span>
-      {tab.isDirty && <span className="dirty-dot" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#fff', marginRight: 4 }} />}
+      {tab.isDirty && (
+        <span
+          className="dirty-dot"
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            backgroundColor: '#fff',
+            marginRight: 4,
+          }}
+        />
+      )}
       <button
         type="button"
         className="action-btn editor-close-btn"
-        onClick={(e) => { e.stopPropagation(); closeTab(tab.path, side); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          closeTab(tab.path, side);
+        }}
         title="閉じる"
       >
         <X size={14} />
@@ -290,7 +332,6 @@ function FileTreeItem({
     handleCreateChild(e, loadDirectory);
   };
 
-
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', file.path);
     e.dataTransfer.effectAllowed = 'copyMove'; // Shift+ドラッグでコピーカーソルを表示
@@ -471,11 +512,21 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
   const [rightEditorsExpanded, setRightEditorsExpanded] = useState(true);
 
   const openLeftFiles = React.useMemo(() => {
-    return leftTabs.filter((tab) => tab.viewType !== 'preview' && tab.documentType !== 'git-diff' && tab.documentType !== 'browser');
+    return leftTabs.filter(
+      (tab) =>
+        tab.viewType !== 'preview' &&
+        tab.documentType !== 'git-diff' &&
+        tab.documentType !== 'browser',
+    );
   }, [leftTabs]);
 
   const openRightFiles = React.useMemo(() => {
-    return rightTabs.filter((tab) => tab.viewType !== 'preview' && tab.documentType !== 'git-diff' && tab.documentType !== 'browser');
+    return rightTabs.filter(
+      (tab) =>
+        tab.viewType !== 'preview' &&
+        tab.documentType !== 'git-diff' &&
+        tab.documentType !== 'browser',
+    );
   }, [rightTabs]);
 
   const refreshRoot = useCallback(async () => {
@@ -532,22 +583,25 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     };
   }, [currentDir, refreshRoot]);
 
-  const handleDelete = useCallback(async (path: string) => {
-    const fileName = path.split(/[/\\]/).pop();
-    const confirmed = await window.electron.ipcRenderer.invoke(
-      'dialog:confirm',
-      `${fileName} を削除しますか？`,
-    );
-    if (confirmed) {
-      try {
-        await window.electron.ipcRenderer.invoke('fs:delete', path);
-        refreshRoot();
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to delete', err);
+  const handleDelete = useCallback(
+    async (path: string) => {
+      const fileName = path.split(/[/\\]/).pop();
+      const confirmed = await window.electron.ipcRenderer.invoke(
+        'dialog:confirm',
+        `${fileName} を削除しますか？`,
+      );
+      if (confirmed) {
+        try {
+          await window.electron.ipcRenderer.invoke('fs:delete', path);
+          refreshRoot();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to delete', err);
+        }
       }
-    }
-  }, [refreshRoot]);
+    },
+    [refreshRoot],
+  );
 
   useEffect(() => {
     const cleanup = window.electron.ipcRenderer.on(
@@ -665,28 +719,35 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
     const srcPath = e.dataTransfer.getData('text/plain');
     if (!srcPath) return;
     const isCopy = e.ctrlKey;
+
     // eslint-disable-next-line no-console
-      // eslint-disable-next-line no-console
-      console.log(
-        '[handleRootDrop] srcPath:',
-        srcPath,
-        'destDir:',
-        currentDir,
-        'isCopy:',
-        isCopy,
-      );
+    console.log(
+      '[handleRootDrop] srcPath:',
+      srcPath,
+      'destDir:',
+      currentDir,
+      'isCopy:',
+      isCopy,
+    );
     await performFileDrop(srcPath, currentDir, isCopy, refreshRoot);
   };
 
   const rootFolderName = currentDir
-    ? currentDir.split(/[/\\]/).filter(Boolean).pop() ?? currentDir
+    ? (currentDir.split(/[/\\]/).filter(Boolean).pop() ?? currentDir)
     : '';
 
   return (
     <div className="file-explorer" onClick={() => setSelectedPath(null)}>
       {/* 開いているエディター一覧 */}
       {(openLeftFiles.length > 0 || openRightFiles.length > 0) && (
-        <div className="open-editors-section" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '4px', marginBottom: '4px' }}>
+        <div
+          className="open-editors-section"
+          style={{
+            borderBottom: '1px solid var(--border-color)',
+            paddingBottom: '4px',
+            marginBottom: '4px',
+          }}
+        >
           <div
             className="root-folder-header"
             onClick={(e) => {
@@ -702,7 +763,11 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
             role="button"
           >
             <span className="chevron root-chevron">
-              {openEditorsIsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              {openEditorsIsExpanded ? (
+                <ChevronDown size={14} />
+              ) : (
+                <ChevronRight size={14} />
+              )}
             </span>
             <span className="root-folder-name">開いているファイル</span>
           </div>
@@ -714,17 +779,45 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
                 <>
                   <div
                     className="open-editors-group-title file-item"
-                    style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7, padding: `4px 8px 4px ${BASE_INDENT}px`, textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    onClick={(e) => { e.stopPropagation(); setLeftEditorsExpanded(v => !v); }}
+                    style={{
+                      fontSize: '10px',
+                      color: 'var(--text-secondary)',
+                      opacity: 0.7,
+                      padding: `4px 8px 4px ${BASE_INDENT}px`,
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLeftEditorsExpanded((v) => !v);
+                    }}
                   >
-                    <span className="chevron root-chevron" style={{ opacity: 1 }}>
-                      {leftEditorsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    <span
+                      className="chevron root-chevron"
+                      style={{ opacity: 1 }}
+                    >
+                      {leftEditorsExpanded ? (
+                        <ChevronDown size={14} />
+                      ) : (
+                        <ChevronRight size={14} />
+                      )}
                     </span>
                     左エディター
                   </div>
-                  {leftEditorsExpanded && openLeftFiles.map(tab => (
-                    <OpenEditorItem key={tab.path} tab={tab} side="left" activeTabPath={activeTabPath} closeTab={closeTab} onFileSelect={onFileSelect} />
-                  ))}
+                  {leftEditorsExpanded &&
+                    openLeftFiles.map((tab) => (
+                      <OpenEditorItem
+                        key={tab.path}
+                        tab={tab}
+                        side="left"
+                        activeTabPath={activeTabPath}
+                        closeTab={closeTab}
+                        onFileSelect={onFileSelect}
+                      />
+                    ))}
                 </>
               )}
 
@@ -733,17 +826,46 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
                 <>
                   <div
                     className="open-editors-group-title file-item"
-                    style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7, padding: `4px 8px 4px ${BASE_INDENT}px`, marginTop: '4px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    onClick={(e) => { e.stopPropagation(); setRightEditorsExpanded(v => !v); }}
+                    style={{
+                      fontSize: '10px',
+                      color: 'var(--text-secondary)',
+                      opacity: 0.7,
+                      padding: `4px 8px 4px ${BASE_INDENT}px`,
+                      marginTop: '4px',
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRightEditorsExpanded((v) => !v);
+                    }}
                   >
-                    <span className="chevron root-chevron" style={{ opacity: 1 }}>
-                      {rightEditorsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    <span
+                      className="chevron root-chevron"
+                      style={{ opacity: 1 }}
+                    >
+                      {rightEditorsExpanded ? (
+                        <ChevronDown size={14} />
+                      ) : (
+                        <ChevronRight size={14} />
+                      )}
                     </span>
                     右エディター
                   </div>
-                  {rightEditorsExpanded && openRightFiles.map(tab => (
-                    <OpenEditorItem key={tab.path} tab={tab} side="right" activeTabPath={activeTabPath} closeTab={closeTab} onFileSelect={onFileSelect} />
-                  ))}
+                  {rightEditorsExpanded &&
+                    openRightFiles.map((tab) => (
+                      <OpenEditorItem
+                        key={tab.path}
+                        tab={tab}
+                        side="right"
+                        activeTabPath={activeTabPath}
+                        closeTab={closeTab}
+                        onFileSelect={onFileSelect}
+                      />
+                    ))}
                 </>
               )}
             </div>
@@ -777,8 +899,13 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
               <ChevronRight size={14} />
             )}
           </span>
-          <span className="root-folder-name" title={currentDir}>{rootFolderName}</span>
-          <span className="root-folder-actions" onClick={(e) => e.stopPropagation()}>
+          <span className="root-folder-name" title={currentDir}>
+            {rootFolderName}
+          </span>
+          <span
+            className="root-folder-actions"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               className="action-btn"

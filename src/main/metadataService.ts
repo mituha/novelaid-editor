@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { readDocument } from './metadata';
+import { toDocumentPath } from '../common/utils/pathUtils';
 
 export interface MetadataEntry {
   path: string;
@@ -171,10 +172,10 @@ export class MetadataService {
     try {
       const { metadata } = await readDocument(filePath);
       if (Object.keys(metadata).length > 0) {
-        this.index.set(filePath, metadata);
+        this.index.set(toDocumentPath(filePath), metadata);
         console.log(`[MetadataService] Indexed: ${filePath} (Keys: ${Object.keys(metadata).join(', ')})`);
       } else {
-        this.index.delete(filePath);
+        this.index.delete(toDocumentPath(filePath));
       }
     } catch (error) {
       console.error(`[MetadataService] Failed to index ${filePath}:`, error);
@@ -183,7 +184,7 @@ export class MetadataService {
 
   removeFileFromIndex(filePath: string) {
     console.log(`[MetadataService] Explicit removal of ${filePath}`);
-    this.index.delete(filePath);
+    this.index.delete(toDocumentPath(filePath));
   }
 
   queryByTag(tagOrTags: string | string[]): MetadataEntry[] {

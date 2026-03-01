@@ -4,6 +4,7 @@ import { dialog, BrowserWindow } from 'electron';
 import { MetadataService } from '../metadataService';
 import { readDocument, saveDocument } from '../metadata';
 import { DocumentType } from '../../common/types';
+import { toDocumentPath } from '../../common/utils/pathUtils';
 
 const LOG_PREFIX = '[FileService]';
 
@@ -211,13 +212,13 @@ export class FileService {
         return {
           name: dirent.name,
           isDirectory,
-          path: fullPath,
+          path: toDocumentPath(fullPath),
           documentType: isDirectory
             ? await this.getPreferredDocumentTypeForDirectory(fullPath)
             : await this.getDocumentType(fullPath),
           metadata: isDirectory
             ? undefined
-            : metadataService.queryByPath?.(fullPath),
+            : metadataService.queryByPath?.(toDocumentPath(fullPath)),
         };
       }),
     );
@@ -269,7 +270,7 @@ export class FileService {
     const uniquePath = await this.getUniquePath(dirPath, baseName, ext);
     console.log(`${LOG_PREFIX} createUntitledDocument: 作成するパス: ${uniquePath}`);
     await fs.writeFile(uniquePath, '', 'utf-8');
-    return uniquePath;
+    return toDocumentPath(uniquePath);
   }
 
   /**
@@ -294,7 +295,7 @@ export class FileService {
         break;
       }
     }
-    return filePath;
+    return toDocumentPath(filePath);
   }
 
   public async createDirectory(dirPath: string): Promise<boolean> {
