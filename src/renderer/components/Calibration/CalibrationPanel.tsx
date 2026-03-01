@@ -7,6 +7,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useDocument } from '../../contexts/DocumentContext';
 import { Panel } from '../../types/panel';
 import { DocumentType } from '../../../common/types';
 import './CalibrationPanel.css';
@@ -49,6 +50,7 @@ interface CalibrationPanelProps {
 
 export default function CalibrationPanel({ content, activePath, documentType }: CalibrationPanelProps) {
   const { settings } = useSettings();
+  const { getFileTitle } = useDocument();
   const calibration = settings.calibration;
 
   const handleIssueClick = (range: any) => {
@@ -107,7 +109,23 @@ export default function CalibrationPanel({ content, activePath, documentType }: 
   const textlintIssues = issues.filter((i) => i.type === 'textlint');
 
   // ファイル名を取得
-  const fileName = activePath ? activePath.split('\\').pop() || activePath.split('/').pop() : '';
+  const [displayName, setDisplayName] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    if (activePath) {
+      getFileTitle(activePath).then((title) => {
+        if (isMounted) {
+          setDisplayName(title);
+        }
+      });
+    } else {
+      setDisplayName('');
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [activePath, getFileTitle]);
 
   if ((documentType as string) !== 'novel') {
     return (
@@ -121,7 +139,7 @@ export default function CalibrationPanel({ content, activePath, documentType }: 
     <div className="calibration-panel">
       <div className="calibration-header">
         <div className="calibration-target-file" title={activePath || ''}>
-          {fileName}
+          {displayName}
         </div>
         <div className="calibration-tabs">
           <button
@@ -278,10 +296,10 @@ export const calibrationPanelConfig: Panel = {
   icon: <CheckCircle size={24} strokeWidth={1.5} />,
   component: ({ activeContent, activePath, documents }: any) => {
     const documentType = activePath ? documents?.[activePath]?.documentType : undefined;
-    
+
     return (
-      <CalibrationPanel 
-        content={activeContent || ''} 
+      <CalibrationPanel
+        content={activeContent || ''}
         activePath={activePath}
         documentType={documentType}
       />

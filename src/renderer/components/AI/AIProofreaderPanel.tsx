@@ -203,10 +203,11 @@ export default function AIProofreaderPanel({
     [settings.ai, useTools, useReasoning],
   );
 
-  const handleAction = (action: ProofreadingAction) => {
+  const handleAction = async (action: ProofreadingAction) => {
     if (!activeContent || isStreaming) return;
 
-    const fullPrompt = `${action.prompt}\n\n${grammerContext}\n\n対象テキスト (File: ${activePath || 'Untitled'}):\n\`\`\`\n${activeContent}\n\`\`\``;
+    const fileTitle = activePath ? await getFileTitle(activePath) : 'Untitled';
+    const fullPrompt = `${action.prompt}\n\n${grammerContext}\n\n対象テキスト (File: ${fileTitle}):\n\`\`\`\n${activeContent}\n\`\`\``;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
