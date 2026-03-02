@@ -119,6 +119,57 @@ export class EditorSupport {
                     },
                 }
             ];
+
+            // 閉じ括弧の不足を確認（拡張性の高いループ方式）
+            const textBefore = model.getValueInRange({
+                startLineNumber: 1,
+                startColumn: 1,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column
+            });
+            const textAfter = model.getValueInRange({
+                startLineNumber: position.lineNumber,
+                startColumn: position.column,
+                endLineNumber: model.getLineCount(),
+                endColumn: model.getLineMaxColumn(model.getLineCount())
+            });
+
+            const bracketPairs = [
+                { open: '「', close: '」', label: '」 を閉じる' },
+                { open: '『', close: '』', label: '』 を閉じる' },
+                { open: '（', close: '）', label: '） を閉じる' },
+                { open: '［', close: '］', label: '］ を閉じる' },
+                { open: '【', close: '】', label: '】 を閉じる' },
+            ];
+
+            for (const pair of bracketPairs) {
+                const lastOpenIdx = textBefore.lastIndexOf(pair.open);
+                const lastCloseIdx = textBefore.lastIndexOf(pair.close);
+
+                // 開始括弧の方が後にある（そのペアが閉じられていない可能性がある）場合
+                if (lastOpenIdx > lastCloseIdx) {
+                    // カーソルより後に閉じ括弧があるか確認（次の開始括弧が出るまでに閉じる必要がある）
+                    const nextOpenIdx = textAfter.indexOf(pair.open);
+                    const nextCloseIdx = textAfter.indexOf(pair.close);
+
+                    // 後方に閉じ括弧が存在しない、または次の開始括弧より後にある場合に提案
+                    if (nextCloseIdx === -1 || (nextOpenIdx !== -1 && nextCloseIdx > nextOpenIdx)) {
+                        suggestions.push({
+                            label: pair.close,
+                            kind: monaco.languages.CompletionItemKind.Text,
+                            insertText: pair.close,
+                            detail: pair.label,
+                            range: {
+                                startLineNumber: position.lineNumber,
+                                endLineNumber: position.lineNumber,
+                                startColumn: position.column,
+                                endColumn: position.column,
+                            },
+                        });
+                    }
+                }
+            }
+
             return { suggestions };
         }
     });
