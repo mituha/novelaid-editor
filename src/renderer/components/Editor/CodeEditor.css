@@ -1,16 +1,44 @@
 .code-editor-wrapper {
-    height: 100%;
-    width: 100%;
-    position: relative;
+  height: 100%;
+  width: 100%;
+  position: relative;
 }
 
 .full-width-space-decoration {
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-sizing: border-box;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-sizing: border-box;
 }
 
 [data-theme='light'] .full-width-space-decoration {
-    background-color: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* ルビのハイライト */
+.novel-ruby-decoration {
+  color: #66D9EF !important;
+  /* novel-dark の ruby 色 */
+  background-color: rgba(102, 217, 239, 0.15) !important;
+}
+
+[data-theme='light'] .novel-ruby-decoration {
+  color: #0000FF !important;
+  /* novel-light の ruby 色 */
+  background-color: rgba(0, 0, 255, 0.1) !important;
+}
+
+/* 傍点のハイライト */
+.novel-bouten-decoration {
+  color: #FD971F !important;
+  /* novel-dark の bouten 色 */
+  text-decoration: underline dotted !important;
+  background-color: rgba(253, 151, 31, 0.15) !important;
+}
+
+[data-theme='light'] .novel-bouten-decoration {
+  color: #FF8C00 !important;
+  /* novel-light の bouten 色 */
+  text-decoration: underline dotted !important;
+  background-color: rgba(255, 140, 0, 0.1) !important;
 }
