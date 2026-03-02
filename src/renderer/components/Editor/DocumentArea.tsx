@@ -11,6 +11,7 @@ import ChView from '../ch/ChView';
 import { DocumentType } from '../../../common/types';
 
 import { useDocument } from '../../contexts/DocumentContext';
+import { isViewTypeSupported } from '../../../common/documentSupport';
 
 const getCodeEditorLanguage = (docType?: DocumentType): string => {
   if (!docType) return 'novel';
@@ -71,6 +72,15 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     if (viewType === 'preview') {
       const originalPath = activePath.replace('preview://', '');
       const data = documents[originalPath];
+
+      if (!isViewTypeSupported(data?.documentType, 'preview')) {
+        return (
+          <div className="empty-editor-state">
+            <p>このファイル形式ではプレビューをサポートしていません</p>
+          </div>
+        );
+      }
+
       if (data?.documentType === 'markdown') {
         return (
           <MarkdownPreview

@@ -1,6 +1,7 @@
 import React, { MouseEvent, useRef, useState, useEffect } from 'react';
 import { X, Columns, Eye, BookOpen, Edit3, LayoutDashboard, ChevronDown } from 'lucide-react';
 import { DocumentType, DocumentViewType } from '../../../common/types';
+import { isViewTypeSupported } from '../../../common/documentSupport';
 import './TabBar.css';
 import FileIcon from '../../utils/FileIcon';
 
@@ -76,30 +77,46 @@ export function TabBar({
   const activeViewType = activeTab?.viewType || 'editor';
 
   const renderViewToggle = () => {
-    if (!activeTab || activeTab.viewType === 'preview' || activeTab.documentType === 'git-diff' || activeTab.documentType === 'browser' || activeTab.documentType === 'css') return null;
-    if (activeDocumentType === 'image' || activeDocumentType === 'css') return null;
+    if (!activeTab || activeTab.viewType === 'preview') return null;
+
+    const canEditor = isViewTypeSupported(activeDocumentType, 'editor');
+    const toggleTarget = activeDocumentType === 'chat' ? 'canvas' : 'reader';
+    const canToggle = isViewTypeSupported(activeDocumentType, toggleTarget);
+
+    if (!canEditor && !canToggle) return null;
 
     const isEditor = activeViewType === 'editor';
-    const toggleTarget = activeDocumentType === 'chat' ? 'canvas' : 'reader';
 
     return (
       <>
-        <button
-          type="button"
-          className={`pane-toggle-btn ${isEditor ? 'active' : ''}`}
-          onClick={() => activeTabPath && onChangeViewType?.(activeTabPath, 'editor')}
-          title="編集"
-        >
-          <Edit3 size={16} />
-        </button>
-        <button
-          type="button"
-          className={`pane-toggle-btn ${!isEditor ? 'active' : ''}`}
-          onClick={() => activeTabPath && onChangeViewType?.(activeTabPath, toggleTarget)}
-          title="閲覧"
-        >
-          {toggleTarget === 'canvas' ? <LayoutDashboard size={16} /> : <BookOpen size={16} />}
-        </button>
+        {canEditor && (
+          <button
+            type="button"
+            className={`pane-toggle-btn ${isEditor ? 'active' : ''}`}
+            onClick={() =>
+              activeTabPath && onChangeViewType?.(activeTabPath, 'editor')
+            }
+            title="編集"
+          >
+            <Edit3 size={16} />
+          </button>
+        )}
+        {canToggle && (
+          <button
+            type="button"
+            className={`pane-toggle-btn ${!isEditor ? 'active' : ''}`}
+            onClick={() =>
+              activeTabPath && onChangeViewType?.(activeTabPath, toggleTarget)
+            }
+            title="閲覧"
+          >
+            {toggleTarget === 'canvas' ? (
+              <LayoutDashboard size={16} />
+            ) : (
+              <BookOpen size={16} />
+            )}
+          </button>
+        )}
       </>
     );
   };
@@ -191,7 +208,8 @@ export function TabBar({
 
         {onOpenPreview &&
           activeTab &&
-          activeTab.viewType !== 'preview' && (
+          activeTab.viewType !== 'preview' &&
+          isViewTypeSupported(activeDocumentType, 'preview') && (
             <button
               type="button"
               className="pane-toggle-btn"
