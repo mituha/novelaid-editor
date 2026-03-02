@@ -275,7 +275,7 @@ export default function MainLayout() {
           activeTabPath,
         )}
         activePath={getOriginalPath(activeTabPath)}
-        documentType={activeTab?.documentType}
+        documentType={activeTab?.documentType || (activeTabPath ? documents[getOriginalPath(activeTabPath)!]?.documentType : undefined)}
         metadata={activeTab ? documents[getOriginalPath(activeTabPath)!]?.metadata : undefined}
         openSettings={openSettings}
         onGoHome={() => navigate('/')}

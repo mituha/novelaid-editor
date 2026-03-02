@@ -339,6 +339,10 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         }));
       }
 
+      const currentType =
+        currentData?.documentType ||
+        documentsRef.current[normalizedPath]?.documentType;
+
       const getInitialViewType = (docType?: DocumentType): DocumentViewType => {
         if (docType === 'chat') return 'canvas';
         if (docType === 'image') return 'reader';
@@ -354,9 +358,6 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       if (targetSide === 'left') {
         setLeftTabs((prev) => {
           if (prev.find((t) => t.path === normalizedPath)) return prev;
-          const currentType =
-            currentData?.documentType ||
-            documentsRef.current[normalizedPath]?.documentType;
           return [
             ...prev,
             {
@@ -364,6 +365,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
               path: normalizedPath,
               isDirty: false,
               viewType: getInitialViewType(currentType),
+              documentType: currentType,
             },
           ];
         });
@@ -372,9 +374,6 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         setRightTabs((prev) => {
           if (prev.find((t) => t.path === normalizedPath)) return prev;
-          const currentType =
-            currentData?.documentType ||
-            documentsRef.current[normalizedPath]?.documentType;
           return [
             ...prev,
             {
@@ -382,6 +381,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
               path: normalizedPath,
               isDirty: false,
               viewType: getInitialViewType(currentType),
+              documentType: currentType,
             },
           ];
         });
@@ -408,6 +408,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
               name: previewName,
               isDirty: false,
               viewType: 'preview',
+              documentType: currentType,
             },
           ];
         });
@@ -477,6 +478,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
             name: previewName,
             isDirty: false,
             viewType: 'preview',
+            documentType: documentsRef.current[normalizedPath]?.documentType,
           },
         ];
       });
@@ -751,6 +753,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
               getFallbackViewTypeForRestore(
                 r.data?.documentType || r.documentType,
               ),
+            documentType: r.data?.documentType || r.documentType,
           })),
         );
         if (leftActive) setLeftActivePath(leftActive);
@@ -766,6 +769,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
               getFallbackViewTypeForRestore(
                 r.data?.documentType || r.documentType,
               ),
+            documentType: r.data?.documentType || r.documentType,
           })),
         );
         if (rightActive) setRightActivePath(rightActive);
