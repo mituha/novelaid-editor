@@ -80,98 +80,171 @@ export class EditorSupport {
       colors: {},
     });
 
+    // 小説モード専用の補完
     monaco.languages.registerCompletionItemProvider('novel', {
-        provideCompletionItems: (model: any, position: any) => {
-            // カーソル位置の直前の文字を確認
-            const lineContent = model.getLineContent(position.lineNumber);
-            const charBefore = position.column > 1 ? lineContent[position.column - 2] : '';
+      provideCompletionItems: async (model: any, position: any) => {
+        // カーソル位置の直前の文字を確認
+        const lineContent = model.getLineContent(position.lineNumber);
+        const charBefore =
+          position.column > 1 ? lineContent[position.column - 2] : '';
 
-            // 句読点や閉じ括弧の直後には表示しない
-            // ただし、》 (ルビ/傍点の終わり) の後は許可する
-            const silentChars = ['。', '、', '」', '』'];
-            if (silentChars.includes(charBefore)) {
-                return { suggestions: [] };
-            }
-
-            const suggestions = [
-                {
-                    label: '……',
-                    kind: monaco.languages.CompletionItemKind.Text,
-                    insertText: '……',
-                    detail: '三点リーダー',
-                    range: {
-                        startLineNumber: position.lineNumber,
-                        endLineNumber: position.lineNumber,
-                        startColumn: position.column,
-                        endColumn: position.column,
-                    },
-                },
-                {
-                    label: '――',
-                    kind: monaco.languages.CompletionItemKind.Text,
-                    insertText: '――',
-                    detail: 'ダッシュ',
-                    range: {
-                        startLineNumber: position.lineNumber,
-                        endLineNumber: position.lineNumber,
-                        startColumn: position.column,
-                        endColumn: position.column,
-                    },
-                }
-            ];
-
-            // 閉じ括弧の不足を確認（拡張性の高いループ方式）
-            const textBefore = model.getValueInRange({
-                startLineNumber: 1,
-                startColumn: 1,
-                endLineNumber: position.lineNumber,
-                endColumn: position.column
-            });
-            const textAfter = model.getValueInRange({
-                startLineNumber: position.lineNumber,
-                startColumn: position.column,
-                endLineNumber: model.getLineCount(),
-                endColumn: model.getLineMaxColumn(model.getLineCount())
-            });
-
-            const bracketPairs = [
-                { open: '「', close: '」', label: '」 を閉じる' },
-                { open: '『', close: '』', label: '』 を閉じる' },
-                { open: '（', close: '）', label: '） を閉じる' },
-                { open: '［', close: '］', label: '］ を閉じる' },
-                { open: '【', close: '】', label: '】 を閉じる' },
-            ];
-
-            for (const pair of bracketPairs) {
-                const lastOpenIdx = textBefore.lastIndexOf(pair.open);
-                const lastCloseIdx = textBefore.lastIndexOf(pair.close);
-
-                // 開始括弧の方が後にある（そのペアが閉じられていない可能性がある）場合
-                if (lastOpenIdx > lastCloseIdx) {
-                    // カーソルより後に閉じ括弧があるか確認（次の開始括弧が出るまでに閉じる必要がある）
-                    const nextOpenIdx = textAfter.indexOf(pair.open);
-                    const nextCloseIdx = textAfter.indexOf(pair.close);
-
-                    // 後方に閉じ括弧が存在しない、または次の開始括弧より後にある場合に提案
-                    if (nextCloseIdx === -1 || (nextOpenIdx !== -1 && nextCloseIdx > nextOpenIdx)) {
-                        suggestions.push({
-                            label: pair.close,
-                            kind: monaco.languages.CompletionItemKind.Text,
-                            insertText: pair.close,
-                            detail: pair.label,
-                            range: {
-                                startLineNumber: position.lineNumber,
-                                endLineNumber: position.lineNumber,
-                                startColumn: position.column,
-                                endColumn: position.column,
-                            },
-                        });
-                    }
-                }
-            }
-
-            return { suggestions };
+        // 句読点や閉じ括弧の直後には表示しない (novel のみ)
+        const silentChars = ['。', '、', '」', '』'];
+        if (silentChars.includes(charBefore)) {
+          return { suggestions: [] };
         }
+
+        const suggestions: any[] = [
+          {
+            label: '……',
+            kind: monaco.languages.CompletionItemKind.Text,
+            insertText: '……',
+            detail: '三点リーダー',
+            range: {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn: position.column,
+              endColumn: position.column,
+            },
+          },
+          {
+            label: '――',
+            kind: monaco.languages.CompletionItemKind.Text,
+            insertText: '――',
+            detail: 'ダッシュ',
+            range: {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn: position.column,
+              endColumn: position.column,
+            },
+          },
+        ];
+
+        // 閉じ括弧の補完ロジック
+        const textBefore = model.getValueInRange({
+          startLineNumber: 1,
+          startColumn: 1,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column,
+        });
+        const textAfter = model.getValueInRange({
+          startLineNumber: position.lineNumber,
+          startColumn: position.column,
+          endLineNumber: model.getLineCount(),
+          endColumn: model.getLineMaxColumn(model.getLineCount()),
+        });
+
+        const bracketPairs = [
+          { open: '「', close: '」', label: '」 を閉じる' },
+          { open: '『', close: '』', label: '』 を閉じる' },
+          { open: '（', close: '）', label: '） を閉じる' },
+          { open: '［', close: '］', label: '］ を閉じる' },
+          { open: '【', close: '】', label: '】 を閉じる' },
+        ];
+
+        for (const pair of bracketPairs) {
+          const lastOpenIdx = textBefore.lastIndexOf(pair.open);
+          const lastCloseIdx = textBefore.lastIndexOf(pair.close);
+
+          if (lastOpenIdx > lastCloseIdx) {
+            const nextOpenIdx = textAfter.indexOf(pair.open);
+            const nextCloseIdx = textAfter.indexOf(pair.close);
+
+            if (
+              nextCloseIdx === -1 ||
+              (nextOpenIdx !== -1 && nextCloseIdx > nextOpenIdx)
+            ) {
+              suggestions.push({
+                label: pair.close,
+                kind: monaco.languages.CompletionItemKind.Text,
+                insertText: pair.close,
+                detail: pair.label,
+                range: {
+                  startLineNumber: position.lineNumber,
+                  endLineNumber: position.lineNumber,
+                  startColumn: position.column,
+                  endColumn: position.column,
+                },
+              });
+            }
+          }
+        }
+
+        return { suggestions };
+      },
+    });
+
+    // 小説・マークダウン共通のメタデータ補完
+    const sharedLangs = ['novel', 'markdown'];
+    sharedLangs.forEach((lang) => {
+      monaco.languages.registerCompletionItemProvider(lang, {
+        provideCompletionItems: async (model: any, position: any) => {
+          const suggestions: any[] = [];
+          try {
+            const charTags = ['character', '登場人物', '人名', '人物', 'chara'];
+            const placeTags = [
+              'places',
+              'location',
+              '地名',
+              '施設',
+              '場所',
+              'place',
+              'geo',
+              'geography',
+            ];
+
+            const [charEntries, placeEntries] = await Promise.all([
+              (window as any).electron.metadata.queryByTag(charTags),
+              (window as any).electron.metadata.queryByTag(placeTags),
+            ]);
+
+            const addedNames = new Set<string>();
+            const stripExt = (name: string) => name.replace(/\.[^/.]+$/, '');
+
+            charEntries.forEach((entry: any) => {
+              const name = stripExt(entry.name);
+              if (!addedNames.has(name)) {
+                suggestions.push({
+                  label: name,
+                  kind: monaco.languages.CompletionItemKind.User,
+                  insertText: name,
+                  detail: '登場人物',
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    endLineNumber: position.lineNumber,
+                    startColumn: position.column,
+                    endColumn: position.column,
+                  },
+                });
+                addedNames.add(name);
+              }
+            });
+
+            placeEntries.forEach((entry: any) => {
+              const name = stripExt(entry.name);
+              if (!addedNames.has(name)) {
+                suggestions.push({
+                  label: name,
+                  kind: monaco.languages.CompletionItemKind.Map,
+                  insertText: name,
+                  detail: '地名・場所',
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    endLineNumber: position.lineNumber,
+                    startColumn: position.column,
+                    endColumn: position.column,
+                  },
+                });
+                addedNames.add(name);
+              }
+            });
+          } catch (err) {
+            console.error('Failed to fetch metadata for completions:', err);
+          }
+          return { suggestions };
+        },
+      });
     });
   }
 
