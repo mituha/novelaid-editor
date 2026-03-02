@@ -82,6 +82,17 @@ export class EditorSupport {
 
     monaco.languages.registerCompletionItemProvider('novel', {
         provideCompletionItems: (model: any, position: any) => {
+            // カーソル位置の直前の文字を確認
+            const lineContent = model.getLineContent(position.lineNumber);
+            const charBefore = position.column > 1 ? lineContent[position.column - 2] : '';
+
+            // 句読点や閉じ括弧の直後には表示しない
+            // ただし、》 (ルビ/傍点の終わり) の後は許可する
+            const silentChars = ['。', '、', '」', '』'];
+            if (silentChars.includes(charBefore)) {
+                return { suggestions: [] };
+            }
+
             const suggestions = [
                 {
                     label: '……',
