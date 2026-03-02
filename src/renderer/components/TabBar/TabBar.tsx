@@ -76,8 +76,8 @@ export function TabBar({
   const activeViewType = activeTab?.viewType || 'editor';
 
   const renderViewToggle = () => {
-    if (!activeTab || activeTab.viewType === 'preview' || activeTab.documentType === 'git-diff' || activeTab.documentType === 'browser') return null;
-    if (activeDocumentType === 'image') return null;
+    if (!activeTab || activeTab.viewType === 'preview' || activeTab.documentType === 'git-diff' || activeTab.documentType === 'browser' || activeTab.documentType === 'css') return null;
+    if (activeDocumentType === 'image' || activeDocumentType === 'css') return null;
 
     const isEditor = activeViewType === 'editor';
     const toggleTarget = activeDocumentType === 'chat' ? 'canvas' : 'reader';

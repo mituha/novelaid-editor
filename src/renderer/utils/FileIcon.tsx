@@ -8,6 +8,7 @@ import {
   LibraryBig,
   BookImage,
   FileCog as FileCogIcon,
+  FileCode,
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import React from 'react';
@@ -103,6 +104,9 @@ export default function FileIcon({
   // 3. ファイルの場合の判定（拡張子やドキュメントタイプに基づく）
   if (documentType === 'chat' || name.endsWith('.ch')) {
     return <MessageSquare size={size} className={className} />;
+  }
+  if (documentType === 'css' || name.endsWith('.css')) {
+    return <FileCode size={size} className={className} />;
   }
   if (documentType === 'novel') {
     return <BookText size={size} className={className} />;

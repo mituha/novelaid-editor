@@ -48,6 +48,7 @@ export class FileService {
   public async getDocumentType(filePath: string): Promise<DocumentType> {
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.ch') return 'chat';
+    if (ext === '.css') return 'css';
     if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(ext))
       return 'image';
     if (ext === '.txt') return 'novel';
