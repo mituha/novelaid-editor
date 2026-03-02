@@ -3,6 +3,7 @@ import {
   NOVEL_MONARCH_PATTERNS,
   NOVEL_PATTERNS,
 } from '../../../common/constants/novel';
+import { METADATA_UI_DEFS } from '../../constants/metadataUI';
 
 /**
  * エディターのドキュメントタイプ別の機能を管理するクラス
@@ -182,21 +183,13 @@ export class EditorSupport {
         provideCompletionItems: async (model: any, position: any) => {
           const suggestions: any[] = [];
           try {
-            const charTags = ['character', '登場人物', '人名', '人物', 'chara'];
-            const placeTags = [
-              'places',
-              'location',
-              '地名',
-              '施設',
-              '場所',
-              'place',
-              'geo',
-              'geography',
-            ];
-
             const [charEntries, placeEntries] = await Promise.all([
-              (window as any).electron.metadata.queryByTag(charTags),
-              (window as any).electron.metadata.queryByTag(placeTags),
+              (window as any).electron.metadata.queryByTag(
+                METADATA_UI_DEFS.CHARACTER.tags,
+              ),
+              (window as any).electron.metadata.queryByTag(
+                METADATA_UI_DEFS.LOCATION.tags,
+              ),
             ]);
 
             const addedNames = new Set<string>();
@@ -207,9 +200,11 @@ export class EditorSupport {
               if (!addedNames.has(name)) {
                 suggestions.push({
                   label: name,
-                  kind: monaco.languages.CompletionItemKind.User,
+                  kind: (monaco.languages.CompletionItemKind as any)[
+                    METADATA_UI_DEFS.CHARACTER.monacoKindName
+                  ],
                   insertText: name,
-                  detail: '登場人物',
+                  detail: METADATA_UI_DEFS.CHARACTER.detail,
                   range: {
                     startLineNumber: position.lineNumber,
                     endLineNumber: position.lineNumber,
@@ -226,9 +221,11 @@ export class EditorSupport {
               if (!addedNames.has(name)) {
                 suggestions.push({
                   label: name,
-                  kind: monaco.languages.CompletionItemKind.Map,
+                  kind: (monaco.languages.CompletionItemKind as any)[
+                    METADATA_UI_DEFS.LOCATION.monacoKindName
+                  ],
                   insertText: name,
-                  detail: '地名・場所',
+                  detail: METADATA_UI_DEFS.LOCATION.detail,
                   range: {
                     startLineNumber: position.lineNumber,
                     endLineNumber: position.lineNumber,

@@ -3,6 +3,7 @@ import { Users, MapPin, Bookmark, ScrollText } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useMetadata } from '../../contexts/MetadataContext';
 import { Panel } from '../../types/panel';
+import { METADATA_UI_DEFS } from '../../constants/metadataUI';
 import './MetadataListPanel.css';
 
 interface MetadataEntry {
@@ -266,51 +267,51 @@ export default function MetadataListPanel({
 MetadataListPanel.defaultProps = defaultProps;
 
 export const charactersPanelConfig: Panel = {
-  id: 'characters',
-  title: '登場人物',
-  icon: <Users size={24} strokeWidth={1.5} />,
+  id: METADATA_UI_DEFS.CHARACTER.id,
+  title: METADATA_UI_DEFS.CHARACTER.title,
+  icon: <METADATA_UI_DEFS.CHARACTER.Icon size={24} strokeWidth={1.5} />,
   component: ({ onFileSelect }: any) => (
     <MetadataListPanel
       onFileSelect={onFileSelect}
-      fixedTitle="登場人物一覧"
-      fixedTag="character,登場人物,人名,人物,chara"
+      fixedTitle={`${METADATA_UI_DEFS.CHARACTER.title}一覧`}
+      fixedTag={METADATA_UI_DEFS.CHARACTER.tags.join(',')}
     />
   ),
   defaultLocation: 'left',
 };
 
 export const locationsPanelConfig: Panel = {
-  id: 'locations',
-  title: '地名・施設',
-  icon: <MapPin size={24} strokeWidth={1.5} />,
+  id: METADATA_UI_DEFS.LOCATION.id,
+  title: METADATA_UI_DEFS.LOCATION.title,
+  icon: <METADATA_UI_DEFS.LOCATION.Icon size={24} strokeWidth={1.5} />,
   component: ({ onFileSelect }: any) => (
     <MetadataListPanel
       onFileSelect={onFileSelect}
-      fixedTitle="地名・施設一覧"
-      fixedTag="places,location,地名,施設,場所,place,geo,geography"
+      fixedTitle={`${METADATA_UI_DEFS.LOCATION.title}一覧`}
+      fixedTag={METADATA_UI_DEFS.LOCATION.tags.join(',')}
     />
   ),
   defaultLocation: 'left',
 };
 
 export const plotsPanelConfig: Panel = {
-  id: 'plots',
-  title: 'プロット',
-  icon: <ScrollText size={24} strokeWidth={1.5} />,
+  id: METADATA_UI_DEFS.PLOT.id,
+  title: METADATA_UI_DEFS.PLOT.title,
+  icon: <METADATA_UI_DEFS.PLOT.Icon size={24} strokeWidth={1.5} />,
   component: ({ onFileSelect }: any) => (
     <MetadataListPanel
       onFileSelect={onFileSelect}
-      fixedTitle="プロット・構成案"
-      fixedTag="plot,構成,プロット,案,timeline,時間軸,年表"
+      fixedTitle={`${METADATA_UI_DEFS.PLOT.title}一覧`}
+      fixedTag={METADATA_UI_DEFS.PLOT.tags.join(',')}
     />
   ),
   defaultLocation: 'left',
 };
 
 export const metadataListPanelConfig: Panel = {
-  id: 'metadata-list',
-  title: '収集一覧',
-  icon: <Bookmark size={24} strokeWidth={1.5} />,
+  id: METADATA_UI_DEFS.GENERAL.id,
+  title: METADATA_UI_DEFS.GENERAL.title,
+  icon: <METADATA_UI_DEFS.GENERAL.Icon size={24} strokeWidth={1.5} />,
   component: MetadataListPanel,
   defaultLocation: 'left',
 };
