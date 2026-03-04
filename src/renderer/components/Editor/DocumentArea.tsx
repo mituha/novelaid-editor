@@ -50,6 +50,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     markNavigated,
     changeViewType,
     getFileTitle,
+    getAbsolutePath,
   } = useDocument();
 
   const tabs = side === 'left' ? leftTabs : rightTabs;
@@ -70,7 +71,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     }
 
     if (viewType === 'preview') {
-      const originalPath = activePath.replace('preview://', '');
+      const originalPath = getAbsolutePath(activePath);
       const data = documents[originalPath];
 
       if (!isViewTypeSupported(data?.documentType, 'preview')) {
@@ -245,9 +246,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
         onChangeViewType={(path, vt) => changeViewType(side, path, vt)}
         activeDocumentType={
           activePath
-            ? documents[
-                activePath.replace('preview://', '').replace('git-diff://', '')
-              ]?.documentType
+            ? documents[getAbsolutePath(activePath)]?.documentType
             : undefined
         }
       />

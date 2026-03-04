@@ -9,7 +9,7 @@ import React, {
 import { Tab } from '../components/TabBar/TabBar';
 import { useSettings } from './SettingsContext';
 import { DocumentType, DocumentViewType } from '../../common/types';
-import { toDocumentPath } from '../../common/utils/pathUtils';
+import { toDocumentPath, getFilePath } from '../../common/utils/pathUtils';
 
 export interface DocumentData {
   content: string;
@@ -71,6 +71,7 @@ interface DocumentContextType {
     viewType: DocumentViewType,
   ) => void;
   getFileTitle: (path: string) => Promise<string>;
+  getAbsolutePath: (path: string) => string;
 }
 
 const DocumentContext = createContext<DocumentContextType | undefined>(
@@ -114,6 +115,10 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const activeTabPath =
     activeSide === 'left' ? leftActivePath : rightActivePath;
+
+  const getAbsolutePath = useCallback((path: string) => {
+    return getFilePath(toDocumentPath(path));
+  }, []);
 
   const clearTimer = useCallback((path: string) => {
     if (autoSaveTimerRef.current[path]) {
@@ -166,8 +171,9 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!side || side === 'left') closeInSide('left', path);
       if (!side || side === 'right') closeInSide('right', path);
 
-      if (!path.startsWith('preview://')) {
-        const previewPath = `preview://${path}`;
+      const absolutePath = getAbsolutePath(path);
+      if (path === absolutePath) { // スキーム無しの絶対パスが閉じられた場合
+        const previewPath = `preview://${absolutePath}`;
         const previewInLeft = tabsRef.current.left.some(
           (t) => t.path === previewPath,
         );
@@ -183,18 +189,18 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!side) return false;
           const otherSide = side === 'left' ? 'right' : 'left';
           const otherTabs = tabsRef.current[otherSide];
-          return otherTabs.some((t) => t.path === path);
+          return otherTabs.some((t) => getAbsolutePath(t.path) === absolutePath);
         };
 
         if (!stillInAnyTabs()) {
           const newContents = { ...prevContents };
-          delete newContents[normalizedPath];
+          delete newContents[absolutePath];
           return newContents;
         }
         return prevContents;
       });
     },
-    [leftActivePath, rightActivePath, clearTimer],
+    [leftActivePath, rightActivePath, clearTimer, getAbsolutePath],
   );
 
   const saveDocument = useCallback(
@@ -210,8 +216,9 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        savingPaths.current.add(path);
-        await window.electron.ipcRenderer.invoke('fs:saveDocument', path, data);
+        const absolutePath = getAbsolutePath(path);
+        savingPaths.current.add(absolutePath);
+        await window.electron.ipcRenderer.invoke('fs:saveDocument', absolutePath, data);
 
         const updateClean = (tabs: Tab[]) =>
           tabs.map((tab) =>
@@ -225,15 +232,15 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           savingPaths.current.delete(path);
         }, 500);
 
-        if (path.endsWith('kanji-rules.txt')) {
+        if (absolutePath.endsWith('kanji-rules.txt')) {
           await window.electron.calibration.reloadRules();
         }
       } catch (err) {
         console.error(err);
-        savingPaths.current.delete(path);
+        savingPaths.current.delete(getAbsolutePath(path));
       }
     },
-    [setLeftTabs, setRightTabs],
+    [setLeftTabs, setRightTabs, getAbsolutePath],
   );
 
   const triggerAutoSave = useCallback(
@@ -254,22 +261,23 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       path: string,
       initialData?: { content: string; metadata: Record<string, any> },
     ) => {
+      const absolutePath = getAbsolutePath(path);
       try {
-        if (!documentsRef.current[path]) {
+        if (!documentsRef.current[absolutePath]) {
           try {
             const data = await window.electron.ipcRenderer.invoke(
               'fs:readDocument',
-              path,
+              absolutePath,
             );
             setDocuments((prev) => ({
               ...prev,
-              [path]: { ...data, lastSource: 'external', isPanel: true },
+              [absolutePath]: { ...data, lastSource: 'external', isPanel: true },
             }));
           } catch (e) {
             if (initialData) {
               setDocuments((prev) => ({
                 ...prev,
-                [path]: {
+                [absolutePath]: {
                   ...initialData,
                   lastSource: 'external',
                   isPanel: true,
@@ -280,14 +288,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         } else {
           setDocuments((prev) => ({
             ...prev,
-            [path]: { ...prev[path], isPanel: true },
+            [absolutePath]: { ...prev[absolutePath], isPanel: true },
           }));
         }
       } catch (err) {
         console.error('Failed to open panel document:', err);
       }
     },
-    [],
+    [getAbsolutePath],
   );
 
   const openDocument = useCallback(
@@ -304,24 +312,25 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     ) => {
       const normalizedPath = toDocumentPath(path);
+      const absolutePath = getAbsolutePath(normalizedPath);
       const fileName =
-        (await window.electron.path.basename(normalizedPath)) || 'Untitled';
+        (await window.electron.path.basename(absolutePath)) || 'Untitled';
       let targetSide = options?.side || activeSide;
       if (options?.requestedViewType === 'preview') {
         targetSide = 'left'; // preview展開時は元エディターを必ずleftに配置
       }
 
-      let currentData = options?.data || documentsRef.current[normalizedPath];
+      let currentData = options?.data || documentsRef.current[absolutePath];
 
       if (!currentData) {
         try {
           currentData = await window.electron.ipcRenderer.invoke(
             'fs:readDocument',
-            normalizedPath,
+            absolutePath,
           );
           setDocuments((prev) => ({
             ...prev,
-            [normalizedPath]: { ...currentData, lastSource: 'external' },
+            [absolutePath]: { ...currentData, lastSource: 'external' },
           }));
         } catch (err) {
           // eslint-disable-next-line no-console
@@ -331,8 +340,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       } else if (options?.data) {
         setDocuments((prev) => ({
           ...prev,
-          [normalizedPath]: {
-            ...prev[normalizedPath],
+          [absolutePath]: {
+            ...prev[absolutePath],
             ...options.data,
             lastSource: 'external',
           },
@@ -341,7 +350,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const currentType =
         currentData?.documentType ||
-        documentsRef.current[normalizedPath]?.documentType;
+        documentsRef.current[absolutePath]?.documentType;
 
       const getInitialViewType = (docType?: DocumentType): DocumentViewType => {
         if (docType === 'chat') return 'canvas';
@@ -391,7 +400,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // requestedViewType === 'preview' の場合は、タブ開設直後にプレビューも展開する
       if (options?.requestedViewType === 'preview') {
-        const previewPath = `preview://${normalizedPath}`;
+        const previewPath = `preview://${absolutePath}`;
         const previewName = `Preview: ${fileName}`;
         const targetPreviewSide = options?.side || activeSide; // previewの配置は呼び出し元に合わせる
         const setPreviewTabs =
@@ -416,7 +425,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsSplit(true);
       }
     },
-    [activeSide],
+    [activeSide, getAbsolutePath],
   );
 
   const switchTab = useCallback((side: 'left' | 'right', path: string) => {
@@ -461,9 +470,9 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const openPreview = useCallback(
     async (path: string) => {
-      const normalizedPath = toDocumentPath(path);
-      const previewPath = `preview://${normalizedPath}`;
-      const previewName = `Preview: ${(await window.electron.path.basename(normalizedPath)) || 'Untitled'}`;
+      const absolutePath = getAbsolutePath(path);
+      const previewPath = `preview://${absolutePath}`;
+      const previewName = `Preview: ${(await window.electron.path.basename(absolutePath)) || 'Untitled'}`;
       const targetSide = activeSide === 'left' ? 'right' : 'left';
       const setTabs = targetSide === 'left' ? setLeftTabs : setRightTabs;
       const setActivePath =
@@ -478,14 +487,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
             name: previewName,
             isDirty: false,
             viewType: 'preview',
-            documentType: documentsRef.current[normalizedPath]?.documentType,
+            documentType: documentsRef.current[absolutePath]?.documentType,
           },
         ];
       });
       setActivePath(previewPath);
       setIsSplit(true);
     },
-    [activeSide],
+    [activeSide, getAbsolutePath],
   );
 
   const openDiff = useCallback(
@@ -594,10 +603,11 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateContent = useCallback(
     (path: string, side: 'left' | 'right', value: string | undefined) => {
+      const absolutePath = getAbsolutePath(path);
       setDocuments((prev) => ({
         ...prev,
-        [path]: {
-          ...prev[path],
+        [absolutePath]: {
+          ...prev[absolutePath],
           content: value || '',
           lastSource: `user-${side}`,
         },
@@ -608,18 +618,19 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         );
       setLeftTabs(updateDirty);
       setRightTabs(updateDirty);
-      triggerAutoSave(path);
+      triggerAutoSave(absolutePath);
     },
-    [triggerAutoSave],
+    [triggerAutoSave, getAbsolutePath],
   );
 
   const updateMetadata = useCallback(
     (path: string, metadata: Record<string, any>) => {
+      const absolutePath = getAbsolutePath(path);
       setDocuments((prev) => ({
         ...prev,
-        [path]: {
-          ...prev[path],
-          metadata: { ...prev[path]?.metadata, ...metadata },
+        [absolutePath]: {
+          ...prev[absolutePath],
+          metadata: { ...prev[absolutePath]?.metadata, ...metadata },
         },
       }));
       const updateDirty = (tabs: Tab[]) =>
@@ -628,24 +639,28 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         );
       setLeftTabs(updateDirty);
       setRightTabs(updateDirty);
-      triggerAutoSave(path);
+      triggerAutoSave(absolutePath);
     },
-    [triggerAutoSave],
+    [triggerAutoSave, getAbsolutePath],
   );
 
-  const markNavigated = useCallback((path: string) => {
-    setDocuments((current) => {
-      const currentTab = current[path];
-      if (!currentTab) return current;
-      const {
-        initialLine: _,
-        initialColumn: __,
-        searchQuery: ___,
-        ...rest
-      } = currentTab as any;
-      return { ...current, [path]: { ...rest } };
-    });
-  }, []);
+  const markNavigated = useCallback(
+    (path: string) => {
+      const absolutePath = getAbsolutePath(path);
+      setDocuments((current) => {
+        const currentTab = current[absolutePath];
+        if (!currentTab) return current;
+        const {
+          initialLine: _,
+          initialColumn: __,
+          searchQuery: ___,
+          ...rest
+        } = currentTab as any;
+        return { ...current, [absolutePath]: { ...rest } };
+      });
+    },
+    [getAbsolutePath],
+  );
 
   const getFileTitle = useCallback(async (path: string) => {
     if (!path) return '';
@@ -695,9 +710,10 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         const results = await Promise.all(
           files.map(async (t) => {
             try {
+              const absolutePath = getAbsolutePath(t.path);
               const data = await window.electron.ipcRenderer.invoke(
                 'fs:readDocument',
-                t.path,
+                absolutePath,
               );
               return {
                 path: t.path,
@@ -729,22 +745,20 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         restoreFiles(left),
         restoreFiles(right),
       ]);
-      const leftResults = leftRaw.filter((r) => r !== null) as NonNullable<
-        (typeof leftRaw)[number]
-      >[];
-      const rightResults = rightRaw.filter((r) => r !== null) as NonNullable<
-        (typeof rightRaw)[number]
-      >[];
-
       const contentsUpdate: any = {};
-      [...leftResults, ...rightResults].forEach((r) => {
-        contentsUpdate[r.path] = { ...r.data, lastSource: 'external' };
+      leftRaw.forEach((r) => {
+        if (r) contentsUpdate[getAbsolutePath(r.path)] = { ...r.data, lastSource: 'external' };
+      });
+      rightRaw.forEach((r) => {
+        if (r) contentsUpdate[getAbsolutePath(r.path)] = { ...r.data, lastSource: 'external' };
       });
 
       setDocuments((prev) => ({ ...prev, ...contentsUpdate }));
-      if (leftResults.length > 0) {
+
+      const leftFiltered = leftRaw.filter(Boolean) as NonNullable<typeof leftRaw[number]>[];
+      if (leftFiltered.length > 0) {
         setLeftTabs(
-          leftResults.map((r) => ({
+          leftFiltered.map((r) => ({
             name: r.name,
             path: r.path,
             isDirty: false,
@@ -758,9 +772,11 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         );
         if (leftActive) setLeftActivePath(leftActive);
       }
-      if (rightResults.length > 0) {
+
+      const rightFiltered = rightRaw.filter(Boolean) as NonNullable<typeof rightRaw[number]>[];
+      if (rightFiltered.length > 0) {
         setRightTabs(
-          rightResults.map((r) => ({
+          rightFiltered.map((r) => ({
             name: r.name,
             path: r.path,
             isDirty: false,
@@ -843,11 +859,12 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
             if (!confirmed) return;
           }
           try {
+            const absolutePath = getAbsolutePath(path);
             const data = await window.electron.ipcRenderer.invoke(
               'fs:readDocument',
-              path,
+              absolutePath,
             );
-            setDocuments((prev) => ({ ...prev, [path]: data }));
+            setDocuments((prev) => ({ ...prev, [absolutePath]: data }));
             const updateClean = (tabs: Tab[]) =>
               tabs.map((tab) =>
                 tab.path === path ? { ...tab, isDirty: false } : tab,
@@ -913,6 +930,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       markNavigated,
       changeViewType,
       getFileTitle,
+      getAbsolutePath,
     }),
     [
       documents,
@@ -939,6 +957,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       markNavigated,
       changeViewType,
       getFileTitle,
+      getAbsolutePath,
     ],
   );
 

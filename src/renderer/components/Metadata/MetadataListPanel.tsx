@@ -4,6 +4,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useMetadata } from '../../contexts/MetadataContext';
 import { Panel } from '../../types/panel';
 import { METADATA_UI_DEFS } from '../../constants/metadataUI';
+import { getFilePath } from '../../../common/utils/pathUtils';
 import './MetadataListPanel.css';
 
 interface MetadataEntry {
@@ -136,11 +137,12 @@ export default function MetadataListPanel({
 
   const handleFileClick = async (filePath: string) => {
     try {
+      const absolutePath = getFilePath(filePath);
       const data = await window.electron.ipcRenderer.invoke(
         'fs:readDocument',
-        filePath,
+        absolutePath,
       );
-      onFileSelect(filePath, data);
+      onFileSelect(absolutePath, data);
     } catch (err) {
       console.error('Failed to open file from metadata list', err);
     }

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useAIContext } from '../contexts/AIContextContext';
+import { getFilePath } from '../../common/utils/pathUtils';
 
 interface Tab {
   name: string;
@@ -41,21 +42,22 @@ export function useAIContextContent() {
       }
 
       let content = "";
-      if (documents[path]) {
-        content = documents[path].content;
+      const absolutePath = getFilePath(path);
+      if (documents[absolutePath]) {
+        content = documents[absolutePath].content;
       } else {
         // オープンされていない場合はディスクから直接読み込む
         try {
-          const data = await window.electron.ipcRenderer.invoke('fs:readDocument', path);
+          const data = await window.electron.ipcRenderer.invoke('fs:readDocument', absolutePath);
           content = data?.content || "";
         } catch (e) {
           // eslint-disable-next-line no-console
-          console.error(`Failed to read context file: ${path}`, e);
+          console.error(`Failed to read context file: ${absolutePath}`, e);
           continue;
         }
       }
 
-      const fileName = path.split(/[/\\]/).pop() || path;
+      const fileName = absolutePath.split(/[/\\]/).pop() || absolutePath;
       if (content) {
         result += `[File: ${fileName}]\n\`\`\`\n${content}\n\`\`\`\n\n`;
       }

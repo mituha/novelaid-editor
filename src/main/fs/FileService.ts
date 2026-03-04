@@ -19,6 +19,12 @@ export class FileService {
     this.beforeDeleteCallback = callback;
   }
 
+  private validatePath(filePath: string) {
+    if (filePath && filePath.includes('://')) {
+      throw new Error(`Invalid file path: URI scheme detected in Main process: ${filePath}`);
+    }
+  }
+
   /** .novelaidattributes が変更されたとき、対象ディレクトリのキャッシュを破棄します */
   public invalidateAttributeCache(dirPath: string) {
     console.log(`${LOG_PREFIX} invalidateAttributeCache: ${dirPath}`);
@@ -46,6 +52,7 @@ export class FileService {
   }
 
   public async getDocumentType(filePath: string): Promise<DocumentType> {
+    this.validatePath(filePath);
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.ch') return 'chat';
     if (ext === '.css') return 'css';
@@ -188,6 +195,7 @@ export class FileService {
   }
 
   public async readDirectory(dirPath: string) {
+    this.validatePath(dirPath);
     console.log(`${LOG_PREFIX} readDirectory: ${dirPath}`);
     const metadataService = MetadataService.getInstance();
     const dirents = await fs.readdir(dirPath, { withFileTypes: true });
@@ -226,21 +234,25 @@ export class FileService {
   }
 
   public async readFile(filePath: string): Promise<string> {
+    this.validatePath(filePath);
     console.log(`${LOG_PREFIX} readFile: ${filePath}`);
     return await fs.readFile(filePath, 'utf-8');
   }
 
   public async writeFile(filePath: string, content: string): Promise<void> {
+    this.validatePath(filePath);
     console.log(`${LOG_PREFIX} writeFile: ${filePath} (${content.length} 文字)`);
     await fs.writeFile(filePath, content, 'utf-8');
   }
 
   public async readDocument(filePath: string) {
+    this.validatePath(filePath);
     console.log(`${LOG_PREFIX} readDocument: ${filePath}`);
     return await readDocument(filePath);
   }
 
   public async saveDocument(filePath: string, data: any) {
+    this.validatePath(filePath);
     console.log(`${LOG_PREFIX} saveDocument: ${filePath}`);
     return await saveDocument(filePath, data);
   }

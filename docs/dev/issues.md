@@ -43,6 +43,35 @@ FileNameHeader部分にフルパス(拡張子なし)が表示されています�
 また、簡易的にファイル名の変更ができるようになっています。
 ファイル名のみの表示が行われるように修正してください
 
+#### 特定のファイルの読込時のみエラーが出る
+
+preview://D:/home/mituha/repos/novelaid-editor-next/doc/猫モフApps/02_プロジェクト選択.md Error: Error invoking remote method 'fs:readDocument': Error: ENOENT: no such file or directory, open 'D:\home\mituha\repos\novelaid-editor\preview:\D:\home\mituha\repos\novelaid-editor-next\doc\猫モフApps\02_プロジェクト選択.md'
+
+preview用のパスの名前に対して、開こうとしているパスがおかしい。
+* fs:readDocument等、ドキュメントに渡すパスはURIスキームを除いた絶対パスであるべき。
+* URIスキーム自体が現状の過渡期の対応なので、documentType、documentViewType、documentPathから判別、扱われるべきです。
+* URIスキームを含んでいるかもしれないパスから、ドキュメントとして扱える絶対パスを生成するメソッドが未定義であれば定義してください。
+  + 他の類似のメソッド同様、プラグインや拡張機能でも利用できるようにDocumentContextに定義してください。
+    + 他に適切な定義位置があるかも検討、確認してください。
+  + 引数としては他の補助情報(documentType, documentViewType)も渡せるようにしてください。
+* URIスキームの扱い自体も、将来的に変更される可能性を考慮して、直接個々に処理している箇所は一元的に処理するようにしてください。
+
+
+
+
+
+Uncaught TypeError: this.getData is not a function
+    at Object.exitCodeText (from-markdown.js:42:1)
+    at compile (index.js:254:1)
+    at fromMarkdown (index.js:83:1)
+    at parser (index.js:33:24)
+    at apply.parse (index.js:668:1)
+    at Markdown (index.js:178:1)
+    at Object.react_stack_bottom_frame (react-dom-client.development.js:25904:1)
+    at renderWithHooks (react-dom-client.development.js:7662:1)
+    at updateFunctionComponent (react-dom-client.development.js:10166:1)
+    at beginWork (react-dom-client.development.js:11778:1)
+
 
 
 ### git未インストール時の処理？

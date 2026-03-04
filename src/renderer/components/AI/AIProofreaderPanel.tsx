@@ -64,6 +64,7 @@ export default function AIProofreaderPanel({
     openPanelDocument,
     updateContent,
     documents: ctxDocuments,
+    getFileTitle,
   } = useDocument();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);

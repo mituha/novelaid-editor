@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Search, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import { Panel } from '../../types/panel';
+import { getFilePath } from '../../../common/utils/pathUtils';
 import './SearchPanel.css';
 
 interface SearchMatch {
@@ -72,14 +73,15 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
   const handleMatchClick = async (filePath: string, line: number, index: number) => {
     try {
       // Read file content first
+      const absolutePath = getFilePath(filePath);
       const data = await window.electron.ipcRenderer.invoke(
         'fs:readDocument',
-        filePath,
+        absolutePath,
       );
 
       // onFileSelect will open the tab
       // line is the relative line number from body (1-based)
-      onFileSelect(filePath, {
+      onFileSelect(absolutePath, {
         ...data,
         initialLine: line,
         initialColumn: index + 1, // Monaco is 1-based
