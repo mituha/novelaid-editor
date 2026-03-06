@@ -84,6 +84,50 @@ function BaseMarkdownImage({
   );
 }
 
+class MarkdownErrorBoundary extends React.Component<
+  { children: React.ReactNode; content: string; filePath?: string },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // eslint-disable-next-line no-console
+    console.group('Markdown Rendering Error');
+    // eslint-disable-next-line no-console
+    console.error('Error:', error);
+    // eslint-disable-next-line no-console
+    console.error('File Path:', this.props.filePath);
+    // eslint-disable-next-line no-console
+    console.groupCollapsed('Original Content');
+    // eslint-disable-next-line no-console
+    console.log(this.props.content);
+    // eslint-disable-next-line no-console
+    console.groupEnd();
+    // eslint-disable-next-line no-console
+    console.groupEnd();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="markdown-error-state" style={{ padding: '20px', border: '1px solid #f44336', backgroundColor: 'rgba(244, 67, 54, 0.1)', borderRadius: '4px' }}>
+          <h3>Markdown Rendering Error</h3>
+          <p>プレビューのレンダリング中にエラーが発生しました。詳細は開発者ツールのコンソールを確認してください。</p>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function BaseMarkdown({
   content,
   filePath,
@@ -142,15 +186,19 @@ export default function BaseMarkdown({
     return <div>Loading preview...</div>;
   }
 
+  const transformedContent = transformNovelSyntax(content);
+
   return (
     <div className={className}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw as any]}
-        components={components}
-      >
-        {transformNovelSyntax(content)}
-      </ReactMarkdown>
+      <MarkdownErrorBoundary content={transformedContent} filePath={filePath}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw as any]}
+          components={components}
+        >
+          {transformedContent}
+        </ReactMarkdown>
+      </MarkdownErrorBoundary>
     </div>
   );
 }

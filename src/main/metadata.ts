@@ -32,37 +32,51 @@ export function calculateLineOffset(content: string): number {
 export async function readDocument(filePath: string): Promise<DocumentData> {
   const documentType = await FileService.getInstance().getDocumentType(filePath);
 
-  if (documentType === 'markdown' || documentType === 'novel') {
+  try {
+    if (documentType === 'markdown' || documentType === 'novel') {
+      const content = await fs.readFile(filePath, 'utf-8');
+      const { data, content: body } = matter(content);
+
+      // Calculate line offset if frontmatter exists
+      const lineOffset = calculateLineOffset(content);
+
+      return {
+        content: body,
+        metadata: data,
+        lineOffset,
+        documentType,
+      };
+    }
+
+    // 画像の場合はコンテンツを空のままとする
+    if (documentType === 'image') {
+      return {
+        content: '',
+        metadata: {},
+        documentType,
+      };
+    }
+
+    // それ以外のドキュメント（.ch / chat 等）は、単なるテキストとして全て読み込む
     const content = await fs.readFile(filePath, 'utf-8');
-    const { data, content: body } = matter(content);
-
-    // Calculate line offset if frontmatter exists
-    const lineOffset = calculateLineOffset(content);
-
     return {
-      content: body,
-      metadata: data,
-      lineOffset,
-      documentType,
-    };
-  }
-
-  // 画像の場合はコンテンツを空のままとする
-  if (documentType === 'image') {
-    return {
-      content: '',
+      content,
       metadata: {},
       documentType,
     };
+  } catch (err: any) {
+    // ファイルが存在しない場合はデフォルトの空データを返す
+    if (err.code === 'ENOENT') {
+      console.warn(`[readDocument] File not found, returning empty state: ${filePath}`);
+      return {
+        content: '',
+        metadata: {},
+        documentType,
+      };
+    }
+    // その他のエラーは再スロー
+    throw err;
   }
-
-  // それ以外のドキュメント（.ch / chat 等）は、単なるテキストとして全て読み込む
-  const content = await fs.readFile(filePath, 'utf-8');
-  return {
-    content,
-    metadata: {},
-    documentType,
-  };
 }
 
 export async function saveDocument(

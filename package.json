@@ -108,6 +108,8 @@
     "js-yaml": "^4.1.1",
     "kuromoji": "^0.1.2",
     "lucide-react": "^0.562.0",
+    "mdast-util-from-markdown": "^2.0.3",
+    "micromark": "^4.0.2",
     "monaco-editor": "^0.55.1",
     "monaco-editor-nls": "^3.1.0",
     "monaco-editor-webpack-plugin": "^7.1.1",
@@ -117,11 +119,13 @@
     "react-router-dom": "^7.3.0",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
     "simple-git": "^3.30.0",
     "textlint": "^15.5.1",
     "textlint-rule-no-doubled-joshi": "^5.1.1",
     "textlint-rule-no-dropping-the-ra": "^3.0.0",
-    "textlint-rule-preset-ja-spacing": "^2.4.3"
+    "textlint-rule-preset-ja-spacing": "^2.4.3",
+    "unified": "^11.0.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.2",
@@ -189,6 +193,11 @@
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.0",
     "webpack-merge": "^6.0.1"
+  },
+  "overrides": {
+    "micromark": "^4.0.2",
+    "mdast-util-from-markdown": "^2.0.3",
+    "remark-gfm": "^4.0.1"
   },
   "build": {
     "productName": "novelaid-editor",

@@ -30,49 +30,97 @@ AI校正にも同一のコンテキスト選択を追加
 
 [マークダウンプレビュー](./markdown-preview.md)も参照
 
-pathの処理を変更した後にタブのタイトル部分等がおかしくなっています。
-具体的には名称としてファイル名だけの予定が絶対パス(`D:\hoges\issues.md`)のようになってしまっている。
-また、同一タブグループに同一ファイルがファイル名のみと絶対パスの２つで表示されるため、documentsのキーとして別物として処理されていると考えられます。
-現在、documentsのキーとして処理されるパスはどのようになっていますか？
-絶対パス、相対パス、その他のどれですか？
-ここで使用できるパスとしての正規化メソッドを`project:xxx`のようにプロジェクト区分で定義して処理するべきかも。
-特にプロジェクトからの相対パスで扱う場合はproject区分での処理が必要。
+```
+PS D:\home\mituha\repos\novelaid-editor> npm list remark-gfm
+novelaid-editor@0.42.5 D:\home\mituha\repos\novelaid-editor
+├── remark-gfm@4.0.1
+└─┬ textlint@15.5.2
+  └─┬ @textlint/textlint-plugin-markdown@15.5.2
+    └─┬ @textlint/markdown-to-ast@15.5.2
+      └── remark-gfm@4.0.1 deduped
+```j
+`textlint@15.5.2`が依存する` @textlint/textlint-plugin-markdown@15.5.2`が基本的に古いライブラリを参照してる。
+これらを強制的に新しいものを参照するようにすることで回避。
+```
+  "overrides": {
+    "micromark": "^4.0.2",
+    "mdast-util-from-markdown": "^2.0.3",
+    "remark-gfm": "^4.0.1"
+  }
+```
 
-FileNameHeader部分にフルパス(拡張子なし)が表示されています。
-元々、この部分へはファイルタイトル(ディレクトリなし、拡張子なし)のみを表示する仕様です。
-また、簡易的にファイル名の変更ができるようになっています。
-ファイル名のみの表示が行われるように修正してください
-
-#### 特定のファイルの読込時のみエラーが出る
-
-preview://D:/home/mituha/repos/novelaid-editor-next/doc/猫モフApps/02_プロジェクト選択.md Error: Error invoking remote method 'fs:readDocument': Error: ENOENT: no such file or directory, open 'D:\home\mituha\repos\novelaid-editor\preview:\D:\home\mituha\repos\novelaid-editor-next\doc\猫モフApps\02_プロジェクト選択.md'
-
-preview用のパスの名前に対して、開こうとしているパスがおかしい。
-* fs:readDocument等、ドキュメントに渡すパスはURIスキームを除いた絶対パスであるべき。
-* URIスキーム自体が現状の過渡期の対応なので、documentType、documentViewType、documentPathから判別、扱われるべきです。
-* URIスキームを含んでいるかもしれないパスから、ドキュメントとして扱える絶対パスを生成するメソッドが未定義であれば定義してください。
-  + 他の類似のメソッド同様、プラグインや拡張機能でも利用できるようにDocumentContextに定義してください。
-    + 他に適切な定義位置があるかも検討、確認してください。
-  + 引数としては他の補助情報(documentType, documentViewType)も渡せるようにしてください。
-* URIスキームの扱い自体も、将来的に変更される可能性を考慮して、直接個々に処理している箇所は一元的に処理するようにしてください。
+```
+# npm の場合
+npm ls micromark mdast-util-from-markdown
 
 
+PS D:\home\mituha\repos\novelaid-editor> npm ls micromark mdast-util-from-markdown
+novelaid-editor@0.42.5 D:\home\mituha\repos\novelaid-editor
+├─┬ mdast-util-from-markdown@2.0.3
+│ └── micromark@4.0.2 deduped
+├── micromark@4.0.2
+├─┬ react-markdown@10.1.0
+│ └─┬ hast-util-to-jsx-runtime@2.3.6
+│   ├─┬ mdast-util-mdx-expression@2.0.1
+│   │ └── mdast-util-from-markdown@2.0.3 deduped
+│   ├─┬ mdast-util-mdx-jsx@3.2.0
+│   │ └── mdast-util-from-markdown@2.0.3 deduped
+│   └─┬ mdast-util-mdxjs-esm@2.0.1
+│     └── mdast-util-from-markdown@2.0.3 deduped
+├─┬ remark-gfm@4.0.1
+│ └─┬ mdast-util-gfm@3.1.0
+│   ├── mdast-util-from-markdown@2.0.3 deduped
+│   ├─┬ mdast-util-gfm-footnote@2.1.0
+│   │ └── mdast-util-from-markdown@2.0.3 deduped
+│   ├─┬ mdast-util-gfm-strikethrough@2.0.0
+│   │ └── mdast-util-from-markdown@2.0.3 deduped
+│   ├─┬ mdast-util-gfm-table@2.0.0
+│   │ └── mdast-util-from-markdown@2.0.3 deduped
+│   └─┬ mdast-util-gfm-task-list-item@2.0.0
+│     └── mdast-util-from-markdown@2.0.3 deduped
+├─┬ remark-parse@11.0.0
+│ └── mdast-util-from-markdown@2.0.3 deduped
+└─┬ textlint@15.5.2
+  └─┬ @textlint/textlint-plugin-markdown@15.5.2
+    └─┬ @textlint/markdown-to-ast@15.5.2
+      ├─┬ mdast-util-gfm-autolink-literal@0.1.3
+      │ └── micromark@2.11.4
+      ├─┬ remark-footnotes@3.0.0
+      │ ├─┬ mdast-util-footnote@0.1.7
+      │ │ └── micromark@2.11.4
+      │ └─┬ micromark-extension-footnote@0.3.2
+      │   └── micromark@2.11.4
+      ├─┬ remark-gfm@1.0.0
+      │ └─┬ micromark-extension-gfm@0.3.3
+      │   ├─┬ micromark-extension-gfm-autolink-literal@0.5.7
+      │   │ └── micromark@2.11.4 deduped
+      │   ├─┬ micromark-extension-gfm-strikethrough@0.6.5
+      │   │ └── micromark@2.11.4 deduped
+      │   ├─┬ micromark-extension-gfm-table@0.4.3
+      │   │ └── micromark@2.11.4 deduped
+      │   ├─┬ micromark-extension-gfm-task-list-item@0.3.3
+      │   │ └── micromark@2.11.4 deduped
+      │   └── micromark@2.11.4 deduped
+      └─┬ remark-parse@9.0.0
+        └─┬ mdast-util-from-markdown@0.8.5
+          └── micromark@2.11.4 deduped
+```
+micromark@4.0.2 に対して、textlintが対応していないのが問題。
+micromark@2.11.4
+```
+{
+  "overrides": {
+    "micromark": "^4.0.2",
+    "mdast-util-from-markdown": "^2.0.3",
+  }
+}
+```
+node_modulesを削除して再インストール
+ビルドエラーになる。
 
-
-
-Uncaught TypeError: this.getData is not a function
-    at Object.exitCodeText (from-markdown.js:42:1)
-    at compile (index.js:254:1)
-    at fromMarkdown (index.js:83:1)
-    at parser (index.js:33:24)
-    at apply.parse (index.js:668:1)
-    at Markdown (index.js:178:1)
-    at Object.react_stack_bottom_frame (react-dom-client.development.js:25904:1)
-    at renderWithHooks (react-dom-client.development.js:7662:1)
-    at updateFunctionComponent (react-dom-client.development.js:10166:1)
-    at beginWork (react-dom-client.development.js:11778:1)
-
-
+```
+ npm explain  micromark
+ ```
 
 ### git未インストール時の処理？
 

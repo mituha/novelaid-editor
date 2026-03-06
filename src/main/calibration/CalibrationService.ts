@@ -11,7 +11,6 @@ import noDoubledJoshi from 'textlint-rule-no-doubled-joshi';
 
 // Import plugins programmatically
 import textPlugin from '@textlint/textlint-plugin-text';
-import markdownPlugin from '@textlint/textlint-plugin-markdown';
 
 export interface CalibrationIssue {
   id: string;
@@ -142,11 +141,7 @@ export class CalibrationService {
             {
               pluginId: 'text',
               plugin: getModule(textPlugin),
-            },
-            {
-              pluginId: 'markdown',
-              plugin: getModule(markdownPlugin),
-            },
+            }
           ];
 
           console.log(`[Textlint] Registering ${rules.length} rules and ${plugins.length} plugins.`);
