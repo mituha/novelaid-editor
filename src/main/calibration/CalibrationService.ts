@@ -141,6 +141,13 @@ export class CalibrationService {
             {
               pluginId: 'text',
               plugin: getModule(textPlugin),
+            },
+            // markdown を参照させない（無効化する）場合は、この配列に含めないか、
+            // あるいは以下のように明示的に false を持つオブジェクトとして定義します。
+            // ただし、通常は配列から削除するだけで「参照されない」状態になります。
+            {
+              pluginId: 'markdown',
+              plugin: false // 明示的に false を指定して無効化
             }
           ];
 
