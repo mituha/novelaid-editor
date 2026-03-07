@@ -26,7 +26,7 @@ if (!fs.existsSync(rendererPath)) {
 
 // JSDOM does not implement TextEncoder and TextDecoder
 if (!global.TextEncoder) {
-  global.TextEncoder = TextEncoder;
+  global.TextEncoder = TextEncoder as any;  //TODO  error TS2322: Type 'typeof TextEncoder' is not assignable to type '{ new (): TextEncoder; prototype: TextEncoder; }'.
 }
 if (!global.TextDecoder) {
   // @ts-ignore
