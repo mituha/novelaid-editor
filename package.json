@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.42.7",
+  "version": "0.42.9",
   "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
@@ -107,7 +107,7 @@
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.1.1",
     "kuromoji": "^0.1.2",
-    "lucide-react": "^0.562.0",
+    "lucide-react": "^0.577.0",
     "monaco-editor": "^0.55.1",
     "monaco-editor-nls": "^3.1.0",
     "monaco-editor-webpack-plugin": "^7.1.1",
@@ -134,7 +134,7 @@
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/kuromoji": "^0.1.3",
-    "@types/node": "22.13.10",
+    "@types/node": "^24.12.0",
     "@types/react": "^19.0.11",
     "@types/react-dom": "^19.0.4",
     "@types/react-test-renderer": "^19.0.0",
@@ -186,7 +186,7 @@
     "typescript": "^5.8.2",
     "url-loader": "^4.1.1",
     "webpack": "^5.98.0",
-    "webpack-bundle-analyzer": "^4.10.2",
+    "webpack-bundle-analyzer": "^5.2.0",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.0",
     "webpack-merge": "^6.0.1"
@@ -207,9 +207,7 @@
     "asar": true,
     "afterSign": ".erb/scripts/notarize.js",
     "asarUnpack": [
-      "**\\*.{node,dll}",
-      "**/node_modules/textlint/**/*",
-      "**/node_modules/textlint-rule-*/**/*"
+      "**\\*.{node,dll}"
     ],
     "files": [
       "dist",
@@ -281,12 +279,12 @@
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": ">=14.x",
+      "version": ">=24.x",
       "onFail": "error"
     },
     "packageManager": {
       "name": "npm",
-      "version": ">=7.x",
+      "version": ">=11.x",
       "onFail": "error"
     }
   },

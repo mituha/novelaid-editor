@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.42.7",
+  "version": "0.42.9",
   "description": "小説執筆用のエディター",
   "license": "MIT",
   "author": {
@@ -13,25 +13,7 @@
     "postinstall": "npm run rebuild && npm run link-modules",
     "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts"
   },
-  "dependencies": {
-    "@textlint/textlint-plugin-text": "^15.5.1",
-    "astral-regex": "^2.0.0",
-    "textlint": "^15.5.2",
-    "textlint-rule-no-doubled-joshi": "^5.1.1",
-    "textlint-rule-no-dropping-the-ra": "^3.0.0",
-    "textlint-rule-preset-ja-spacing": "^2.4.3"
-  },
   "devDependencies": {
     "electron": "^40.6.1"
-  },
-  "overrides": {
-    "remark-parse": "11.0.0",
-    "micromark": "^4.0.2",
-    "@textlint/markdown-to-ast": {
-      "micromark": "~2.11.0",
-      "remark-parse": "9.0.0",
-      "remark-gfm": "1.0.0",
-      "mdast-util-from-markdown": "^0.8.0"
-    }
   }
 }
