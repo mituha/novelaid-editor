@@ -1,11 +1,14 @@
 import React from 'react';
 import { useSettings } from '../../../contexts/SettingsContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export function AppearanceSettingsTab() {
   const { settings, updateSettings } = useSettings();
-  const theme = settings.theme || 'dark';
+  const { theme, setTheme } = useTheme();
 
   const handleThemeChange = (newTheme: 'dark' | 'light') => {
+    setTheme(newTheme);
+    // 後方互換性および既存プロジェクトへの反映のためにSettingsも更新しておく
     updateSettings({
       ...settings,
       theme: newTheme,

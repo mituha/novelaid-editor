@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Editor, { OnMount, BeforeMount } from '@monaco-editor/react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { NOVEL_PATTERNS } from '../../../common/constants/novel';
 import RubyDialog from './RubyDialog';
 import { EditorSupport } from './EditorSupport';
@@ -38,6 +39,7 @@ export default function CodeEditor({
 }: CodeEditorProps) {
   const { settings } = useSettings();
   const editorConfig = settings.editor || {};
+  const { theme } = useTheme();
   const [isRubyDialogOpen, setIsRubyDialogOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const editorRef = useRef<any>(null);
@@ -404,7 +406,7 @@ export default function CodeEditor({
   };
 
   const getTheme = () => {
-    if (settings.theme === 'light') return 'novel-light';
+    if (theme === 'light') return 'novel-light';
     return 'novel-dark';
   };
 

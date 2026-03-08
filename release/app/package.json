@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.42.9",
+  "version": "0.42.10",
   "description": "小説執筆用のエディター",
   "license": "MIT",
   "author": {
@@ -14,6 +14,6 @@
     "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts"
   },
   "devDependencies": {
-    "electron": "^40.6.1"
+    "electron": "40.6.1"
   }
 }

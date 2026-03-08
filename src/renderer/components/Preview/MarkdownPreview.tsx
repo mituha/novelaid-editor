@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import BaseMarkdown from '../Common/BaseMarkdown';
 import { useDocument } from '../../contexts/DocumentContext';
 import { DocumentViewType } from '../../../common/types';
@@ -16,8 +16,7 @@ export default function MarkdownPreview({
   filePath,
   viewType,
 }: MarkdownPreviewProps) {
-  const { settings } = useSettings();
-  const theme = settings.theme || 'dark';
+  const { theme } = useTheme();
   const { openDocument, openWebBrowser, closeTab } = useDocument();
 
   const handleLinkClick = async (url: string, options?: { newTab?: boolean }) => {

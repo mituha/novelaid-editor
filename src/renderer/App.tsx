@@ -10,7 +10,9 @@ import { PanelProvider } from './contexts/PanelContext';
 import { MetadataProvider } from './contexts/MetadataContext';
 import { AIContextProvider } from './contexts/AIContextContext';
 import { DocumentProvider } from './contexts/DocumentContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import ProjectLauncher from './components/Launcher/ProjectLauncher';
+import './styles/theme.css';
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -56,19 +58,21 @@ export default function App() {
   return (
     <Router>
       <AppProvider>
-        <SettingsProvider>
-          <GitContextProvider>
-            <PanelProvider>
-              <MetadataProvider>
-                <AIContextProvider>
-                  <DocumentProvider>
-                    <AppRoutes />
-                  </DocumentProvider>
-                </AIContextProvider>
-              </MetadataProvider>
-            </PanelProvider>
-          </GitContextProvider>
-        </SettingsProvider>
+        <ThemeProvider>
+          <SettingsProvider>
+            <GitContextProvider>
+              <PanelProvider>
+                <MetadataProvider>
+                  <AIContextProvider>
+                    <DocumentProvider>
+                      <AppRoutes />
+                    </DocumentProvider>
+                  </AIContextProvider>
+                </MetadataProvider>
+              </PanelProvider>
+            </GitContextProvider>
+          </SettingsProvider>
+        </ThemeProvider>
       </AppProvider>
     </Router>
   );
