@@ -5,11 +5,71 @@
 
 メタデータ用の右ペインの表示をマークダウンと小説の対応時のみとする。
 
-### インストーラー版が起動しない
+### npm start時エラー
+```pwsh
+npm start
+```
+この場合のみ起動時にエラーが出る
+```
+[1] 
+[1] App threw an error during load
+[1] TSError: ⨯ Unable to compile TypeScript:
+[1] .erb/dll/main.bundle.dev.js(63,25): error TS1487: Octal escape sequences are not allowed. Use the syntax '\x1b'.
+[1] .erb/dll/main.bundle.dev.js(64,25): error TS1487: Octal escape sequences are not allowed. Use the syntax '\x1b'.
+[1] .erb/dll/main.bundle.dev.js(65,25): error TS1487: Octal escape sequences are not allowed. Use the syntax '\x1b'.
 
-0.42.6 が起動時に、./dist/util/normalize-identifer is not defiined のエラーになる。  
-ローカルPCで作成したものは大丈夫っぽい？
+//中略
 
+[1] .erb/dll/main.bundle.dev.js(111,25): error TS1487: Octal escape sequences are not allowed. Use the syntax '\x1b'.
+[1]
+[1]     at createTSError (D:\home\mituha\repos\novelaid-editor\node_modules\ts-node\src\index.ts:859:12)     
+[1]     at reportTSError (D:\home\mituha\repos\novelaid-editor\node_modules\ts-node\src\index.ts:863:19)     
+[1]     at D:\home\mituha\repos\novelaid-editor\node_modules\ts-node\src\index.ts:1379:34
+[1]     at Object.compile (D:\home\mituha\repos\novelaid-editor\node_modules\ts-node\src\index.ts:1451:13)   
+[1]     at Module.m._compile (D:\home\mituha\repos\novelaid-editor\node_modules\ts-node\src\index.ts:1617:30)
+[1]     at Module._extensions..js (node:internal/modules/cjs/loader:1945:10)
+[1]     at Object.require.extensions.<computed> [as .js] (D:\home\mituha\repos\novelaid-editor\node_modules\ts-node\src\index.ts:1621:12)
+[1]     at Module.c._load (node:electron/js2c/node_init:2:17999)
+[1] [electronmon] uncaught exception occured
+[1]     at Module.c._load (node:electron/js2c/node_init:2:17999)
+[1] [electronmon] uncaught exception occured
+[1] [electronmon] waiting for any change to restart the app
+[1] [23336:0308/124632.083:ERROR:content\browser\network_service_instance_impl.cc:610] Network service crashed or was terminated, restarting service.
+[1] [electronmon] ignoring exit with code 1
+```
+
+```pwsh
+npm run package
+```
+で作成したexeは起動する。
+
+ます、`.erb/dll`の削除。
+これによりキャッシュが削除される。
+`npm i` で再度インストール。
+この処理でpostinstallが走るため、再構築予定。
+-> 解消しない
+
+エラーは、"\033[0m"のような8進数表記を使用してはいけないエラー
+```
+novelaid-editor@0.42.11 D:\home\mituha\repos\novelaid-editor
+└─┬ textlint@15.5.2
+  └─┬ @textlint/linter-formatter@15.5.2
+    └── @azu/style-format@1.0.1
+```
+この`@azu/style-format`は数年更新がない。
+現状、依存関係の問題からそのまま解消はないと考えられます。
+```json
+/* ここから下を追加！ */
+  "ts-node": {
+    "transpileOnly": true,
+    "skipIgnore": false,
+    "ignore": [
+      "(?:^|/)node_modules/",
+      "\\.erb/dll/"
+    ]
+  }
+```
+tsconfig.jsonに上記を追加。
 
 
 ### チャットビュー
