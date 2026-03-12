@@ -88,15 +88,6 @@ export default function MainLayout() {
     }
   }, [isRightPaneNarrow, getPanels, setActivePanel]);
 
-  const handleFileSelect = useCallback(
-    (
-      path: string,
-      data?: { content: string; metadata: Record<string, any> },
-    ) => {
-      openDocument(path, { data });
-    },
-    [openDocument],
-  );
 
   useEffect(() => {
     registerSettingTab({
@@ -163,7 +154,6 @@ export default function MainLayout() {
   }, [
     registerSettingTab,
     openSettings,
-    handleFileSelect,
     closeTab,
   ]);
 
@@ -222,12 +212,7 @@ export default function MainLayout() {
             overflow: 'hidden',
           }}
         >
-          <LeftPane
-            onFileSelect={handleFileSelect}
-            onProjectOpened={(path) => loadProjectSettings(path)}
-            onOpenDiff={openDiff}
-            onOpenWebBrowser={openWebBrowser}
-          />
+          <LeftPane />
         </div>
         {!isLeftPaneNarrow && <Resizer onResize={handleLeftResize} />}
 

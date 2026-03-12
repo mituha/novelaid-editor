@@ -11,16 +11,15 @@ import {
 } from 'lucide-react';
 import { useGit } from '../../contexts/GitContext';
 import { GitGraph } from './GitGraph';
+import { useDocument } from '../../contexts/DocumentContext';
 import { Panel } from '../../types/panel';
 import './GitPanel.css';
 
 interface GitPanelProps {
-  onOpenDiff?: (path: string, staged: boolean) => void;
 }
 
-export const GitPanel: React.FC<GitPanelProps> = ({
-  onOpenDiff = () => {},
-}) => {
+export const GitPanel: React.FC<GitPanelProps> = () => {
+  const { openDiff } = useDocument();
   const {
     status,
     history,
@@ -353,7 +352,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({
                     <span
                       className="git-panel-path"
                       title={file.path}
-                      onClick={() => onOpenDiff(file.path, true)}
+                      onClick={() => openDiff(file.path, true)}
                       style={{ cursor: 'pointer' }}
                     >
                       {file.path}
@@ -425,7 +424,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({
                     <span
                       className="git-panel-path"
                       title={file.path}
-                      onClick={() => onOpenDiff(file.path, false)}
+                      onClick={() => openDiff(file.path, false)}
                       style={{ cursor: 'pointer' }}
                     >
                       {file.path}

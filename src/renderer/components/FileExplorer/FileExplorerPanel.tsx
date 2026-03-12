@@ -79,24 +79,23 @@ interface FileNode {
 }
 
 interface FileExplorerProps {
-  onFileSelect: (path: string, data: any) => void;
+  // Props are now empty as functionality is moved to Context
 }
 
 function OpenEditorItem({
   tab,
   side,
   activeTabPath,
-  onFileSelect,
   closeTab,
   level = 1,
 }: {
   tab: Tab;
   side: 'left' | 'right';
   activeTabPath: string | null;
-  onFileSelect: (path: string, data: any) => void;
   closeTab: (path: string, side?: 'left' | 'right') => void;
   level?: number;
 }) {
+  const { openDocument } = useDocument();
   const fileName = tab.name;
   const isActive = tab.path === activeTabPath;
   return (
@@ -104,7 +103,7 @@ function OpenEditorItem({
       className={`file-item open-editor-item ${isActive ? 'active' : ''}`}
       onClick={(e) => {
         e.stopPropagation();
-        onFileSelect(tab.path, undefined);
+        openDocument(tab.path);
       }}
       style={{ paddingLeft: `${BASE_INDENT + level * INDENT_STEP}px` }}
       draggable
@@ -158,7 +157,6 @@ function OpenEditorItem({
 
 function FileTreeItem({
   file,
-  onFileSelect,
   level = 0,
   onRefresh,
   selectedPath,
@@ -174,7 +172,6 @@ function FileTreeItem({
   onRefreshItem,
 }: {
   file: FileNode;
-  onFileSelect: (path: string, data: any) => void;
   level?: number;
   onRefresh: () => void;
   selectedPath: string | null;
@@ -189,6 +186,7 @@ function FileTreeItem({
   setRenamingPath: (path: string | null) => void;
   onRefreshItem: (path: string) => void;
 }) {
+  const { openDocument } = useDocument();
   const [isOpen, setIsOpen] = useState(false);
   const [children, setChildren] = useState<FileNode[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -263,7 +261,7 @@ function FileTreeItem({
       setIsOpen(!isOpen);
     } else {
       try {
-        onFileSelect(file.path, undefined);
+        openDocument(file.path);
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error('Failed to read document', err);
@@ -471,7 +469,6 @@ function FileTreeItem({
             <FileTreeItem
               key={child.path}
               file={child}
-              onFileSelect={onFileSelect}
               level={level + 1}
               onRefresh={loadDirectory}
               selectedPath={selectedPath}
@@ -493,7 +490,7 @@ function FileTreeItem({
   );
 }
 
-export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
+export default function FileExplorerPanel(_props: FileExplorerProps) {
   const [rootFiles, setRootFiles] = useState<FileNode[]>([]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedIsDir, setSelectedIsDir] = useState(false);
@@ -815,7 +812,6 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
                         side="left"
                         activeTabPath={activeTabPath}
                         closeTab={closeTab}
-                        onFileSelect={onFileSelect}
                       />
                     ))}
                 </>
@@ -863,7 +859,6 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
                         side="right"
                         activeTabPath={activeTabPath}
                         closeTab={closeTab}
-                        onFileSelect={onFileSelect}
                       />
                     ))}
                 </>
@@ -963,7 +958,6 @@ export default function FileExplorerPanel({ onFileSelect }: FileExplorerProps) {
               <FileTreeItem
                 key={file.path}
                 file={file}
-                onFileSelect={onFileSelect}
                 level={1}
                 onRefresh={refreshRoot}
                 selectedPath={selectedPath}

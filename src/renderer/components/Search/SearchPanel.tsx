@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Search, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import { Panel } from '../../types/panel';
+import { useDocument } from '../../contexts/DocumentContext';
 import { getFilePath } from '../../../common/utils/pathUtils';
 import './SearchPanel.css';
 
@@ -16,11 +17,11 @@ interface SearchResult {
 }
 
 interface SearchPanelProps {
-  onFileSelect: (path: string, data: any) => void;
-  [key: string]: any;
+  // Props are now empty as functionality is moved to Context
 }
 
-export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
+export const SearchPanel: React.FC<SearchPanelProps> = (_props) => {
+  const { openDocument } = useDocument();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -81,11 +82,13 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ onFileSelect }) => {
 
       // onFileSelect will open the tab
       // line is the relative line number from body (1-based)
-      onFileSelect(absolutePath, {
-        ...data,
-        initialLine: line,
-        initialColumn: index + 1, // Monaco is 1-based
-        searchQuery: query,
+      openDocument(absolutePath, {
+        data: {
+          ...data,
+          initialLine: line,
+          initialColumn: index + 1, // Monaco is 1-based
+          searchQuery: query,
+        }
       });
     } catch (err) {
       // Ignore errors
