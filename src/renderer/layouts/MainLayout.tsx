@@ -16,7 +16,7 @@ import { usePanel } from '../contexts/PanelContext';
 import { useMetadata } from '../contexts/MetadataContext';
 import './MainLayout.css';
 
-import { LeftPane } from '../components/LeftPane/LeftPane';
+import { SidePane } from '../components/Common/SidePane';
 
 export default function MainLayout() {
   const {
@@ -212,7 +212,7 @@ export default function MainLayout() {
             overflow: 'hidden',
           }}
         >
-          <LeftPane />
+          <SidePane location="left" />
         </div>
         {!isLeftPaneNarrow && <Resizer onResize={handleLeftResize} />}
 
