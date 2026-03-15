@@ -1,8 +1,7 @@
-import React from 'react';
-import { useSettings } from '../../../contexts/SettingsContext';
+import { useProject } from '../../../contexts/ProjectContext';
 
 export default function EditorSettingsTab() {
-  const { settings, updateSettings } = useSettings();
+  const { projectConfig: settings, updateProjectConfig: updateSettings } = useProject();
   const editorConfig = settings.editor || {};
 
   const handleChange = (key: string, value: any) => {

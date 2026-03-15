@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
+import { useProject } from '../contexts/ProjectContext';
 import { useMetadata } from '../contexts/MetadataContext';
 import { PERSONAS, Persona } from '../../common/constants/personas';
 
@@ -9,7 +9,7 @@ export interface DynamicPersona extends Persona {
 }
 
 export function usePersonas() {
-  const { projectPath } = useSettings();
+  const { projectPath } = useProject();
   const { isScanning, scanProgress } = useMetadata();
   const [dynamicPersonas, setDynamicPersonas] = useState<DynamicPersona[]>([]);
 

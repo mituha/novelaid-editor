@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useEffect,
 } from 'react';
-import { useSettings } from './SettingsContext';
+import { useProject } from '../contexts/ProjectContext';
 import { Panel, PanelRegistry, PanelLocation } from '../types/panel';
 import { fileExplorerPanelConfig } from '../components/FileExplorer/FileExplorerPanel';
 import { gitPanelConfig } from '../components/Git/GitPanel';
@@ -52,7 +52,7 @@ const builtInPanels: Panel[] = [
 const initialPanels: Panel[] = builtInPanels;
 
 export function PanelProvider({ children }: { children: ReactNode }) {
-  const { settings } = useSettings();
+  const { projectConfig: settings, projectPath } = useProject();
   const [panels, setPanels] = useState<Panel[]>(initialPanels);
   const [activeLeftPanelId, setActiveLeftPanelId] = useState<string | null>(
     'files',

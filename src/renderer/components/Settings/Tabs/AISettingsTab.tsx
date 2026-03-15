@@ -1,8 +1,8 @@
 import React from 'react';
-import { useSettings } from '../../../contexts/SettingsContext';
+import { useProject } from '../../../contexts/ProjectContext';
 
 export default function AISettingsTab() {
-  const { settings, updateSettings } = useSettings();
+  const { projectConfig: settings, updateProjectConfig: updateSettings } = useProject();
   const aiConfig = settings.ai || {};
   const [availableModels, setAvailableModels] = React.useState<string[]>([]);
   const [isFetching, setIsFetching] = React.useState(false);

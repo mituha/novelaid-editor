@@ -1,8 +1,9 @@
-import React from 'react';
 import { useSettings } from '../../../contexts/SettingsContext';
+import { useProject } from '../../../contexts/ProjectContext';
 
 export function CalibrationSettingsTab() {
-  const { settings, updateSettings, closeSettings } = useSettings();
+  const { closeSettings } = useSettings();
+  const { projectConfig: settings, updateProjectConfig: updateSettings } = useProject();
   const calibration = settings.calibration || {
     textlint: true,
     noDroppingTheRa: true,

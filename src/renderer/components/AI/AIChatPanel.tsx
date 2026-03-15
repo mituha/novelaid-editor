@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare } from 'lucide-react';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useProject } from '../../contexts/ProjectContext';
 import { Panel } from '../../types/panel';
 import { Persona, CHAT_ROLES } from '../../../common/constants/personas';
 import './AIChatPanel.css';
@@ -37,7 +37,7 @@ export default function AIChatPanel({
   rightTabs,
   documents,
 }: AIChatPanelProps) {
-  const { settings, projectPath } = useSettings();
+  const { projectConfig: settings, projectPath } = useProject();
   const {
     openPanelDocument,
     updateContent,

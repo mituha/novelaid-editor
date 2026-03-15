@@ -6,7 +6,7 @@ import {
   BarChart2,
   AlertCircle,
 } from 'lucide-react';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useProject } from '../../contexts/ProjectContext';
 import { useDocument } from '../../contexts/DocumentContext';
 import { Panel } from '../../types/panel';
 import { DocumentType } from '../../../common/types';
@@ -49,9 +49,9 @@ interface CalibrationPanelProps {
 }
 
 export default function CalibrationPanel({ content, activePath, documentType }: CalibrationPanelProps) {
-  const { settings } = useSettings();
+  const { projectConfig } = useProject();
   const { getFileTitle } = useDocument();
-  const calibration = settings.calibration;
+  const calibration = projectConfig.calibration;
 
   const handleIssueClick = (range: any) => {
     window.dispatchEvent(

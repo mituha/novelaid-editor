@@ -10,6 +10,7 @@ import { Tab } from '../components/TabBar/TabBar';
 import { useSettings } from './SettingsContext';
 import { DocumentType, DocumentViewType } from '../../common/types';
 import { toDocumentPath, getFilePath } from '../../common/utils/pathUtils';
+import { useProject } from './ProjectContext';
 
 export interface DocumentData {
   content: string;
@@ -97,8 +98,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   const [activeSide, setActiveSide] = useState<'left' | 'right'>('left');
   const [isSplit, setIsSplit] = useState(false);
 
-  const { settings, updateSettings, projectPath, loadProjectSettings } =
-    useSettings();
+  const { projectConfig: settings, updateProjectConfig: updateSettings, projectPath } =
+    useProject();
   const restoredRef = useRef<string | null>(null);
   const savingPaths = useRef<Set<string>>(new Set());
   const autoSaveTimerRef = useRef<Record<string, any>>({});

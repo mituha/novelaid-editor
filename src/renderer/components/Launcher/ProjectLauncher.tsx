@@ -2,21 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FolderOpen, Plus, Clock, X, Book } from 'lucide-react';
 import { useGit } from '../../contexts/GitContext';
-import { useSettings } from '../../contexts/SettingsContext';
-import { useApp } from '../../contexts/AppContext';
+import { useProject } from '../../contexts/ProjectContext';
+import { useApp, RecentProject } from '../../contexts/AppContext';
 import './ProjectLauncher.css';
 
-interface RecentProject {
-  path: string;
-  name: string;
-  lastOpened: number;
-}
-
 export default function ProjectLauncher() {
-  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const { recentProjects, addRecentProject, removeRecentProject } = useApp();
+  const { loadProject } = useProject();
   const { currentDir } = useGit();
-  const { loadProjectSettings } = useSettings();
-  const { version, setActiveProject } = useApp();
+  const { version } = useApp();
   const navigate = useNavigate();
 
   // Create project state
@@ -26,31 +20,19 @@ export default function ProjectLauncher() {
   const [cloneUrl, setCloneUrl] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const loadRecent = useCallback(async () => {
-    if (!window.electron?.ipcRenderer) return;
-    try {
-      const projects = await window.electron.ipcRenderer.invoke('recent:get');
-      if (Array.isArray(projects)) {
-        setRecentProjects(projects);
-      }
-    } catch {
-      // Ignored
-    }
-  }, []);
-
   const openProject = useCallback(
     async (path: string) => {
-      await window.electron?.ipcRenderer.invoke('recent:add', path);
-      setActiveProject(path);
-      await loadProjectSettings(path);
+      await addRecentProject(path);
+      await loadProject(path);
       navigate('/editor');
     },
-    [setActiveProject, loadProjectSettings, navigate],
+    [addRecentProject, loadProject, navigate],
   );
 
-  useEffect(() => {
-    loadRecent();
-  }, [loadRecent]);
+  // The loadRecent useEffect is no longer needed as recentProjects are managed by AppContext
+  // useEffect(() => {
+  //   loadRecent();
+  // }, [loadRecent]);
 
   const handleOpenFolder = async () => {
     const path = await window.electron?.ipcRenderer.invoke(
@@ -101,8 +83,7 @@ export default function ProjectLauncher() {
 
   const handleRemoveRecent = async (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
-    await window.electron?.ipcRenderer.invoke('recent:remove', path);
-    loadRecent();
+    await removeRecentProject(path);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, path: string) => {

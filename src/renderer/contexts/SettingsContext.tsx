@@ -7,65 +7,6 @@ import React, {
   ReactNode,
 } from 'react';
 
-// プロジェクト設定の型定義 (src/main/project.ts とあわせるのが理想だが、一旦ここで定義)
-export interface ProjectConfig {
-  theme?: 'dark' | 'light';
-  editor?: {
-    fontSize?: number;
-    showLineNumbers?: boolean;
-    showMinimap?: boolean;
-    wordWrap?: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
-    selectionHighlight?: boolean;
-    occurrencesHighlight?: boolean;
-    renderWhitespace?: 'none' | 'boundary' | 'selection' | 'trailing' | 'all';
-    renderControlCharacters?: boolean;
-    showFullWidthSpace?: boolean;
-    [key: string]: any;
-  };
-  ai?: {
-    provider?: 'lmstudio' | 'gemini' | 'openai' | 'none';
-    lmstudio?: {
-      model?: string;
-      baseUrl?: string;
-    };
-    gemini?: {
-      apiKey?: string;
-      model?: string;
-    };
-    openai?: {
-      apiKey?: string;
-      baseUrl?: string; // e.g. http://localhost:1234/v1
-      model?: string;
-    };
-  };
-  metadataLists?: {
-    id: string;
-    title: string;
-    tag: string;
-  }[];
-  submission?: {
-    kakuyomuUrl?: string;
-    naroUrl?: string;
-    customUrl?: string;
-  };
-  calibration?: {
-    textlint?: boolean;
-    noDroppingTheRa?: boolean;
-    noDoubledJoshi?: boolean;
-    jaSpacing?: boolean;
-    kanjiOpenClose?: boolean;
-  };
-  lastOpenFiles?: {
-    left: { path: string; name: string }[];
-    right: { path: string; name: string }[];
-    leftActive?: string | null;
-    rightActive?: string | null;
-    activeSide?: 'left' | 'right';
-    isSplit?: boolean;
-  };
-  [key: string]: any;
-}
-
 export interface SettingsTab {
   id: string;
   name: string;
@@ -73,90 +14,20 @@ export interface SettingsTab {
 }
 
 interface SettingsContextType {
-  settings: ProjectConfig;
-  updateSettings: (newSettings: ProjectConfig) => void;
   registerSettingTab: (tab: SettingsTab) => void;
   settingTabs: SettingsTab[];
   openSettings: () => void;
   closeSettings: () => void;
   isSettingsOpen: boolean;
-  loadProjectSettings: (path: string) => Promise<void>;
-  projectPath: string | null;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
   undefined,
 );
 
-const DEFAULT_SETTINGS: ProjectConfig = {
-  theme: 'dark',
-  editor: {
-    fontSize: 14,
-    showLineNumbers: true,
-    showMinimap: true,
-    wordWrap: 'on',
-    selectionHighlight: true,
-    occurrencesHighlight: false,
-    renderWhitespace: 'all',
-    renderControlCharacters: true,
-    showFullWidthSpace: true,
-  },
-  submission: {
-    kakuyomuUrl: 'https://kakuyomu.jp/my',
-    naroUrl: 'https://syosetu.com/usernovel/list/',
-  },
-  calibration: {
-    textlint: true,
-    noDroppingTheRa: true,
-    noDoubledJoshi: true,
-    jaSpacing: true,
-    kanjiOpenClose: true,
-  },
-};
-
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<ProjectConfig>(DEFAULT_SETTINGS);
   const [settingTabs, setSettingTabs] = useState<SettingsTab[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [projectPath, setProjectPath] = useState<string | null>(null); // eslint-disable-line space-in-parens
-
-  const loadProjectSettings = useCallback(async (path: string) => {
-    try {
-      const result = await window.electron.ipcRenderer.invoke(
-        'project:load',
-        path,
-      );
-      if (result && result.config) {
-        // Reset to defaults first, then apply new config
-        setSettings({ ...DEFAULT_SETTINGS, ...result.config });
-      } else {
-        // If not a project or failed to load, just use defaults
-        setSettings(DEFAULT_SETTINGS);
-      }
-      setProjectPath(path);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to load project settings:', error);
-    }
-  }, []);
-
-  const updateSettings = useCallback(
-    async (newSettings: ProjectConfig) => {
-      setSettings((prev) => {
-        const updated = { ...prev, ...newSettings };
-        if (projectPath) {
-          window.electron.ipcRenderer
-            .invoke('project:save-config', projectPath, updated)
-            .catch((err) => {
-              // eslint-disable-next-line no-console
-              console.error('Failed to save config:', err);
-            });
-        }
-        return updated;
-      });
-    },
-    [projectPath],
-  );
 
   const registerSettingTab = useCallback((tab: SettingsTab) => {
     setSettingTabs((prev) => {
@@ -170,26 +41,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      settings,
-      updateSettings,
       registerSettingTab,
       settingTabs,
       openSettings,
       closeSettings,
       isSettingsOpen,
-      loadProjectSettings,
-      projectPath,
     }),
     [
-      settings,
-      updateSettings,
       registerSettingTab,
       settingTabs,
       openSettings,
       closeSettings,
       isSettingsOpen,
-      loadProjectSettings,
-      projectPath,
     ],
   );
 

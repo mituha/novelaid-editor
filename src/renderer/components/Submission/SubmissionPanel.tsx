@@ -1,7 +1,7 @@
 import React from 'react';
 import { ExternalLink, BookOpen, Send, Share2 } from 'lucide-react';
 import { Panel } from '../../types/panel';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useProject } from '../../contexts/ProjectContext';
 import './SubmissionPanel.css';
 
 interface SubmissionPanelProps {
@@ -9,15 +9,15 @@ interface SubmissionPanelProps {
 }
 
 export function SubmissionPanel({ onOpenWeb }: SubmissionPanelProps) {
-  const { settings } = useSettings();
-  const subSettings = settings.submission || {};
+  const { projectConfig } = useProject();
+  const submission = projectConfig.submission || {};
 
   const handleOpenKakuyomu = () => {
-    onOpenWeb(subSettings.kakuyomuUrl || 'https://kakuyomu.jp/my', 'カクヨム');
+    onOpenWeb(submission.kakuyomuUrl || 'https://kakuyomu.jp/my', 'カクヨム');
   };
 
   const handleOpenNaro = () => {
-    onOpenWeb(subSettings.naroUrl || 'https://syosetu.com/usernovel/list/', '小説家になろう');
+    onOpenWeb(submission.naroUrl || 'https://syosetu.com/', '小説家になろう');
   };
 
   return (

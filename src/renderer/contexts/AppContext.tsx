@@ -4,13 +4,22 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   ReactNode,
 } from 'react';
 
+export interface RecentProject {
+  path: string;
+  name: string;
+  lastOpened: number;
+}
+
 interface AppContextType {
   version: string;
-  activeProjectName: string | null;
-  setActiveProject: (path: string | null) => void;
+  recentProjects: RecentProject[];
+  loadRecentProjects: () => Promise<void>;
+  addRecentProject: (path: string) => Promise<void>;
+  removeRecentProject: (path: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -29,7 +38,7 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [version, setVersion] = useState<string>('');
-  const [activeProjectName, setActiveProjectName] = useState<string | null>(null);
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -38,33 +47,48 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     })();
   }, []);
 
-  const updateTitle = useCallback(() => {
-    const base = 'novelaid-editor';
-    const versionStr = version ? ` v${version}` : '';
-    const projectStr = activeProjectName ? ` - ${activeProjectName}` : '';
-    window.electron.window.setTitle(`${base}${versionStr}${projectStr}`);
-  }, [version, activeProjectName]);
-
-  useEffect(() => {
-    updateTitle();
-  }, [updateTitle]);
-
-  const setActiveProject = useCallback((path: string | null) => {
-    if (!path) {
-      setActiveProjectName(null);
-      return;
+  const loadRecentProjects = useCallback(async () => {
+    try {
+      const projects = await window.electron.ipcRenderer.invoke('recent:get');
+      if (Array.isArray(projects)) {
+        setRecentProjects(projects);
+      }
+    } catch (error) {
+      console.error('Failed to load recent projects:', error);
     }
-    const folderName = path.split(/[/\\]/).pop() || path;
-    setActiveProjectName(folderName);
   }, []);
 
-  const value = React.useMemo(
+  const addRecentProject = useCallback(async (path: string) => {
+    try {
+      await window.electron.ipcRenderer.invoke('recent:add', path);
+      await loadRecentProjects();
+    } catch (error) {
+      console.error('Failed to add recent project:', error);
+    }
+  }, [loadRecentProjects]);
+
+  const removeRecentProject = useCallback(async (path: string) => {
+    try {
+      await window.electron.ipcRenderer.invoke('recent:remove', path);
+      await loadRecentProjects();
+    } catch (error) {
+      console.error('Failed to remove recent project:', error);
+    }
+  }, [loadRecentProjects]);
+
+  useEffect(() => {
+    loadRecentProjects();
+  }, [loadRecentProjects]);
+
+  const value = useMemo(
     () => ({
       version,
-      activeProjectName,
-      setActiveProject,
+      recentProjects,
+      loadRecentProjects,
+      addRecentProject,
+      removeRecentProject,
     }),
-    [version, activeProjectName, setActiveProject]
+    [version, recentProjects, loadRecentProjects, addRecentProject, removeRecentProject]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

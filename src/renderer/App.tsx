@@ -13,11 +13,12 @@ import { DocumentProvider } from './contexts/DocumentContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ProjectLauncher from './components/Launcher/ProjectLauncher';
 import './styles/theme.css';
+import { ProjectProvider, useProject } from './contexts/ProjectContext';
 
 function AppRoutes() {
   const navigate = useNavigate();
-  const { setActiveProject } = useApp();
-  const { loadProjectSettings } = useSettings();
+  const { addRecentProject } = useApp();
+  const { loadProject } = useProject();
 
   useEffect(() => {
     if (!window.electron?.ipcRenderer) return;
@@ -31,17 +32,15 @@ function AppRoutes() {
       const unsubscribeOpenProject = window.electron.ipcRenderer.on(
         'menu:open-project',
         async (path: any) => {
-          await window.electron?.ipcRenderer.invoke('recent:add', path);
-          setActiveProject(path);
-          await loadProjectSettings(path);
+          await addRecentProject(path);
+          await loadProject(path);
           navigate('/editor');
         },
       );
       const unsubscribeRestoreProject = window.electron.ipcRenderer.on(
         'app:restore-project',
         async (path: any) => {
-          setActiveProject(path);
-          await loadProjectSettings(path);
+          await loadProject(path);
           navigate('/editor');
         }
       );
@@ -53,7 +52,7 @@ function AppRoutes() {
     } catch (e) {
       console.error('Failed to setup menu:go-home listener', e);
     }
-  }, [navigate, setActiveProject, loadProjectSettings]);
+  }, [navigate, addRecentProject, loadProject]);
 
   return (
     <Routes>
@@ -67,21 +66,23 @@ export default function App() {
   return (
     <Router>
       <AppProvider>
-        <ThemeProvider>
-          <SettingsProvider>
-            <GitContextProvider>
-              <PanelProvider>
-                <MetadataProvider>
-                  <AIContextProvider>
-                    <DocumentProvider>
-                      <AppRoutes />
-                    </DocumentProvider>
-                  </AIContextProvider>
-                </MetadataProvider>
-              </PanelProvider>
-            </GitContextProvider>
-          </SettingsProvider>
-        </ThemeProvider>
+        <ProjectProvider>
+          <ThemeProvider>
+            <SettingsProvider>
+              <GitContextProvider>
+                <PanelProvider>
+                  <MetadataProvider>
+                    <AIContextProvider>
+                      <DocumentProvider>
+                        <AppRoutes />
+                      </DocumentProvider>
+                    </AIContextProvider>
+                  </MetadataProvider>
+                </PanelProvider>
+              </GitContextProvider>
+            </SettingsProvider>
+          </ThemeProvider>
+        </ProjectProvider>
       </AppProvider>
     </Router>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useProject } from '../../contexts/ProjectContext';
 import './ChView.css';
 import { usePersonas } from '../../hooks/usePersonas';
 import PersonaSelector from '../AI/PersonaSelector';
@@ -58,7 +58,7 @@ export default function ChView({
   rightTabs,
   documents,
 }: ChViewProps) {
-  const { settings } = useSettings();
+  const { projectConfig: settings } = useProject();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
   const { getContextText } = useAIContextContent();
   const [input, setInput] = useState('');
@@ -91,7 +91,7 @@ export default function ChView({
       // eslint-disable-next-line no-console
       console.error('Failed to parse .ch file', e);
     }
-  }, [content, path]); // Re-run when content or path changes (path change handled by key mostly)
+  }, [content, path]);
 
   const saveFile = useCallback(
     (newData: ChFileStructure) => {
@@ -206,7 +206,7 @@ export default function ChView({
     };
 
     setFileData(nextData);
-    saveFile(nextData); // Save immediately to parent
+    saveFile(nextData);
     setInput('');
     setIsStreaming(true);
 
@@ -217,7 +217,6 @@ export default function ChView({
         ? m.parts.map((p) => p.content).join('')
         : m.content || '',
     }));
-    // ユーザーメッセージにコンテキストを込めて送る
     apiMessages.push({
       role: 'user',
       content: finalInput,

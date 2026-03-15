@@ -1,9 +1,8 @@
-import React from 'react';
-import { useSettings } from '../../../contexts/SettingsContext';
+import { useProject } from '../../../contexts/ProjectContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 export function AppearanceSettingsTab() {
-  const { settings, updateSettings } = useSettings();
+  const { projectConfig: settings, updateProjectConfig: updateSettings } = useProject();
   const { theme, setTheme } = useTheme();
 
   const handleThemeChange = (newTheme: 'dark' | 'light') => {

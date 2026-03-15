@@ -33,7 +33,7 @@ export default function MainLayout() {
   } = useDocument();
 
   const navigate = useNavigate();
-  const { openSettings, registerSettingTab, loadProjectSettings } =
+  const { openSettings, registerSettingTab } =
     useSettings();
 
   const { activeLeftPanelId, activeRightPanelId, setActivePanel, getPanels } =

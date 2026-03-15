@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SpellCheck, ClipboardCheck, SearchCheck } from 'lucide-react';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useProject } from '../../contexts/ProjectContext';
 import { Panel } from '../../types/panel';
 import './AIProofreaderPanel.css';
 import ChatMessageList, {
@@ -59,7 +59,7 @@ export default function AIProofreaderPanel({
   activeContent = '',
   activePath = null,
 }: AIProofreaderPanelProps) {
-  const { settings, projectPath } = useSettings();
+  const { projectConfig: settings, projectPath } = useProject();
   const {
     openPanelDocument,
     updateContent,
@@ -116,6 +116,7 @@ export default function AIProofreaderPanel({
 
   const startSession = useCallback(
     (newMessages: ChatMessage[]) => {
+      if (!settings.ai) return; // settings.ai is required
       setMessages(newMessages);
       setIsStreaming(true);
       setInput('');

@@ -6,7 +6,7 @@ import React, {
   useMemo,
   ReactNode,
 } from 'react';
-import { useSettings } from './SettingsContext';
+import { useProject } from './ProjectContext';
 import { GitFileStatus, GitLogEntry } from '../../main/git/interface';
 
 interface GitContextType {
@@ -40,7 +40,7 @@ interface GitProviderProps {
 }
 
 export function GitContextProvider({ children }: GitProviderProps) {
-  const { projectPath } = useSettings();
+  const { projectPath } = useProject();
   const [status, setStatus] = useState<GitFileStatus[]>([]);
   const [history, setHistory] = useState<GitLogEntry[]>([]);
   const [remotes, setRemotes] = useState<string[]>([]);

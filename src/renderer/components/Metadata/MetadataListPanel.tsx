@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, MapPin, Bookmark, ScrollText } from 'lucide-react';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useProject } from '../../contexts/ProjectContext';
 import { useMetadata } from '../../contexts/MetadataContext';
 import { Panel } from '../../types/panel';
 import { METADATA_UI_DEFS } from '../../constants/metadataUI';
@@ -34,7 +34,7 @@ export default function MetadataListPanel({
   onFileSelect,
   fixedTag = '',
 }: MetadataListPanelProps) {
-  const { settings, updateSettings, projectPath } = useSettings();
+  const { projectConfig: settings, updateProjectConfig: updateSettings, projectPath } = useProject();
   const { isScanning, scanProgress } = useMetadata();
   const [lists, setLists] = useState<ListConfig[]>(
     fixedTag ? [] : settings.metadataLists || [],
