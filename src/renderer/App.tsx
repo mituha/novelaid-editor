@@ -15,7 +15,7 @@ import ProjectLauncher from './components/Launcher/ProjectLauncher';
 import './styles/theme.css';
 import { ProjectProvider, useProject } from './contexts/ProjectContext';
 
-function AppRoutes() {
+function AppRouter() {
   const navigate = useNavigate();
   const { addRecentProject } = useApp();
   const { loadProject } = useProject();
@@ -55,35 +55,35 @@ function AppRoutes() {
   }, [navigate, addRecentProject, loadProject]);
 
   return (
-    <Routes>
-      <Route path="/" element={<ProjectLauncher />} />
-      <Route path="/editor" element={<MainLayout />} />
-    </Routes>
+    <Router>
+      <Routes>
+        <Route path="/" element={<ProjectLauncher />} />
+        <Route path="/editor" element={<MainLayout />} />
+      </Routes>
+    </Router>
   );
 }
 
 export default function App() {
   return (
-    <Router>
-      <AppProvider>
-        <ProjectProvider>
-          <ThemeProvider>
-            <SettingsProvider>
-              <GitContextProvider>
-                <PanelProvider>
-                  <MetadataProvider>
-                    <AIContextProvider>
-                      <DocumentProvider>
-                        <AppRoutes />
-                      </DocumentProvider>
-                    </AIContextProvider>
-                  </MetadataProvider>
-                </PanelProvider>
-              </GitContextProvider>
-            </SettingsProvider>
-          </ThemeProvider>
-        </ProjectProvider>
-      </AppProvider>
-    </Router>
+    <AppProvider>
+      <ProjectProvider>
+        <ThemeProvider>
+          <SettingsProvider>
+            <GitContextProvider>
+              <PanelProvider>
+                <MetadataProvider>
+                  <AIContextProvider>
+                    <DocumentProvider>
+                      <AppRouter />
+                    </DocumentProvider>
+                  </AIContextProvider>
+                </MetadataProvider>
+              </PanelProvider>
+            </GitContextProvider>
+          </SettingsProvider>
+        </ThemeProvider>
+      </ProjectProvider>
+    </AppProvider>
   );
 }
