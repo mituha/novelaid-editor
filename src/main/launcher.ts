@@ -1,6 +1,5 @@
-import { app } from 'electron';
-import fs from 'fs/promises';
 import path from 'path';
+import { StorageService } from './storage/StorageService';
 
 export interface RecentProject {
   path: string;
@@ -8,35 +7,35 @@ export interface RecentProject {
   lastOpened: number;
 }
 
-const RECENT_PROJECTS_FILE = 'recent-projects.json';
-
-function getFilePath() {
-  return path.join(app.getPath('userData'), RECENT_PROJECTS_FILE);
+interface AppState {
+  recentProjects?: RecentProject[];
 }
 
+const STATE_FILE = 'state';
+
 export async function getRecentProjects(): Promise<RecentProject[]> {
-  try {
-    const filePath = getFilePath();
-    const data = await fs.readFile(filePath, 'utf-8');
-    const projects: RecentProject[] = JSON.parse(data);
-    // 存在確認を行って、存在しないパスは除外する
-    const validProjects: RecentProject[] = [];
-    for (const project of projects) {
-        try {
-            await fs.access(project.path);
-            validProjects.push(project);
-        } catch {
-            // ステイルなパスは無視
-        }
+  const storage = StorageService.getInstance();
+  const state = await storage.loadGlobal<AppState>(STATE_FILE);
+  const projects = state?.recentProjects || [];
+
+  // 存在確認を行って、存在しないパスは除外する
+  const validProjects: RecentProject[] = [];
+  const fs = require('fs/promises'); // 補助的に使用
+  for (const project of projects) {
+    try {
+      await fs.access(project.path);
+      validProjects.push(project);
+    } catch {
+      // ステイルなパスは無視
     }
-    return validProjects.sort((a, b) => b.lastOpened - a.lastOpened);
-  } catch {
-    return [];
   }
+  return validProjects.sort((a, b) => b.lastOpened - a.lastOpened);
 }
 
 export async function addRecentProject(projectPath: string): Promise<void> {
-  const projects = await getRecentProjects();
+  const storage = StorageService.getInstance();
+  const state = (await storage.loadGlobal<AppState>(STATE_FILE)) || {};
+  const projects = state.recentProjects || [];
   const name = path.basename(projectPath);
   const now = Date.now();
 
@@ -48,15 +47,18 @@ export async function addRecentProject(projectPath: string): Promise<void> {
   }
 
   // 最大10件程度に制限
-  const limited = projects
+  state.recentProjects = projects
     .sort((a, b) => b.lastOpened - a.lastOpened)
     .slice(0, 10);
 
-  await fs.writeFile(getFilePath(), JSON.stringify(limited, null, 2), 'utf-8');
+  await storage.saveGlobal(STATE_FILE, state);
 }
 
 export async function removeRecentProject(projectPath: string): Promise<void> {
-  const projects = await getRecentProjects();
-  const filtered = projects.filter((p) => p.path !== projectPath);
-  await fs.writeFile(getFilePath(), JSON.stringify(filtered, null, 2), 'utf-8');
+  const storage = StorageService.getInstance();
+  const state = await storage.loadGlobal<AppState>(STATE_FILE);
+  if (state?.recentProjects) {
+    state.recentProjects = state.recentProjects.filter((p) => p.path !== projectPath);
+    await storage.saveGlobal(STATE_FILE, state);
+  }
 }

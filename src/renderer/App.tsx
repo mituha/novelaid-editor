@@ -37,9 +37,18 @@ function AppRoutes() {
           navigate('/editor');
         },
       );
+      const unsubscribeRestoreProject = window.electron.ipcRenderer.on(
+        'app:restore-project',
+        async (path: any) => {
+          setActiveProject(path);
+          await loadProjectSettings(path);
+          navigate('/editor');
+        }
+      );
       return () => {
         if (typeof unsubscribeGoHome === 'function') unsubscribeGoHome();
         if (typeof unsubscribeOpenProject === 'function') unsubscribeOpenProject();
+        if (typeof unsubscribeRestoreProject === 'function') unsubscribeRestoreProject();
       };
     } catch (e) {
       console.error('Failed to setup menu:go-home listener', e);

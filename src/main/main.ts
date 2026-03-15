@@ -9,9 +9,15 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, dialog, Menu, protocol, net, session } from 'electron';
-
+import { app, BrowserWindow, shell, ipcMain, dialog, Menu, protocol, net, session as electronSession } from 'electron';
 import { pathToFileURL } from 'url';
+import { StorageService } from './storage/StorageService';
+
+interface AppSession {
+  lastProjectPath?: string;
+}
+
+const SESSION_FILE = 'session';
 import fs from 'fs/promises';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
@@ -344,6 +350,11 @@ ipcMain.handle('project:load', async (_, projectPath: string) => {
   metadataService.scanProject(projectPath); // No await
   await CalibrationService.getInstance().loadCustomRules(projectPath);
 
+  // Save to session
+  await StorageService.getInstance().saveGlobal<AppSession>(SESSION_FILE, {
+    lastProjectPath: projectPath,
+  });
+
   return project;
 });
 
@@ -392,6 +403,22 @@ ipcMain.handle('ai:stream', async (_, prompt: string, config: any) => {
 
 ipcMain.handle('ai:listModels', async (_, config: any) => {
   return AIService.getInstance().listModels(config);
+});
+
+ipcMain.handle('storage:load-global', async (_, name: string) => {
+  return await StorageService.getInstance().loadGlobal(name);
+});
+
+ipcMain.handle('storage:save-global', async (_, name: string, data: any) => {
+  return await StorageService.getInstance().saveGlobal(name, data);
+});
+
+ipcMain.handle('storage:load-local', async (_, projectPath: string, name: string) => {
+  return await StorageService.getInstance().loadLocal(projectPath, name);
+});
+
+ipcMain.handle('storage:save-local', async (_, projectPath: string, name: string, data: any) => {
+  return await StorageService.getInstance().saveLocal(projectPath, name, data);
 });
 
 ipcMain.handle('ai:chat', async (_, messages: any[], config: any) => {
@@ -627,6 +654,21 @@ const createWindow = async () => {
   CalibrationService.getInstance().initialize(dictPath).catch(err => {
       console.error('Failed to initialize calibration service:', err);
   });
+
+  // Restore last project
+  const sessionData = await StorageService.getInstance().loadGlobal<AppSession>(SESSION_FILE);
+  if (sessionData?.lastProjectPath) {
+    try {
+      await fs.access(sessionData.lastProjectPath);
+      // IPC経由ではなく直接内部関数を呼ぶか、フロントエンドに通知して開かせる
+      // ここではフロントエンドがReadyになってから通知を投げるのが安全
+      mainWindow.webContents.on('did-finish-load', () => {
+        mainWindow?.webContents.send('app:restore-project', sessionData.lastProjectPath);
+      });
+    } catch {
+      // パスが無効な場合は何もしない
+    }
+  }
 };
 
 ipcMain.handle('calibration:analyze', async (_, text: string, settings: any) => {
@@ -782,7 +824,7 @@ app
       }
     };
 
-    session.defaultSession.protocol.handle('nvfs', nvfsHandler);
+    electronSession.defaultSession.protocol.handle('nvfs', nvfsHandler);
 
     protocol.handle('app-asset', (request) => {
       try {

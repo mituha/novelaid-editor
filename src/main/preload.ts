@@ -33,7 +33,16 @@ export type Channels =
   | 'menu:open-project'
   | 'menu:open-settings'
   | 'app:open-file'
-  | 'app:close-file';
+  | 'app:close-file'
+  | 'app:restore-project'
+  | 'storage:load-global'
+  | 'storage:save-global'
+  | 'storage:load-local'
+  | 'storage:save-local'
+  | 'recent:get'
+  | 'recent:add'
+  | 'recent:remove'
+  | 'project:save-config';
 
 const electronHandler = {
   ipcRenderer: {

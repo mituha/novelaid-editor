@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
+import { StorageService } from './storage/StorageService';
 
 export interface ProjectConfig {
   theme?: string;
@@ -50,7 +51,7 @@ export interface LoadedProject {
 }
 
 const NOVELAID_DIR = '.novelaid';
-const CONFIG_FILE = 'config.json';
+const CONFIG_FILE = 'config'; // .json は StorageService が付与
 const PLUGINS_DIR = 'plugins';
 const MANIFEST_FILE = 'manifest.json';
 
@@ -66,12 +67,13 @@ export async function loadProject(
   try {
     await fs.access(novelaidPath);
   } catch {
-    // .novelaidフォルダが存在しない場合は何もしない（あるいは初期化する？）
-    // 現状はnullを返して「プロジェクトではない」または「設定なし」とする
-    return null;
+    // .novelaidフォルダが存在しない場合は空の設定を返すか、nullにするか。
+    // StorageService.loadLocal が内部で存在確認するため、そちらに任せることも可能。
+    // ここでは以前の挙動を維持しつつ、StorageService を使う。
   }
 
-  const config = await loadConfig(novelaidPath);
+  const storage = StorageService.getInstance();
+  const config = (await storage.loadLocal<ProjectConfig>(projectPath, CONFIG_FILE)) || {};
   const plugins = await loadPlugins(novelaidPath);
 
   return {
@@ -80,19 +82,9 @@ export async function loadProject(
   };
 }
 
-async function loadConfig(novelaidPath: string): Promise<ProjectConfig> {
-  const configPath = path.join(novelaidPath, CONFIG_FILE);
-  try {
-    const data = await fs.readFile(configPath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.warn(`Failed to load config from ${configPath}:`, error);
-    return {};
-  }
-}
-
 async function loadPlugins(novelaidPath: string): Promise<PluginManifest[]> {
   const pluginsPath = path.join(novelaidPath, PLUGINS_DIR);
+  // ... (loadPlugins の実装は変更なし)
   const manifests: PluginManifest[] = [];
 
   try {
@@ -104,19 +96,16 @@ async function loadPlugins(novelaidPath: string): Promise<PluginManifest[]> {
         try {
           const data = await fs.readFile(manifestPath, 'utf-8');
           const manifest = JSON.parse(data);
-          // IDがない場合はフォルダ名を使用するなどのフォールバックも考えられるが、一旦必須とする
           if (!manifest.id) {
             manifest.id = entry.name;
           }
           manifests.push(manifest);
         } catch (e) {
-          // マニフェストがない、または不正なJSONの場合は無視
           console.warn(`Skipping plugin ${entry.name}:`, e);
         }
       }
     }
   } catch (error) {
-    // pluginsフォルダがない場合などは空リストを返す
     if ((error as any).code !== 'ENOENT') {
       console.error(`Error reading plugins directory ${pluginsPath}:`, error);
     }
@@ -134,16 +123,5 @@ export async function saveProject(
   projectPath: string,
   config: ProjectConfig,
 ): Promise<void> {
-  const novelaidPath = path.join(projectPath, NOVELAID_DIR);
-  // .novelaidディレクトリがない場合は作成する
-  try {
-    await fs.mkdir(novelaidPath, { recursive: true });
-  } catch (err) {
-    if ((err as any).code !== 'EEXIST') {
-      throw err;
-    }
-  }
-
-  const configPath = path.join(novelaidPath, CONFIG_FILE);
-  await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+  await StorageService.getInstance().saveLocal(projectPath, CONFIG_FILE, config);
 }
