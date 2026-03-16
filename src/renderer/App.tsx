@@ -15,7 +15,7 @@ import ProjectLauncher from './components/Launcher/ProjectLauncher';
 import './styles/theme.css';
 import { ProjectProvider, useProject } from './contexts/ProjectContext';
 
-function AppRouter() {
+function AppRoutes() {
   const navigate = useNavigate();
   const { addRecentProject } = useApp();
   const { loadProject } = useProject();
@@ -55,11 +55,16 @@ function AppRouter() {
   }, [navigate, addRecentProject, loadProject]);
 
   return (
+    <Routes>
+      <Route path="/" element={<ProjectLauncher />} />
+      <Route path="/editor" element={<MainLayout />} />
+    </Routes>
+  );
+}
+function AppRouter(){
+  return (
     <Router>
-      <Routes>
-        <Route path="/" element={<ProjectLauncher />} />
-        <Route path="/editor" element={<MainLayout />} />
-      </Routes>
+      <AppRoutes />
     </Router>
   );
 }
