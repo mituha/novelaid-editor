@@ -17,7 +17,7 @@ import { DocumentType } from '../../common/types';
 /**
  * ファイルやフォルダーのアイコンを表示する共通コンポーネント
  */
-interface FileIconProps {
+interface DocumentIconProps {
   name: string;
   path?: string;
   documentType?: DocumentType;
@@ -28,7 +28,7 @@ interface FileIconProps {
   className?: string;
 }
 
-export default function FileIcon({
+export default function DocumentIcon({
   name,
   path,
   documentType,
@@ -37,7 +37,7 @@ export default function FileIcon({
   isDirectory = false,
   isOpen = false,
   className = '',
-}: FileIconProps) {
+}: DocumentIconProps) {
   // 1. メタデータにカスタムアイコンが指定されている場合を最優先
   if (metadata?.icon) {
     const { icon } = metadata;

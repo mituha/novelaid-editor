@@ -13,7 +13,7 @@ import { useDocument } from '../../contexts/DocumentContext';
 import { Panel } from '../../types/panel';
 import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
-import FileIcon from '../../utils/FileIcon';
+import DocumentIcon from '../../utils/DocumentIcon';
 import { DocumentType } from '../../../common/types';
 import { toDocumentPath } from '../../../common/utils/pathUtils';
 
@@ -113,7 +113,7 @@ function OpenEditorItem({
       }}
     >
       <span className="icon">
-        <FileIcon name={fileName} isDirectory={false} size={16} />
+        <DocumentIcon name={fileName} isDirectory={false} size={16} />
       </span>
       <span
         className="name"
@@ -398,7 +398,7 @@ function FileTreeItem({
           {file.isDirectory && !isOpen && <ChevronRight size={14} />}
         </span>
         <span className="icon">
-          <FileIcon
+          <DocumentIcon
             name={file.name}
             path={file.path}
             documentType={file.documentType as DocumentType}
@@ -445,7 +445,7 @@ function FileTreeItem({
             >
               <span className="chevron" />
               <span className="icon">
-                <FileIcon
+                <DocumentIcon
                   name={creatingType === 'file' ? 'untitled' : 'folder'}
                   isDirectory={creatingType === 'folder'}
                   size={16}
@@ -934,7 +934,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
               >
                 <span className="chevron" />
                 <span className="icon">
-                  <FileIcon
+                  <DocumentIcon
                     name={creatingType === 'file' ? 'untitled' : 'folder'}
                     isDirectory={creatingType === 'folder'}
                     size={16}

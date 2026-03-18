@@ -3,7 +3,7 @@ import { X, Columns, Eye, BookOpen, Edit3, LayoutDashboard, ChevronDown } from '
 import { DocumentType, DocumentViewType } from '../../../common/types';
 import { isViewTypeSupported } from '../../../common/documentSupport';
 import './TabBar.css';
-import FileIcon from '../../utils/FileIcon';
+import DocumentIcon from '../../utils/DocumentIcon';
 
 
 export interface Tab {
@@ -145,7 +145,7 @@ export function TabBar({
                     setIsDropdownOpen(false);
                   }}
                 >
-                  <FileIcon name={tab.name} isDirectory={false} className="tab-file-icon" />
+                  <DocumentIcon name={tab.name} isDirectory={false} className="tab-file-icon" />
                   <span className="tab-dropdown-name">{tab.name}</span>
                   {tab.isDirty && <span className="tab-dirty-indicator" />}
                   <button
@@ -177,7 +177,7 @@ export function TabBar({
             aria-selected={tab.path === activeTabPath}
             tabIndex={0}
           >
-            <FileIcon name={tab.name} isDirectory={false} className="tab-file-icon" />
+            <DocumentIcon name={tab.name} isDirectory={false} className="tab-file-icon" />
             <span className="tab-name">{tab.name}</span>
             {tab.isDirty && <span className="tab-dirty-indicator" />}
             <button

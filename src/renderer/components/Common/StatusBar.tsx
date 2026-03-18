@@ -10,7 +10,7 @@ import {
 import { useState, useEffect } from 'react';
 import './StatusBar.css';
 import { CountMetric } from '../../utils/CharCounter';
-import FileIcon from '../../utils/FileIcon';
+import DocumentIcon from '../../utils/DocumentIcon';
 import { DocumentType } from '../../../common/types';
 
 interface StatusBarProps {
@@ -91,7 +91,7 @@ export default function StatusBar({
         <div className="status-item file-info">
           {activePath && (
             <div className="status-file-icon">
-              <FileIcon
+              <DocumentIcon
                 name={fileName || ''}
                 path={activePath}
                 documentType={documentType}
