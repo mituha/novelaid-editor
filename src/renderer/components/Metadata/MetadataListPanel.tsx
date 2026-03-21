@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Users, MapPin, Bookmark, ScrollText } from 'lucide-react';
 import { useProject } from '../../contexts/ProjectContext';
 import { useMetadata } from '../../contexts/MetadataContext';
+import { useDocument } from '../../contexts/DocumentContext';
 import { Panel } from '../../types/panel';
 import { METADATA_UI_DEFS } from '../../constants/metadataUI';
 import { getFilePath } from '../../../common/utils/pathUtils';
@@ -20,7 +21,6 @@ interface ListConfig {
 }
 
 interface MetadataListPanelProps {
-  onFileSelect: (path: string, data: any) => void;
   fixedTitle?: string;
   fixedTag?: string | string[];
 }
@@ -31,9 +31,9 @@ const defaultProps = {
 };
 
 export default function MetadataListPanel({
-  onFileSelect,
   fixedTag = '',
 }: MetadataListPanelProps) {
+  const { openDocument } = useDocument();
   const { projectConfig: settings, updateProjectConfig: updateSettings, projectPath } = useProject();
   const { isScanning, scanProgress } = useMetadata();
   const [lists, setLists] = useState<ListConfig[]>(
@@ -137,12 +137,7 @@ export default function MetadataListPanel({
 
   const handleFileClick = async (filePath: string) => {
     try {
-      const absolutePath = getFilePath(filePath);
-      const data = await window.electron.ipcRenderer.invoke(
-        'fs:readDocument',
-        absolutePath,
-      );
-      onFileSelect(absolutePath, data);
+      await openDocument(filePath);
     } catch (err) {
       console.error('Failed to open file from metadata list', err);
     }
@@ -272,9 +267,8 @@ export const charactersPanelConfig: Panel = {
   id: METADATA_UI_DEFS.CHARACTER.id,
   title: METADATA_UI_DEFS.CHARACTER.title,
   icon: <METADATA_UI_DEFS.CHARACTER.Icon size={24} strokeWidth={1.5} />,
-  component: ({ onFileSelect }: any) => (
+  component: () => (
     <MetadataListPanel
-      onFileSelect={onFileSelect}
       fixedTitle={`${METADATA_UI_DEFS.CHARACTER.title}一覧`}
       fixedTag={METADATA_UI_DEFS.CHARACTER.tags.join(',')}
     />
@@ -286,9 +280,8 @@ export const locationsPanelConfig: Panel = {
   id: METADATA_UI_DEFS.LOCATION.id,
   title: METADATA_UI_DEFS.LOCATION.title,
   icon: <METADATA_UI_DEFS.LOCATION.Icon size={24} strokeWidth={1.5} />,
-  component: ({ onFileSelect }: any) => (
+  component: () => (
     <MetadataListPanel
-      onFileSelect={onFileSelect}
       fixedTitle={`${METADATA_UI_DEFS.LOCATION.title}一覧`}
       fixedTag={METADATA_UI_DEFS.LOCATION.tags.join(',')}
     />
@@ -300,9 +293,8 @@ export const plotsPanelConfig: Panel = {
   id: METADATA_UI_DEFS.PLOT.id,
   title: METADATA_UI_DEFS.PLOT.title,
   icon: <METADATA_UI_DEFS.PLOT.Icon size={24} strokeWidth={1.5} />,
-  component: ({ onFileSelect }: any) => (
+  component: () => (
     <MetadataListPanel
-      onFileSelect={onFileSelect}
       fixedTitle={`${METADATA_UI_DEFS.PLOT.title}一覧`}
       fixedTag={METADATA_UI_DEFS.PLOT.tags.join(',')}
     />
