@@ -10,12 +10,7 @@ import ChatMessageList, {
 import AIChatInput from './AIChatInput';
 import { useDocument } from '../../contexts/DocumentContext';
 
-interface AIProofreaderPanelProps {
-  // eslint-disable-next-line react/require-default-props
-  activeContent?: string;
-  // eslint-disable-next-line react/require-default-props
-  activePath?: string | null;
-}
+interface AIProofreaderPanelProps {}
 
 type ProofreadingMode = 'typo' | 'style' | 'editor';
 
@@ -55,17 +50,17 @@ const ACTIONS: ProofreadingAction[] = [
   },
 ];
 
-export default function AIProofreaderPanel({
-  activeContent = '',
-  activePath = null,
-}: AIProofreaderPanelProps) {
+export default function AIProofreaderPanel() {
   const { projectConfig: settings, projectPath } = useProject();
   const {
     openPanelDocument,
     updateContent,
-    documents: ctxDocuments,
+    documents,
     getFileTitle,
+    activeTabPath,
   } = useDocument();
+  const activeContent = (activeTabPath ? documents[activeTabPath]?.content : '') || '';
+  const activePath = activeTabPath;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [input, setInput] = useState('');
@@ -92,9 +87,9 @@ export default function AIProofreaderPanel({
   }, [panelPath, openPanelDocument]);
 
   useEffect(() => {
-    if (panelPath && ctxDocuments[panelPath] && messages.length === 0) {
+    if (panelPath && documents[panelPath] && messages.length === 0) {
       try {
-        const { content } = ctxDocuments[panelPath];
+        const { content } = documents[panelPath];
         if (content && content !== '[]') {
           const parsed = JSON.parse(content);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -106,7 +101,7 @@ export default function AIProofreaderPanel({
         console.error('Failed to parse proofreader history', e);
       }
     }
-  }, [panelPath, ctxDocuments, messages.length]);
+  }, [panelPath, documents, messages.length]);
 
   useEffect(() => {
     if (panelPath && messages.length > 0 && updateContent && !isStreaming) {

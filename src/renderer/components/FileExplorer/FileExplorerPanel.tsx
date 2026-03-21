@@ -78,9 +78,7 @@ interface FileNode {
   metadata?: Record<string, any>;
 }
 
-interface FileExplorerProps {
-  // Props are now empty as functionality is moved to Context
-}
+interface FileExplorerProps {}
 
 function OpenEditorItem({
   tab,

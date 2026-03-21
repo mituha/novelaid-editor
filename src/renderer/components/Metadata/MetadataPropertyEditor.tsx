@@ -2,21 +2,19 @@ import React from 'react';
 import { Database, User, MapPin, ScrollText } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Panel } from '../../types/panel';
+import { useDocument } from '../../contexts/DocumentContext';
 import './MetadataPropertyEditor.css';
 
 interface MetadataPropertyEditorProps {
-  metadata?: Record<string, any>;
-  activePath?: string | null;
-  onMetadataChange?: (metadata: Record<string, any>) => void;
+  // Props are now empty as functionality is moved to Context
   onBlur?: () => void;
 }
 
 export function MetadataPropertyEditor({
-  metadata = {},
-  activePath = null,
-  onMetadataChange = () => {},
   onBlur = () => {},
 }: MetadataPropertyEditorProps) {
+  const { documents, activeTabPath, updateMetadata } = useDocument();
+  const metadata = (activeTabPath ? documents[activeTabPath]?.metadata : {}) || {};
   const inferIconType = (value: string) => {
     if (!value) return 'lucide';
     if (/^https?:\/\//.test(value)) return 'url';
@@ -25,16 +23,16 @@ export function MetadataPropertyEditor({
   };
 
   const handleChange = (key: string, value: any) => {
-    if (onMetadataChange) {
+    if (activeTabPath) {
       if (key === 'icon_value') {
         const type = inferIconType(value);
         console.log('MetadataPropertyEditor icon change:', { value, type });
-        onMetadataChange({
+        updateMetadata(activeTabPath, {
           ...metadata,
           icon: { ...metadata.icon, value, type },
         });
       } else {
-        onMetadataChange({ ...metadata, [key]: value });
+        updateMetadata(activeTabPath, { ...metadata, [key]: value });
       }
     }
   };
@@ -226,9 +224,9 @@ export function MetadataPropertyEditor({
 
                 if (icon.type === 'local' || !isAbsolute) {
                   let fullPath = icon.value;
-                  if (!isAbsolute && activePath) {
-                    const dir = activePath.replace(/[\\/][^\\/]+$/, '');
-                    const separator = activePath.includes('\\') ? '\\' : '/';
+                  if (!isAbsolute && activeTabPath) {
+                    const dir = activeTabPath.replace(/[\\/][^\\/]+$/, '');
+                    const separator = activeTabPath.includes('\\') ? '\\' : '/';
                     fullPath = `${dir}${separator}${icon.value}`;
                   }
 
@@ -299,9 +297,6 @@ export function MetadataPropertyEditor({
 // Add static properties to fix prop-type warning if needed,
 // though destructuring with defaults is usually enough for modern React
 MetadataPropertyEditor.defaultProps = {
-  metadata: {},
-  activePath: null,
-  onMetadataChange: () => {},
   onBlur: () => {},
 };
 

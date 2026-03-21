@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { FileText, X, ChevronDown, ChevronRight, Plus, Box } from 'lucide-react';
 import { useAIContext } from '../../contexts/AIContextContext';
+import { useDocument } from '../../contexts/DocumentContext';
 import './AIContextSelector.css';
 
 interface Tab {
@@ -8,19 +9,15 @@ interface Tab {
   path: string;
 }
 
-interface AIContextSelectorProps {
-  leftActivePath: string | null;
-  rightActivePath: string | null;
-  leftTabs: Tab[];
-  rightTabs: Tab[];
-}
+interface AIContextSelectorProps {}
 
-export default function AIContextSelector({
-  leftActivePath,
-  rightActivePath,
-  leftTabs,
-  rightTabs,
-}: AIContextSelectorProps) {
+export default function AIContextSelector() {
+  const {
+    leftActivePath,
+    rightActivePath,
+    leftTabs,
+    rightTabs,
+  } = useDocument();
   const { contextState, setContextState, addCustomPath, removeCustomPath } = useAIContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);

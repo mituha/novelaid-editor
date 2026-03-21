@@ -16,10 +16,6 @@ interface AIChatInputProps {
   isStreaming: boolean;
   placeholder?: string;
   showContextSelector?: boolean;
-  leftActivePath?: string | null;
-  rightActivePath?: string | null;
-  leftTabs?: Tab[];
-  rightTabs?: Tab[];
   useTools?: boolean;
   onUseToolsChange?: (use: boolean) => void;
   useReasoning?: boolean;
@@ -33,10 +29,6 @@ export default function AIChatInput({
   isStreaming,
   placeholder = 'メッセージを入力...',
   showContextSelector = true,
-  leftActivePath = null,
-  rightActivePath = null,
-  leftTabs = [],
-  rightTabs = [],
   useTools = true,
   onUseToolsChange,
   useReasoning = true,
@@ -99,12 +91,7 @@ export default function AIChatInput({
       </div>
       {showContextSelector && (
         <div className="ai-chat-input-options">
-          <AIContextSelector
-            leftActivePath={leftActivePath}
-            rightActivePath={rightActivePath}
-            leftTabs={leftTabs}
-            rightTabs={rightTabs}
-          />
+          <AIContextSelector />
         </div>
       )}
     </div>

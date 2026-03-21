@@ -5,13 +5,10 @@ import { PanelLocation } from '../../types/panel';
 
 interface SidePaneProps {
   location: PanelLocation;
-  // Panel specific props that might be passed to children
-  componentProps?: Record<string, unknown>;
 }
 
 export const SidePane: React.FC<SidePaneProps> = ({
   location,
-  componentProps,
 }) => {
   const { getPanels, activeLeftPanelId, activeRightPanelId, setActivePanel } =
     usePanel();
@@ -79,7 +76,7 @@ export const SidePane: React.FC<SidePaneProps> = ({
                 <span className="pane-header-title">{panel.title}</span>
               </div>
               <div className="pane-content">
-                <panel.component {...(componentProps as any)} />
+                <panel.component />
               </div>
             </div>
           );

@@ -8,7 +8,6 @@ import EditorSettingsTab from '../components/Settings/Tabs/EditorSettingsTab';
 import AISettingsTab from '../components/Settings/Tabs/AISettingsTab';
 import { AppearanceSettingsTab } from '../components/Settings/Tabs/AppearanceSettingsTab';
 import { CalibrationSettingsTab } from '../components/Settings/Tabs/CalibrationSettingsTab';
-import RightPane from '../components/RightPane/RightPane';
 import Resizer from '../components/Common/Resizer';
 import StatusBar from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
@@ -249,7 +248,7 @@ export default function MainLayout() {
             overflow: 'hidden',
           }}
         >
-          <RightPane />
+          <SidePane location="right" />
         </div>
       </div>
       <StatusBar

@@ -22,26 +22,18 @@ interface Tab {
 
 // grammerContext removed, handled by system prompt in backend
 
-interface AIChatPanelProps {
-  leftActivePath: string | null;
-  rightActivePath: string | null;
-  leftTabs: Tab[];
-  rightTabs: Tab[];
-  documents: Record<string, any>;
-}
+interface AIChatPanelProps {}
 
-export default function AIChatPanel({
-  leftActivePath,
-  rightActivePath,
-  leftTabs,
-  rightTabs,
-  documents,
-}: AIChatPanelProps) {
+export default function AIChatPanel() {
   const { projectConfig: settings, projectPath } = useProject();
   const {
     openPanelDocument,
     updateContent,
-    documents: ctxDocuments,
+    documents,
+    leftActivePath,
+    rightActivePath,
+    leftTabs,
+    rightTabs,
   } = useDocument();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
   const { getContextText } = useAIContextContent();
@@ -104,9 +96,9 @@ export default function AIChatPanel({
   }, [panelPath, openPanelDocument]);
 
   useEffect(() => {
-    if (panelPath && ctxDocuments[panelPath] && messages.length === 0) {
+    if (panelPath && documents[panelPath] && messages.length === 0) {
       try {
-        const { content } = ctxDocuments[panelPath];
+        const { content } = documents[panelPath];
         if (content && content !== '[]') {
           const parsed = JSON.parse(content);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -118,7 +110,7 @@ export default function AIChatPanel({
         console.error('Failed to parse chat history', e);
       }
     }
-  }, [panelPath, ctxDocuments, messages.length]);
+  }, [panelPath, documents, messages.length]);
 
   useEffect(() => {
     if (panelPath && messages.length > 0 && updateContent && !isStreaming) {
@@ -340,10 +332,6 @@ export default function AIChatPanel({
         isStreaming={isStreaming}
         placeholder="AIに相談する..."
         showContextSelector
-        leftActivePath={leftActivePath}
-        rightActivePath={rightActivePath}
-        leftTabs={leftTabs}
-        rightTabs={rightTabs}
         useTools={useTools}
         onUseToolsChange={setUseTools}
         useReasoning={useReasoning}
