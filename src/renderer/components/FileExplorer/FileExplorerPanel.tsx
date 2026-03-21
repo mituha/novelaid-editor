@@ -15,7 +15,7 @@ import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
 import DocumentIcon from '../../utils/DocumentIcon';
 import { DocumentType } from '../../../common/types';
-import { toDocumentPath } from '../../../common/utils/pathUtils';
+import { toDocumentPath, getFilePath } from '../../../common/utils/pathUtils';
 
 const BASE_INDENT = -8;
 const INDENT_STEP = 16;
@@ -186,7 +186,11 @@ function FileTreeItem({
   setRenamingPath: (path: string | null) => void;
   onRefreshItem: (path: string) => void;
 }) {
-  const { openDocument } = useDocument();
+  const docContext = useDocument();
+  const openDocument = docContext.openDocument;
+  const activeTabPath = docContext.activeTabPath;
+  const itemRef = React.useRef<HTMLDivElement>(null);
+  
   const [isOpen, setIsOpen] = useState(false);
   const [children, setChildren] = useState<FileNode[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -250,6 +254,34 @@ function FileTreeItem({
       if (cleanup) cleanup();
     };
   }, [file.isDirectory, file.path, isOpen, loadDirectory]);
+  
+  // アクティブなドキュメントに合わせてフォルダーを展開
+  useEffect(() => {
+    if (activeTabPath && !isOpen && file.isDirectory) {
+      const activePath = getFilePath(activeTabPath);
+      const selfPath = normalizePath(file.path);
+      if (activePath.startsWith(`${selfPath}/`)) {
+        setIsOpen(true);
+        if (!isLoaded) {
+          loadDirectory().catch(() => {});
+        }
+      }
+    }
+  }, [activeTabPath, file.path, file.isDirectory, isOpen, isLoaded, loadDirectory]);
+
+  // アクティブなドキュメントをスクロール表示
+  useEffect(() => {
+    if (activeTabPath) {
+      const activePath = getFilePath(activeTabPath);
+      const selfPath = normalizePath(file.path);
+      if (activePath === selfPath && itemRef.current) {
+        itemRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }
+    }
+  }, [activeTabPath, file.path]);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -384,6 +416,8 @@ function FileTreeItem({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        ref={itemRef}
+        data-path={file.path}
         className={`file-item ${file.isDirectory ? 'directory' : 'file'} ${
           selectedPath === file.path ? 'active' : ''
         } ${file.name.startsWith('.') ? 'hidden-item' : ''} ${
@@ -623,6 +657,14 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
     setSelectedPath(path);
     setSelectedIsDir(isDirectory);
   }, []);
+
+  // アクティブなタブと選択状態の同期
+  useEffect(() => {
+    if (activeTabPath) {
+      const activePath = getFilePath(activeTabPath);
+      setSelectedPath(activePath);
+    }
+  }, [activeTabPath]);
 
   const initiateCreate = async (type: 'file' | 'folder') => {
     setCreatingType(type);
