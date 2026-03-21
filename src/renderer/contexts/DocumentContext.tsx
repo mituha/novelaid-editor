@@ -669,6 +669,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     return parsed.name;
   }, []);
 
+
   // Sync / Restore / Persist
   useEffect(() => {
     if (!projectPath || restoredRef.current === projectPath) return;

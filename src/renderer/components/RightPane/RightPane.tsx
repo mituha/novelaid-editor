@@ -18,7 +18,6 @@ export default function RightPane() {
   const activeDoc = activeTabPath ? documents[activeTabPath] : null;
 
   const componentProps = {
-    onFileSelect: (path: string) => openDocument(path, {}),
     activeContent: activeDoc?.content || '',
     activePath: activeTabPath,
     metadata: activeDoc?.metadata,
