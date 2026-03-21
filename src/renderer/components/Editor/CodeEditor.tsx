@@ -382,6 +382,11 @@ export default function CodeEditor({
             ambiguousCharacters: false,
             invisibleCharacters: false,
           },
+          quickSuggestions: {
+            strings: true,
+            comments: false,
+            other: false,
+          },
         }}
       />
       <RubyDialog
