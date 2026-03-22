@@ -114,12 +114,28 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [projectPath, setProjectPath] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string | null>(null);
   const [projectConfig, setProjectConfig] = useState<ProjectConfig>(DEFAULT_PROJECT_CONFIG);
+  const [appVersion, setAppVersion] = useState<string>('');
 
-  const updateTitle = useCallback((pName: string | null) => {
+  const updateTitle = useCallback((pName: string | null, version: string) => {
     const base = 'novelaid-editor';
+    const versionStr = version ? ` v${version}` : '';
     const projectStr = pName ? ` - ${pName}` : '';
-    window.electron.window.setTitle(`${base}${projectStr}`);
+    window.electron.window.setTitle(`${base}${versionStr}${projectStr}`);
   }, []);
+
+  // 起動時にバージョンを取得してタイトルを設定する
+  React.useEffect(() => {
+    const initVersion = async () => {
+      try {
+        const version = await window.electron.app.getVersion();
+        setAppVersion(version);
+        updateTitle(projectName, version);
+      } catch (error) {
+        console.error('Failed to get app version:', error);
+      }
+    };
+    initVersion();
+  }, [updateTitle, projectName]);
 
   const loadProject = useCallback(async (path: string) => {
     try {
@@ -130,7 +146,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
         setProjectPath(path);
         const pName = path.split(/[/\\]/).pop() || path;
         setProjectName(pName);
-        updateTitle(pName);
+        updateTitle(pName, appVersion);
         if (result.config) {
           setProjectConfig({ ...DEFAULT_PROJECT_CONFIG, ...result.config });
         } else {
@@ -140,7 +156,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     } catch (error) {
       console.error('Failed to load project:', error);
     }
-  }, [updateTitle]);
+  }, [updateTitle, appVersion]);
 
   const updateProjectConfig = useCallback(async (newConfig: Partial<ProjectConfig>) => {
     if (!projectPath) return;
