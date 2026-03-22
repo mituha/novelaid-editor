@@ -15,7 +15,7 @@ import { Panel } from '../../types/panel';
 import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
 import DocumentIcon from '../../utils/DocumentIcon';
-import { NovelaidDocumentType } from '../../../common/types';
+import { NovelaidDocumentType } from '../../../novelaid-fs/models';
 import { toDocumentPath, getFilePath } from '../../../common/utils/pathUtils';
 
 const BASE_INDENT = -8;
@@ -192,7 +192,7 @@ function FileTreeItem({
   const activeTabPath = docContext.activeTabPath;
   const itemRef = React.useRef<HTMLDivElement>(null);
   const lastProcessedToken = React.useRef(0);
-  
+
   const [isOpen, setIsOpen] = useState(false);
   const [children, setChildren] = useState<FileNode[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -256,7 +256,7 @@ function FileTreeItem({
       if (cleanup) cleanup();
     };
   }, [file.isDirectory, file.path, isOpen, loadDirectory]);
-  
+
   // ボタン押下（revealRequestToken 変更）に合わせてフォルダーを展開
   useEffect(() => {
     if (

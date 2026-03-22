@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDocument } from '../../contexts/DocumentContext';
-import { NovelaidDocumentType } from '../../../common/types';
+import { NovelaidDocumentType } from '../../../novelaid-fs/models';
 import './NovelNavigator.css';
 
 interface FileNode {

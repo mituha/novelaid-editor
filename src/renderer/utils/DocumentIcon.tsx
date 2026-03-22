@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import React from 'react';
-import { NovelaidDocumentType } from '../../common/types';
+import { NovelaidDocumentType } from '../../novelaid-fs/models';
 
 /**
  * ファイルやフォルダーのアイコンを表示する共通コンポーネント

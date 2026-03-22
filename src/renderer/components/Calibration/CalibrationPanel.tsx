@@ -9,7 +9,7 @@ import {
 import { useProject } from '../../contexts/ProjectContext';
 import { useDocument } from '../../contexts/DocumentContext';
 import { Panel } from '../../types/panel';
-import { NovelaidDocumentType } from '../../../common/types';
+import { NovelaidDocumentType } from '../../../novelaid-fs/models';
 import './CalibrationPanel.css';
 
 interface FrequencyResult {

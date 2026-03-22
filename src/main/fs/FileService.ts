@@ -3,7 +3,7 @@ import path from 'path';
 import { dialog, BrowserWindow } from 'electron';
 import { MetadataService } from '../metadataService';
 import { readDocument, saveDocument } from '../metadata';
-import { NovelaidDocumentType } from '../../common/types';
+import { NovelaidDocumentType } from '../../novelaid-fs/models';
 import { toDocumentPath } from '../../common/utils/pathUtils';
 
 const LOG_PREFIX = '[FileService]';

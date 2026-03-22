@@ -1,4 +1,5 @@
-import { NovelaidDocumentType, DocumentViewType } from './types';
+import { NovelaidDocumentType } from '../novelaid-fs/models';
+import { DocumentViewType } from './types';
 
 /**
  * 指定されたドキュメントタイプでサポートされているビュータイプの一覧を取得します。

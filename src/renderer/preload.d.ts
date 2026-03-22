@@ -1,5 +1,5 @@
 import { GitFileStatus, GitLogEntry } from '../main/git/interface';
-import { NovelaidDocumentType } from '../common/types';
+import { NovelaidDocumentType } from '../novelaid-fs/models';
 
 declare global {
   interface Window {

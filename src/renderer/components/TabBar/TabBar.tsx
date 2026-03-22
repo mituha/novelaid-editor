@@ -1,6 +1,7 @@
 import React, { MouseEvent, useRef, useState, useEffect } from 'react';
 import { X, Columns, Eye, BookOpen, Edit3, LayoutDashboard, ChevronDown } from 'lucide-react';
-import { NovelaidDocumentType, DocumentViewType } from '../../../common/types';
+import { NovelaidDocumentType } from '../../../novelaid-fs/models';
+import { DocumentViewType } from '../../../common/types';
 import { isViewTypeSupported } from '../../../common/documentSupport';
 import './TabBar.css';
 import DocumentIcon from '../../utils/DocumentIcon';
