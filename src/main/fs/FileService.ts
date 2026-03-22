@@ -11,9 +11,19 @@ const LOG_PREFIX = '[FileService]';
 export class FileService {
   private static instance: FileService;
   private attributeCache = new Map<string, { mtime: number; data: Map<string, string> }>();
+  private projectDirectory: string | null = null;
   private beforeDeleteCallback: ((targetPath: string, reason: string) => void) | null = null;
 
   private constructor() {}
+
+  public setProjectDirectory(dirPath: string) {
+    console.log(`${LOG_PREFIX} setProjectDirectory: ${dirPath}`);
+    this.projectDirectory = dirPath;
+  }
+
+  public getProjectDirectory(): string | null {
+    return this.projectDirectory;
+  }
 
   public setBeforeDeleteCallback(callback: (targetPath: string, reason: string) => void) {
     this.beforeDeleteCallback = callback;

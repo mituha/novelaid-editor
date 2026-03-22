@@ -125,6 +125,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       const result = await window.electron.ipcRenderer.invoke('project:load', path);
       if (result) {
+        // バックエンドの FileService にもプロジェクトディレクトリを設定
+        await window.electron.ipcRenderer.invoke('fs:setProjectDirectory', path);
         setProjectPath(path);
         const pName = path.split(/[/\\]/).pop() || path;
         setProjectName(pName);
