@@ -5,6 +5,7 @@ import {
   FilePlus,
   FolderPlus,
   X,
+  LocateFixed,
 } from 'lucide-react';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -168,6 +169,7 @@ function FileTreeItem({
   renamingPath,
   setRenamingPath,
   onRefreshItem,
+  revealRequestToken,
 }: {
   file: FileNode;
   level?: number;
@@ -183,11 +185,13 @@ function FileTreeItem({
   renamingPath: string | null;
   setRenamingPath: (path: string | null) => void;
   onRefreshItem: (path: string) => void;
+  revealRequestToken?: number;
 }) {
   const docContext = useDocument();
   const openDocument = docContext.openDocument;
   const activeTabPath = docContext.activeTabPath;
   const itemRef = React.useRef<HTMLDivElement>(null);
+  const lastProcessedToken = React.useRef(0);
   
   const [isOpen, setIsOpen] = useState(false);
   const [children, setChildren] = useState<FileNode[]>([]);
@@ -253,19 +257,39 @@ function FileTreeItem({
     };
   }, [file.isDirectory, file.path, isOpen, loadDirectory]);
   
-  // アクティブなドキュメントに合わせてフォルダーを展開
+  // ボタン押下（revealRequestToken 変更）に合わせてフォルダーを展開
   useEffect(() => {
-    if (activeTabPath && !isOpen && file.isDirectory) {
-      const activePath = getFilePath(activeTabPath);
-      const selfPath = normalizePath(file.path);
-      if (activePath.startsWith(`${selfPath}/`)) {
-        setIsOpen(true);
-        if (!isLoaded) {
-          loadDirectory().catch(() => {});
+    if (
+      revealRequestToken &&
+      revealRequestToken > lastProcessedToken.current &&
+      activeTabPath &&
+      file.isDirectory
+    ) {
+      if (!isOpen) {
+        const activePath = getFilePath(activeTabPath);
+        const selfPath = normalizePath(file.path);
+        // アクティブなドキュメントが自分の配下にある場合、展開する
+        if (activePath.startsWith(`${selfPath}/`)) {
+          setIsOpen(true);
+          if (!isLoaded) {
+            loadDirectory().catch(() => {});
+          }
+          lastProcessedToken.current = revealRequestToken;
         }
+      } else {
+        // すでに開いている場合も、処理済みとしてマーク（子要素への伝播は React の prop 経由で行われる）
+        lastProcessedToken.current = revealRequestToken;
       }
     }
-  }, [activeTabPath, file.path, file.isDirectory, isOpen, isLoaded, loadDirectory]);
+  }, [
+    revealRequestToken,
+    activeTabPath,
+    file.path,
+    file.isDirectory,
+    isOpen,
+    isLoaded,
+    loadDirectory,
+  ]);
 
   // アクティブなドキュメントをスクロール表示
   useEffect(() => {
@@ -514,6 +538,7 @@ function FileTreeItem({
               renamingPath={renamingPath}
               setRenamingPath={setRenamingPath}
               onRefreshItem={onRefreshItem}
+              revealRequestToken={revealRequestToken}
             />
           ))}
         </div>
@@ -539,6 +564,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
   const [openEditorsIsExpanded, setOpenEditorsIsExpanded] = useState(true);
   const [leftEditorsExpanded, setLeftEditorsExpanded] = useState(true);
   const [rightEditorsExpanded, setRightEditorsExpanded] = useState(true);
+  const [revealRequestToken, setRevealRequestToken] = useState(0);
 
   const openLeftFiles = React.useMemo(() => {
     return leftTabs.filter(
@@ -944,6 +970,14 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
             <button
               type="button"
               className="action-btn"
+              onClick={() => setRevealRequestToken((t) => t + 1)}
+              title="アクティブなドキュメントまで展開"
+            >
+              <LocateFixed size={14} />
+            </button>
+            <button
+              type="button"
+              className="action-btn"
               onClick={() => initiateCreate('file')}
               title="新規ファイル"
             >
@@ -1011,6 +1045,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
                 renamingPath={renamingPath}
                 setRenamingPath={setRenamingPath}
                 onRefreshItem={() => refreshRoot()}
+                revealRequestToken={revealRequestToken}
               />
             ))}
           </>
