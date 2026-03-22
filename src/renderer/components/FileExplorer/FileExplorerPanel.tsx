@@ -15,7 +15,7 @@ import { Panel } from '../../types/panel';
 import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
 import DocumentIcon from '../../utils/DocumentIcon';
-import { DocumentType } from '../../../common/types';
+import { NovelaidDocumentType } from '../../../common/types';
 import { toDocumentPath, getFilePath } from '../../../common/utils/pathUtils';
 
 const BASE_INDENT = -8;
@@ -75,7 +75,7 @@ interface FileNode {
   name: string;
   isDirectory: boolean;
   path: string;
-  documentType?: DocumentType;
+  documentType?: NovelaidDocumentType;
   metadata?: Record<string, any>;
 }
 
@@ -457,7 +457,7 @@ function FileTreeItem({
           <DocumentIcon
             name={file.name}
             path={file.path}
-            documentType={file.documentType as DocumentType}
+            documentType={file.documentType as NovelaidDocumentType}
             metadata={file.metadata}
             size={16}
             isDirectory={file.isDirectory}

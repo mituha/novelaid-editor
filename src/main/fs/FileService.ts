@@ -3,7 +3,7 @@ import path from 'path';
 import { dialog, BrowserWindow } from 'electron';
 import { MetadataService } from '../metadataService';
 import { readDocument, saveDocument } from '../metadata';
-import { DocumentType } from '../../common/types';
+import { NovelaidDocumentType } from '../../common/types';
 import { toDocumentPath } from '../../common/utils/pathUtils';
 
 const LOG_PREFIX = '[FileService]';
@@ -61,7 +61,7 @@ export class FileService {
     return filePaths[0];
   }
 
-  public async getDocumentType(filePath: string): Promise<DocumentType> {
+  public async getDocumentType(filePath: string): Promise<NovelaidDocumentType> {
     this.validatePath(filePath);
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.ch') return 'chat';
@@ -89,7 +89,7 @@ export class FileService {
           matchedType = type;
         }
       }
-      if (matchedType) return matchedType as DocumentType;
+      if (matchedType) return matchedType as NovelaidDocumentType;
     }
     //特殊処理を行わなかったマークダウンファイルはマークダウンです
     //フォルダーの属性によるフォールバック処理は不要です。
@@ -149,13 +149,13 @@ export class FileService {
    * ディレクトリ名から、そのディレクトリ内での優先ドキュメントタイプを推定します。
    * 名前から判定できない場合、親ディレクトリのタイプを継承します。
    */
-  public async getPreferredDocumentTypeForDirectory(dirPath: string): Promise<DocumentType> {
+  public async getPreferredDocumentTypeForDirectory(dirPath: string): Promise<NovelaidDocumentType> {
     const dirName = path.basename(dirPath).toLowerCase();
 
     // 1. 自分自身の .novelaidattributes `./` を確認
     const ownAttrs = await this.getAttributesForDirectory(dirPath);
     if (ownAttrs?.has('./')) {
-      return ownAttrs.get('./')! as DocumentType;
+      return ownAttrs.get('./')! as NovelaidDocumentType;
     }
 
     // 2. 親の .novelaidattributes `dirName/` を確認
@@ -172,7 +172,7 @@ export class FileService {
             matchedType = type;
           }
         }
-        if (matchedType) return matchedType as DocumentType;
+        if (matchedType) return matchedType as NovelaidDocumentType;
       }
     }
 

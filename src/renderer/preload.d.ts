@@ -1,4 +1,5 @@
 import { GitFileStatus, GitLogEntry } from '../main/git/interface';
+import { NovelaidDocumentType } from '../common/types';
 
 declare global {
   interface Window {
@@ -28,7 +29,7 @@ declare global {
       };
       fs: {
         onFileChange(func: (payload: any) => void): () => void;
-        getDocumentType(filePath: string): Promise<string>;
+        getDocumentType(filePath: string): Promise<NovelaidDocumentType>;
       };
       metadata: {
         queryByTag(tagOrTags: string | string[]): Promise<any[]>;

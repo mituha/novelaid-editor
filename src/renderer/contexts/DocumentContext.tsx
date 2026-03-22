@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { Tab } from '../components/TabBar/TabBar';
 import { useSettings } from './SettingsContext';
-import { DocumentType, DocumentViewType } from '../../common/types';
+import { NovelaidDocumentType, DocumentViewType } from '../../common/types';
 import { toDocumentPath, getFilePath } from '../../common/utils/pathUtils';
 import { useProject } from './ProjectContext';
 
@@ -19,7 +19,7 @@ export interface DocumentData {
   initialLine?: number;
   initialColumn?: number;
   searchQuery?: string;
-  documentType?: DocumentType;
+  documentType?: NovelaidDocumentType;
   deleted?: boolean;
   isPanel?: boolean;
 }
@@ -40,7 +40,7 @@ interface DocumentContextType {
       data?: {
         content: string;
         metadata: Record<string, any>;
-        documentType?: DocumentType;
+        documentType?: NovelaidDocumentType;
       };
       side?: 'left' | 'right';
       requestedViewType?: DocumentViewType;
@@ -306,7 +306,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         data?: {
           content: string;
           metadata: Record<string, any>;
-          documentType?: DocumentType;
+          documentType?: NovelaidDocumentType;
         };
         side?: 'left' | 'right';
         requestedViewType?: DocumentViewType;
@@ -353,7 +353,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         currentData?.documentType ||
         documentsRef.current[absolutePath]?.documentType;
 
-      const getInitialViewType = (docType?: DocumentType): DocumentViewType => {
+      const getInitialViewType = (docType?: NovelaidDocumentType): DocumentViewType => {
         if (docType === 'chat') return 'canvas';
         if (docType === 'image') return 'reader';
 
@@ -706,7 +706,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           path: string;
           name: string;
           viewType?: DocumentViewType;
-          documentType?: DocumentType;
+          documentType?: NovelaidDocumentType;
         }[],
       ) => {
         const results = await Promise.all(
@@ -738,7 +738,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
             name: string;
             data: any;
             viewType: DocumentViewType | undefined;
-            documentType: DocumentType | undefined;
+            documentType: NovelaidDocumentType | undefined;
           } => r !== null,
         );
       };

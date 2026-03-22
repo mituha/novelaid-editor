@@ -11,12 +11,12 @@ import { useState, useEffect } from 'react';
 import './StatusBar.css';
 import { CountMetric } from '../../utils/CharCounter';
 import DocumentIcon from '../../utils/DocumentIcon';
-import { DocumentType } from '../../../common/types';
+import { NovelaidDocumentType } from '../../../common/types';
 
 interface StatusBarProps {
   metrics: CountMetric[];
   activePath: string | null;
-  documentType?: DocumentType;
+  documentType?: NovelaidDocumentType;
   metadata?: Record<string, any>;
   openSettings: () => void;
   onGoHome: () => void;

@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDocument } from '../../contexts/DocumentContext';
-import { DocumentType } from '../../../common/types';
+import { NovelaidDocumentType } from '../../../common/types';
 import './NovelNavigator.css';
 
 interface FileNode {
   name: string;
   isDirectory: boolean;
   path: string;
-  documentType?: DocumentType;
+  documentType?: NovelaidDocumentType;
 }
 
 interface NovelNavigatorProps {

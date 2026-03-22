@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import React from 'react';
-import { DocumentType } from '../../common/types';
+import { NovelaidDocumentType } from '../../common/types';
 
 /**
  * ファイルやフォルダーのアイコンを表示する共通コンポーネント
@@ -20,7 +20,7 @@ import { DocumentType } from '../../common/types';
 interface DocumentIconProps {
   name: string;
   path?: string;
-  documentType?: DocumentType;
+  documentType?: NovelaidDocumentType;
   metadata?: Record<string, any>;
   size?: number;
   isDirectory?: boolean;

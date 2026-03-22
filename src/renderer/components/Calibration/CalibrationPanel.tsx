@@ -9,7 +9,7 @@ import {
 import { useProject } from '../../contexts/ProjectContext';
 import { useDocument } from '../../contexts/DocumentContext';
 import { Panel } from '../../types/panel';
-import { DocumentType } from '../../../common/types';
+import { NovelaidDocumentType } from '../../../common/types';
 import './CalibrationPanel.css';
 
 interface FrequencyResult {
@@ -45,7 +45,7 @@ interface CalibrationIssue {
 interface CalibrationPanelProps {
   content: string;
   activePath?: string | null;
-  documentType?: DocumentType;
+  documentType?: NovelaidDocumentType;
 }
 
 export default function CalibrationPanel({ content, activePath, documentType }: CalibrationPanelProps) {

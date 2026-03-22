@@ -1,4 +1,4 @@
-export type DocumentType =
+export type NovelaidDocumentType =
   | 'novel'
   | 'markdown'
   | 'image'

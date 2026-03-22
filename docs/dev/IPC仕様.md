@@ -20,8 +20,8 @@
 | `fs:move` | invoke | ファイルの移動 | `oldPath: string, newPath: string` | `Promise<boolean>` |
 | `fs:copy` | invoke | ファイルのコピー | `srcPath: string, destPath: string` | `Promise<string>` |
 | `fs:delete` | invoke | ファイルの削除 | `targetPath: string` | `Promise<void>` |
-| `fs:getDocumentType`| invoke | ファイルのドキュメントタイプ判定 | `filePath: string` | `Promise<DocumentType>` |
-| `fs:getDirectoryType`| invoke | ディレクトリの推奨タイプ取得 | `dirPath: string` | `Promise<DocumentType>` |
+| `fs:getDocumentType`| invoke | ファイルのドキュメントタイプ判定 | `filePath: string` | `Promise<NovelaidDocumentType>` |
+| `fs:getDirectoryType`| invoke | ディレクトリの推奨タイプ取得 | `dirPath: string` | `Promise<NovelaidDocumentType>` |
 | `fs:file-changed` | send | ファイル変更通知 (Main -> Renderer) | - | `{event: string, path: string}` |
 
 ### 2. プロジェクト管理 (`project:`, `recent:`)

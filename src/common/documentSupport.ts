@@ -1,9 +1,9 @@
-import { DocumentType, DocumentViewType } from './types';
+import { NovelaidDocumentType, DocumentViewType } from './types';
 
 /**
  * 指定されたドキュメントタイプでサポートされているビュータイプの一覧を取得します。
  */
-export function getSupportedViewTypes(docType: DocumentType | string | undefined): DocumentViewType[] {
+export function getSupportedViewTypes(docType: NovelaidDocumentType | string | undefined): DocumentViewType[] {
   switch (docType) {
     case 'novel':
     case 'markdown':
@@ -26,7 +26,7 @@ export function getSupportedViewTypes(docType: DocumentType | string | undefined
  * 指定されたドキュメントタイプが、特定のビュータイプをサポートしているか判定します。
  */
 export function isViewTypeSupported(
-  docType: DocumentType | string | undefined,
+  docType: NovelaidDocumentType | string | undefined,
   viewType: DocumentViewType,
 ): boolean {
   if (!docType) return viewType === 'editor';
