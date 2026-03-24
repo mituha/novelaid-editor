@@ -144,11 +144,11 @@ ipcMain.handle('fs:getDocumentType', async (_, filePath: string) => {
 });
 
 ipcMain.handle('fs:setProjectDirectory', async (_, dirPath: string) => {
-  FileService.getInstance().setProjectDirectory(dirPath);
+  await FileService.getInstance().setProjectDirectory(dirPath);
 });
 
 ipcMain.handle('fs:getProjectDirectory', async () => {
-  return FileService.getInstance().getProjectDirectory();
+  return await FileService.getInstance().getProjectDirectory();
 });
 
 ipcMain.handle('fs:readFile', async (_, filePath: string) => {

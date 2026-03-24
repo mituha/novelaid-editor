@@ -114,6 +114,12 @@ const electronHandler = {
     getDocumentType(filePath: string) {
       return ipcRenderer.invoke('fs:getDocumentType', filePath);
     },
+    setProjectDirectory(dirPath: string) {
+      return ipcRenderer.invoke('fs:setProjectDirectory', dirPath);
+    },
+    getProjectDirectory() {
+      return ipcRenderer.invoke('fs:getProjectDirectory');
+    },
   },
   metadata: {
     queryByTag(tagOrTags: string | string[]) {
