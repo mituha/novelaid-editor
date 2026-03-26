@@ -4,10 +4,7 @@ import { dialog, BrowserWindow } from 'electron';
 import { MetadataService } from '../metadataService';
 import { readDocument, saveDocument } from '../metadata';
 import { NovelaidDocumentType } from '../../novelaid-fs/models';
-import {
-  setProjectDirectory as novelaid_setProjectDirectory,
-  getProjectDirectory as novelaid_getProjectDirectory,
-} from '../../novelaid-fs';
+import { FileService as NovelaidFileService } from '../../novelaid-fs';
 import { toDocumentPath } from '../../common/utils/pathUtils';
 
 const LOG_PREFIX = '[FileService]';
@@ -21,11 +18,11 @@ export class FileService {
 
   public async setProjectDirectory(dirPath: string) {
     console.log(`${LOG_PREFIX} setProjectDirectory: ${dirPath}`);
-    await novelaid_setProjectDirectory(dirPath);
+    await NovelaidFileService.getInstance().setProjectDirectory(dirPath);
   }
 
   public async getProjectDirectory(): Promise<string | null> {
-    return await novelaid_getProjectDirectory();
+    return await NovelaidFileService.getInstance().getProjectDirectory();
   }
 
   public setBeforeDeleteCallback(callback: (targetPath: string, reason: string) => void) {

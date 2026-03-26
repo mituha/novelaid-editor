@@ -1,36 +1,46 @@
 /**
- * メインプロセス側の状態保持用定数
- * 同一プロセス内での共有が必要なため、モジュールレベルで保持します。
+ * ファイルシステム操作に関するサービス (novelaid-fs 汎用)
+ * メインプロセスとレンダラープロセスの両方で使用されます。
  */
-let mainProcessProjectDirectory: string | null = null;
+export class FileService {
+  private static instance: FileService;
+  private mainProcessProjectDirectory: string | null = null;
+  private isRenderer: boolean;
 
-/**
- * レンダラープロセスかどうかを判定します
- */
-const isRenderer = typeof window !== 'undefined' && (window as any).electron;
-
-/**
- * プロジェクトディレクトリを設定します。
- * レンダラープロセスから呼び出した場合は IPC 経由でメインプロセス側に設定されます。
- * メインプロセスから呼び出した場合は、モジュール内の変数に保持されます。
- */
-export async function setProjectDirectory(path: string): Promise<void> {
-  if (isRenderer) {
-    await (window as any).electron.fs.setProjectDirectory(path);
-  } else {
-    mainProcessProjectDirectory = path;
+  private constructor() {
+    this.isRenderer = typeof window !== 'undefined' && (window as any).electron;
   }
-}
 
-/**
- * 現在設定されているプロジェクトディレクトリを取得します。
- * レンダラープロセスから呼び出した場合は IPC 経由でメインプロセス側から取得します。
- * メインプロセスから呼び出した場合は、モジュール内の変数から取得します。
- */
-export async function getProjectDirectory(): Promise<string | null> {
-  if (isRenderer) {
-    return await (window as any).electron.fs.getProjectDirectory();
-  } else {
-    return mainProcessProjectDirectory;
+  public static getInstance(): FileService {
+    if (!FileService.instance) {
+      FileService.instance = new FileService();
+    }
+    return FileService.instance;
+  }
+
+  /**
+   * プロジェクトディレクトリを設定します。
+   * レンダラープロセスから呼び出した場合は IPC 経由でメインプロセス側に設定されます。
+   * メインプロセスから呼び出した場合は、クラスインスタンス内の変数に保持されます。
+   */
+  public async setProjectDirectory(path: string): Promise<void> {
+    if (this.isRenderer) {
+      await (window as any).electron.fs.setProjectDirectory(path);
+    } else {
+      this.mainProcessProjectDirectory = path;
+    }
+  }
+
+  /**
+   * 現在設定されているプロジェクトディレクトリを取得します。
+   * レンダラープロセスから呼び出した場合は IPC 経由でメインプロセス側から取得します。
+   * メインプロセスから呼び出した場合は、クラスインスタンス内の変数から取得します。
+   */
+  public async getProjectDirectory(): Promise<string | null> {
+    if (this.isRenderer) {
+      return await (window as any).electron.fs.getProjectDirectory();
+    } else {
+      return this.mainProcessProjectDirectory;
+    }
   }
 }

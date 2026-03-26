@@ -7,7 +7,7 @@ import React, {
   ReactNode,
 } from 'react';
 
-import { setProjectDirectory as novelaid_setProjectDirectory } from '../../novelaid-fs';
+import { FileService as NovelaidFileService } from '../../novelaid-fs';
 
 // プロジェクト設定の型定義
 export interface ProjectConfig {
@@ -144,7 +144,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       const result = await window.electron.ipcRenderer.invoke('project:load', path);
       if (result) {
         // バックエンドの FileService にもプロジェクトディレクトリを設定
-        await novelaid_setProjectDirectory(path);
+        await NovelaidFileService.getInstance().setProjectDirectory(path);
         setProjectPath(path);
         const pName = path.split(/[/\\]/).pop() || path;
         setProjectName(pName);
