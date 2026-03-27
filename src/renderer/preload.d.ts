@@ -30,6 +30,9 @@ declare global {
       fs: {
         onFileChange(func: (payload: any) => void): () => void;
         getDocumentType(filePath: string): Promise<NovelaidDocumentType>;
+        getDirectoryType(dirPath: string): Promise<NovelaidDocumentType>;
+        setProjectDirectory(dirPath: string): Promise<void>;
+        getProjectDirectory(): Promise<string | null>;
       };
       metadata: {
         queryByTag(tagOrTags: string | string[]): Promise<any[]>;

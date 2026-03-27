@@ -135,12 +135,14 @@ ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
   }
 });
 
+import { FileService as NovelaidFileService } from '../novelaid-fs';
+
 ipcMain.handle('fs:getDirectoryType', async (_, dirPath: string) => {
-  return FileService.getInstance().getPreferredDocumentTypeForDirectory(dirPath);
+  return NovelaidFileService.getInstance().getDirectoryType(dirPath);
 });
 
 ipcMain.handle('fs:getDocumentType', async (_, filePath: string) => {
-  return await FileService.getInstance().getDocumentType(filePath);
+  return await NovelaidFileService.getInstance().getDocumentType(filePath);
 });
 
 ipcMain.handle('fs:setProjectDirectory', async (_, dirPath: string) => {

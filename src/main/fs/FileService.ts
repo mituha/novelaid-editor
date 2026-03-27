@@ -11,7 +11,6 @@ const LOG_PREFIX = '[FileService]';
 
 export class FileService {
   private static instance: FileService;
-  private attributeCache = new Map<string, { mtime: number; data: Map<string, string> }>();
   private beforeDeleteCallback: ((targetPath: string, reason: string) => void) | null = null;
 
   private constructor() {}
@@ -38,7 +37,7 @@ export class FileService {
   /** .novelaidattributes が変更されたとき、対象ディレクトリのキャッシュを破棄します */
   public invalidateAttributeCache(dirPath: string) {
     console.log(`${LOG_PREFIX} invalidateAttributeCache: ${dirPath}`);
-    this.attributeCache.delete(dirPath);
+    NovelaidFileService.getInstance().invalidateAttributeCache(dirPath);
   }
 
   public static getInstance(): FileService {
@@ -63,145 +62,15 @@ export class FileService {
 
   public async getDocumentType(filePath: string): Promise<NovelaidDocumentType> {
     this.validatePath(filePath);
-    const ext = path.extname(filePath).toLowerCase();
-    if (ext === '.ch') return 'chat';
-    if (ext === '.css') return 'css';
-    if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(ext))
-      return 'image';
-    if (ext === '.txt') return 'novel';
-    if (ext !== '.md' && ext !== '.markdown') return 'unknown';
-
-    // mdファイルに対する特別な処理の確認
-    // 基本的にはmdをnovel用として扱っている場合の特殊処理用です
-    // *.md novel を処理することになります。
-    // また、その際に特定ファイルを除外する場合もあります
-    // plot.md markdown など
-
-    const dirPath = path.dirname(filePath);
-    const fileName = path.basename(filePath);
-
-    // 1. .novelaidattributes をチェック (最優先)
-    const attrs = await this.getAttributesForDirectory(dirPath);
-    if (attrs) {
-      let matchedType: string | null = null;
-      for (const [pattern, type] of attrs.entries()) {
-        if (!pattern.endsWith('/') && pattern !== './' && this.patternMatches(pattern, fileName)) {
-          matchedType = type;
-        }
-      }
-      if (matchedType) return matchedType as NovelaidDocumentType;
-    }
-    //特殊処理を行わなかったマークダウンファイルはマークダウンです
-    //フォルダーの属性によるフォールバック処理は不要です。
-    return 'markdown';
-  }
-
-  /**
-   * パターンが対象の文字列にマッチするか判定します。
-   * シンプルなワイルドカード (*) をサポートします。
-   */
-  private patternMatches(pattern: string, target: string): boolean {
-    if (pattern === target) return true;
-    if (!pattern.includes('*') && !pattern.includes('?')) return false;
-
-    // 正規表現の特殊文字 (* ? 以外) をエスケープしてから、* と ? をワイルドカードとして展開
-    const regexStr = pattern
-      .replace(/[.+^${}()|[\]\\]/g, '\\$&') // * ? 以外の特殊文字をエスケープ
-      .replace(/\*/g, '.*')                  // * → .*
-      .replace(/\?/g, '.');                  // ? → .
-    const regex = new RegExp(`^${regexStr}$`, 'i');
-    return regex.test(target);
-  }
-
-  /**
-   * .novelaidattributes を読み込み、パース結果を返します。
-   */
-  private async getAttributesForDirectory(dirPath: string): Promise<Map<string, string> | null> {
-    const attrPath = path.join(dirPath, '.novelaidattributes');
-    try {
-      const stats = await fs.stat(attrPath);
-      const cached = this.attributeCache.get(dirPath);
-      if (cached && cached.mtime === stats.mtimeMs) {
-        return cached.data;
-      }
-
-      const content = await fs.readFile(attrPath, 'utf-8');
-      const data = new Map<string, string>();
-      const lines = content.split('\n');
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) continue;
-
-        const [pattern, type] = trimmed.split(/\s+/);
-        if (pattern && type) {
-          data.set(pattern, type);
-        }
-      }
-
-      this.attributeCache.set(dirPath, { mtime: stats.mtimeMs, data });
-      return data;
-    } catch (err) {
-      return null;
-    }
+    return await NovelaidFileService.getInstance().getDocumentType(filePath);
   }
 
   /**
    * ディレクトリ名から、そのディレクトリ内での優先ドキュメントタイプを推定します。
-   * 名前から判定できない場合、親ディレクトリのタイプを継承します。
    */
   public async getPreferredDocumentTypeForDirectory(dirPath: string): Promise<NovelaidDocumentType> {
-    const dirName = path.basename(dirPath).toLowerCase();
-
-    // 1. 自分自身の .novelaidattributes `./` を確認
-    const ownAttrs = await this.getAttributesForDirectory(dirPath);
-    if (ownAttrs?.has('./')) {
-      return ownAttrs.get('./')! as NovelaidDocumentType;
-    }
-
-    // 2. 親の .novelaidattributes `dirName/` を確認
-    const parentPath = path.dirname(dirPath);
-    if (parentPath !== dirPath && parentPath !== '.') {
-      const parentAttrs = await this.getAttributesForDirectory(parentPath);
-      if (parentAttrs) {
-        const dirKeyword = `${path.basename(dirPath)}/`;
-        // 後ろの設定が優先されるように、パース順（挿入順）を考慮して最後に見つかったものを採用
-        let matchedType: string | null = null;
-        for (const [pattern, type] of parentAttrs.entries()) {
-          // ディレクトリパターンの場合（/で終わる）
-          if (pattern.endsWith('/') && this.patternMatches(pattern, dirKeyword)) {
-            matchedType = type;
-          }
-        }
-        if (matchedType) return matchedType as NovelaidDocumentType;
-      }
-    }
-
-    // 3. 仕様に基づいたキーワードによる判定
-    const novelKeywords = ['novel', '小説'];
-    const markdownKeywords = ['設定', 'プロット', '資料', 'wiki'];
-    const imageKeywords = ['image', '画像'];
-    const chatKeywords = ['chat', 'チャット', 'channel', 'チャンネル'];
-
-    if (novelKeywords.some((kw) => dirName.includes(kw))) {
-      return 'novel';
-    }
-    if (markdownKeywords.some((kw) => dirName.includes(kw))) {
-      return 'markdown';
-    }
-    if (imageKeywords.some((kw) => dirName.includes(kw))) {
-      return 'image';
-    }
-    if (chatKeywords.some((kw) => dirName.includes(kw))) {
-      return 'chat';
-    }
-
-    // 4. 名前から判定できない場合、親フォルダのタイプを継承
-    if (parentPath !== dirPath && parentPath !== '.') {
-      return await this.getPreferredDocumentTypeForDirectory(parentPath);
-    }
-
-    // 5. デフォルト
-    return 'novel';
+    // novelaid-fs 側の getDirectoryType を呼び出す
+    return await NovelaidFileService.getInstance().getDirectoryType(dirPath);
   }
 
   public async readDirectory(dirPath: string) {
