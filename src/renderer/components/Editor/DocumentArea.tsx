@@ -98,12 +98,12 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       const parts = activePath.replace('gitDiff://', '').split('/');
       const staged = parts[0] === 'staged';
       const filePath = parts.slice(1).join('/');
-      return <DiffViewer path={filePath} staged={staged} />;
+      return <DiffViewer key={`${side}-${activePath}`} path={filePath} staged={staged} />;
     }
 
     if (activeTab?.documentType === 'browser') {
       const url = activePath.replace('browser://', '');
-      return <WebBrowser initialUrl={url} />;
+      return <WebBrowser key={`${side}-${activePath}`} initialUrl={url} />;
     }
 
     const data = documents[activePath];

@@ -45,6 +45,13 @@ export default function WebBrowser({ initialUrl }: WebBrowserProps) {
     });
   };
 
+  // 外部からのURL変更（プロップスの変更）に追従する
+  useEffect(() => {
+    setUrl(initialUrl);
+    setInputValue(initialUrl);
+  }, [initialUrl]);
+
+  // webviewのナビゲーションイベントを監視してURLバーを更新する
   useEffect(() => {
     const webview = webviewRef.current;
     if (!webview) return;
