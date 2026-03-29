@@ -7,8 +7,8 @@ import React, {
   useRef,
 } from 'react';
 import { Tab } from '../components/TabBar/TabBar';
-import { useSettings } from './SettingsContext';
-import { NovelaidDocumentType } from '../../novelaid-fs/models';
+import { useSettings } from './SettingsContext'
+import { NovelaidDocumentType } from '../../novelaid-fs';
 import { DocumentViewType } from '../../common/types';
 import { toDocumentPath, getFilePath } from '../../common/utils/pathUtils';
 import { useProject } from './ProjectContext';

@@ -1,4 +1,4 @@
-import { NovelaidDocumentType } from '../novelaid-fs/models';
+import { NovelaidDocumentType } from '../novelaid-fs';
 import { DocumentViewType } from './types';
 
 /**

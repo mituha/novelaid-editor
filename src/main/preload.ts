@@ -111,6 +111,9 @@ const electronHandler = {
         ipcRenderer.removeListener('fs:file-changed', subscription);
       };
     },
+    readDirectory(dirPath: string, recursive: boolean = false, parentType?: any) {
+      return ipcRenderer.invoke('fs:readDirectory', dirPath, recursive, parentType);
+    },
     getDocumentType(filePath: string) {
       return ipcRenderer.invoke('fs:getDocumentType', filePath);
     },

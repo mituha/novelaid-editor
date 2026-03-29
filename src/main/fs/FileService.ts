@@ -3,8 +3,8 @@ import path from 'path';
 import { dialog, BrowserWindow } from 'electron';
 import { MetadataService } from '../metadataService';
 import { readDocument, saveDocument } from '../metadata';
-import { NovelaidDocumentType } from '../../novelaid-fs/models';
-import { FileService as NovelaidFileService } from '../../novelaid-fs';
+import { NovelaidDocumentType } from '../../novelaid-fs';
+import { FileService as NovelaidFileService } from '../../novelaid-fs/FileService';
 import { toDocumentPath } from '../../common/utils/pathUtils';
 
 const LOG_PREFIX = '[FileService]';
@@ -73,42 +73,17 @@ export class FileService {
     return await NovelaidFileService.getInstance().getDirectoryType(dirPath);
   }
 
-  public async readDirectory(dirPath: string) {
+  public async readDirectory(
+    dirPath: string,
+    recursive: boolean = false,
+    parentType?: NovelaidDocumentType,
+  ) {
     this.validatePath(dirPath);
-    console.log(`${LOG_PREFIX} readDirectory: ${dirPath}`);
-    const metadataService = MetadataService.getInstance();
-    const dirents = await fs.readdir(dirPath, { withFileTypes: true });
-    const filtered = dirents.filter((dirent) => {
-      const fullPath = path.join(dirPath, dirent.name);
-      // Skip if ignored by .novelaidignore
-      if (metadataService.isIgnored(fullPath)) {
-        return false;
-      }
-
-      // Filter out only hidden folders and node_modules, keep hidden files
-      if (dirent.isDirectory()) {
-        return !dirent.name.startsWith('.') && dirent.name !== 'node_modules';
-      }
-      return true;
-    });
-
-    console.log(`${LOG_PREFIX} readDirectory: ${filtered.length} 件のエントリを返します (${dirPath})`);
-    return await Promise.all(
-      filtered.map(async (dirent) => {
-        const fullPath = path.join(dirPath, dirent.name);
-        const isDirectory = dirent.isDirectory();
-        return {
-          name: dirent.name,
-          isDirectory,
-          path: toDocumentPath(fullPath),
-          documentType: isDirectory
-            ? await this.getPreferredDocumentTypeForDirectory(fullPath)
-            : await this.getDocumentType(fullPath),
-          metadata: isDirectory
-            ? undefined
-            : metadataService.queryByPath?.(toDocumentPath(fullPath)),
-        };
-      }),
+    console.log(`${LOG_PREFIX} readDirectory: ${dirPath} (recursive: ${recursive})`);
+    return await NovelaidFileService.getInstance().readDirectory(
+      dirPath,
+      recursive,
+      parentType,
     );
   }
 

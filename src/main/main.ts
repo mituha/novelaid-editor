@@ -36,9 +36,7 @@ import { MetadataService } from './metadataService';
 import { CalibrationService } from './calibration/CalibrationService';
 import { AIService } from './ai/AIService';
 import { FileService } from './fs/FileService';
-
-
-
+import { NovelaidDocumentType } from '../novelaid-fs';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -126,16 +124,24 @@ ipcMain.handle('dialog:confirm', async (_, message: string) => {
   return response === 0;
 });
 
-ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
-  try {
-    return await FileService.getInstance().readDirectory(dirPath);
-  } catch (error) {
-    console.error('Error reading directory:', error);
-    throw error;
-  }
-});
+ipcMain.handle(
+  'fs:readDirectory',
+  async (_, dirPath: string, recursive: boolean = false, parentType?: NovelaidDocumentType) => {
+    try {
+      return await FileService.getInstance().readDirectory(dirPath, recursive, parentType);
+    } catch (error) {
+      console.error('Error reading directory:', error);
+      throw error;
+    }
+  },
+);
 
-import { FileService as NovelaidFileService } from '../novelaid-fs';
+import { FileService as NovelaidFileService } from '../novelaid-fs/FileService';
+
+// novelaid-fs のプロバイダーを初期化
+const nfService = NovelaidFileService.getInstance();
+nfService.setMetadataProvider((p) => MetadataService.getInstance().queryByPath(p));
+nfService.setIgnoreCheckProvider((p) => MetadataService.getInstance().isIgnored(p));
 
 ipcMain.handle('fs:getDirectoryType', async (_, dirPath: string) => {
   return NovelaidFileService.getInstance().getDirectoryType(dirPath);

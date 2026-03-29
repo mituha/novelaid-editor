@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDocument } from '../../contexts/DocumentContext';
-import { NovelaidDocumentType } from '../../../novelaid-fs/models';
+import { NovelaidDocumentType, readDirectory } from '../../../novelaid-fs';
 import './NovelNavigator.css';
 
 interface FileNode {
@@ -42,11 +42,8 @@ export default function NovelNavigator({ activePath }: NovelNavigatorProps) {
             .substring(lastSep + 1)
             .toLowerCase();
 
-          // fs:readDirectory を叩いて兄弟ファイルを取得
-          const fileList: FileNode[] = await window.electron.ipcRenderer.invoke(
-            'fs:readDirectory',
-            dirPath,
-          );
+          // FileService を使って兄弟ファイルを取得
+          const fileList = await readDirectory(dirPath);
 
           // novel タイプのみ抽出＆ソート
           const novels = fileList

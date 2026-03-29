@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
-import { NovelaidDocumentType } from './models';
+import { NovelaidDocumentType, NovelaidDirEntry } from './models';
 
 /**
  * ファイルシステム操作に関するサービス (novelaid-fs 汎用)
@@ -11,6 +11,8 @@ export class FileService {
   private mainProcessProjectDirectory: string | null = null;
   private isRenderer: boolean;
   private attributeCache = new Map<string, { mtime: number; data: Map<string, string> }>();
+  private metadataProvider: ((filePath: string) => any) | null = null;
+  private ignoreCheckProvider: ((filePath: string) => boolean) | null = null;
 
   private constructor() {
     this.isRenderer = typeof window !== 'undefined' && (window as any).electron;
@@ -30,6 +32,16 @@ export class FileService {
     }
   }
 
+  /** メタデータ提供プロバイダーを設定します (メインプロセス用) */
+  public setMetadataProvider(provider: (filePath: string) => any) {
+    this.metadataProvider = provider;
+  }
+
+  /** 無視リスト判定プロバイダーを設定します (メインプロセス用) */
+  public setIgnoreCheckProvider(provider: (filePath: string) => boolean) {
+    this.ignoreCheckProvider = provider;
+  }
+
   /**
    * プロジェクトディレクトリを設定します。
    * レンダラープロセスから呼び出した場合は IPC 経由でメインプロセス側に設定されます。
@@ -37,10 +49,9 @@ export class FileService {
    */
   public async setProjectDirectory(path: string): Promise<void> {
     if (this.isRenderer) {
-      await (window as any).electron.fs.setProjectDirectory(path);
-    } else {
-      this.mainProcessProjectDirectory = path;
+      throw new Error("FileService: setProjectDirectory should not be called directly from the renderer process. Use novelaid-fs API instead.");
     }
+    this.mainProcessProjectDirectory = path;
   }
 
   /**
@@ -50,10 +61,9 @@ export class FileService {
    */
   public async getProjectDirectory(): Promise<string | null> {
     if (this.isRenderer) {
-      return await (window as any).electron.fs.getProjectDirectory();
-    } else {
-      return this.mainProcessProjectDirectory;
+      throw new Error("FileService: getProjectDirectory should not be called directly from the renderer process. Use novelaid-fs API instead.");
     }
+    return this.mainProcessProjectDirectory;
   }
 
   /**
@@ -61,7 +71,7 @@ export class FileService {
    */
   public async getDocumentType(filePath: string): Promise<NovelaidDocumentType> {
     if (this.isRenderer) {
-      return await (window as any).electron.fs.getDocumentType(filePath);
+      throw new Error("FileService: getDocumentType should not be called directly from the renderer process. Use novelaid-fs API instead.");
     }
 
     // メインプロセスでの実装
@@ -93,11 +103,84 @@ export class FileService {
   }
 
   /**
+   * ディレクトリの中身を読み込み、エントリーのリストを返します。
+   * @param dirPath 読み込み対象のディレクトリパス
+   * @param recursive サブディレクトリを再帰的に読み込むかどうか (デフォルト false)
+   * @param parentType 親ディレクトリの NovelaidDocumentType (最適化用。指定されない場合は自動判定)
+   */
+  public async readDirectory(
+    dirPath: string,
+    recursive: boolean = false,
+    parentType?: NovelaidDocumentType,
+  ): Promise<NovelaidDirEntry[]> {
+    if (this.isRenderer) {
+      throw new Error("FileService: readDirectory should not be called directly from the renderer process. Use novelaid-fs API instead.");
+    }
+
+    // メインプロセスでの実装
+    try {
+      // バックスラッシュをスラッシュに統一（正規化）
+      const normalizedDirPath = dirPath.replace(/\\/g, '/');
+      const entries = await fs.readdir(normalizedDirPath, { withFileTypes: true });
+      
+      const results: NovelaidDirEntry[] = [];
+
+      for (const dirent of entries) {
+        const fullPath = path.join(normalizedDirPath, dirent.name).replace(/\\/g, '/');
+        const isDirectory = dirent.isDirectory();
+
+        // 無視リストのチェック
+        if (this.ignoreCheckProvider && this.ignoreCheckProvider(fullPath)) {
+          continue;
+        }
+
+        // 隠しフォルダーや node_modules はスキップ
+        if (isDirectory) {
+          if (dirent.name.startsWith('.') || dirent.name === 'node_modules') {
+            continue;
+          }
+        }
+
+        // タイプの取得
+        const documentType: NovelaidDocumentType = isDirectory
+          ? await this.getDirectoryType(fullPath)
+          : await this.getDocumentType(fullPath);
+
+        // 再帰読み込み
+        let children: NovelaidDirEntry[] | null = null;
+        if (isDirectory && recursive) {
+          children = await this.readDirectory(fullPath, true, documentType);
+        }
+
+        results.push({
+          name: dirent.name,
+          path: fullPath,
+          isDirectory,
+          documentType,
+          children,
+          metadata: isDirectory ? undefined : (this.metadataProvider ? this.metadataProvider(fullPath) : undefined),
+        });
+      }
+
+      // ソート: ディレクトリを先に、名前順
+      return results.sort((a, b) => {
+        if (a.isDirectory === b.isDirectory) {
+          return a.name.localeCompare(b.name, undefined, { numeric: true });
+        }
+        return a.isDirectory ? -1 : 1;
+      });
+    } catch (err) {
+      console.error(`[novelaid-fs] readDirectory error for ${dirPath}:`, err);
+      throw err;
+    }
+  }
+
+  /**
    * ディレクトリパスから推奨されるドキュメントタイプを取得します。
    */
   public async getDirectoryType(dirPath: string): Promise<NovelaidDocumentType> {
     if (this.isRenderer) {
-      return await (window as any).electron.fs.getDirectoryType(dirPath);
+      throw new Error("FileService: getDirectoryType should not be called directly from the renderer process. Use novelaid-fs API instead.");
     }
 
     // メインプロセスでの実装

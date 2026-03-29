@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Editor, { OnMount, BeforeMount } from '@monaco-editor/react';
+import { getDocumentType } from '../../../novelaid-fs';
 import { useProject } from '../../contexts/ProjectContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { NOVEL_PATTERNS } from '../../../common/constants/novel';
@@ -294,7 +295,7 @@ export default function CodeEditor({
               const ext = fullName.substring(fullName.lastIndexOf('.')).toLowerCase();
               let isImage = false;
               if (!['.md', '.markdown', '.txt'].includes(ext)) {
-                const docType = await window.electron.fs.getDocumentType(filePath);
+                const docType = await getDocumentType(filePath);
                 isImage = docType === 'image';
               }
 

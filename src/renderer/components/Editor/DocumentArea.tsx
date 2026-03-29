@@ -8,7 +8,7 @@ import MarkdownPreview from '../Preview/MarkdownPreview';
 import DiffViewer from '../Git/DiffViewer';
 import WebBrowser from '../Common/WebBrowser';
 import ChView from '../ch/ChView';
-import { NovelaidDocumentType } from '../../../novelaid-fs/models';
+import { NovelaidDocumentType } from '../../../novelaid-fs';
 
 import { useDocument } from '../../contexts/DocumentContext';
 import { isViewTypeSupported } from '../../../common/documentSupport';

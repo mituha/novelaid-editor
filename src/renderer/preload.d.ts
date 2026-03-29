@@ -1,5 +1,5 @@
 import { GitFileStatus, GitLogEntry } from '../main/git/interface';
-import { NovelaidDocumentType } from '../novelaid-fs/models';
+import { NovelaidDocumentType, NovelaidDirEntry } from '../novelaid-fs';
 
 declare global {
   interface Window {
@@ -29,6 +29,7 @@ declare global {
       };
       fs: {
         onFileChange(func: (payload: any) => void): () => void;
+        readDirectory(dirPath: string, recursive?: boolean, parentType?: NovelaidDocumentType): Promise<NovelaidDirEntry[]>;
         getDocumentType(filePath: string): Promise<NovelaidDocumentType>;
         getDirectoryType(dirPath: string): Promise<NovelaidDocumentType>;
         setProjectDirectory(dirPath: string): Promise<void>;

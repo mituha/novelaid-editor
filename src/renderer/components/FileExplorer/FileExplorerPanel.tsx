@@ -15,7 +15,7 @@ import { Panel } from '../../types/panel';
 import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
 import DocumentIcon from '../../utils/DocumentIcon';
-import { NovelaidDocumentType } from '../../../novelaid-fs/models';
+import { NovelaidDocumentType, readDirectory, getDirectoryType } from '../../../novelaid-fs';
 import { toDocumentPath, getFilePath } from '../../../common/utils/pathUtils';
 
 const BASE_INDENT = -8;
@@ -79,7 +79,9 @@ interface FileNode {
   metadata?: Record<string, any>;
 }
 
-interface FileExplorerProps {}
+interface FileExplorerProps {
+  [key: string]: unknown;
+}
 
 function OpenEditorItem({
   tab,
@@ -202,11 +204,8 @@ function FileTreeItem({
 
   const loadDirectory = useCallback(async () => {
     try {
-      const fileList = await window.electron.ipcRenderer.invoke(
-        'fs:readDirectory',
-        file.path,
-      );
-      const sorted = (fileList as FileNode[]).sort((a, b) => {
+      const fileList = await readDirectory(file.path);
+      const sorted = (fileList as any[]).sort((a, b) => {
         if (a.isDirectory === b.isDirectory)
           return a.name.localeCompare(b.name);
         return a.isDirectory ? -1 : 1;
@@ -590,11 +589,8 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
       return;
     }
     try {
-      const fileList = await window.electron.ipcRenderer.invoke(
-        'fs:readDirectory',
-        currentDir,
-      );
-      const sorted = (fileList as FileNode[]).sort((a, b) => {
+      const fileList = await readDirectory(currentDir);
+      const sorted = (fileList as any[]).sort((a, b) => {
         if (a.isDirectory === b.isDirectory)
           return a.name.localeCompare(b.name);
         return a.isDirectory ? -1 : 1;
@@ -734,10 +730,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
           !finalName.includes('.') &&
           !finalName.startsWith('.')
         ) {
-          const dirType = await window.electron.ipcRenderer.invoke(
-            'fs:getDirectoryType',
-            creatingPath,
-          );
+          const dirType = await getDirectoryType(creatingPath);
           const ext = dirType === 'markdown' ? 'md' : 'txt';
           finalName = `${finalName}.${ext}`;
         }

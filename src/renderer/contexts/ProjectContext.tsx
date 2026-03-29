@@ -6,7 +6,7 @@ import React, {
   useMemo,
   ReactNode,
 } from 'react';
-
+import { setProjectDirectory } from '../../novelaid-fs';
 
 // プロジェクト設定の型定義
 export interface ProjectConfig {
@@ -143,7 +143,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       const result = await window.electron.ipcRenderer.invoke('project:load', path);
       if (result) {
         // バックエンドの FileService にもプロジェクトディレクトリを設定
-        await window.electron.fs.setProjectDirectory(path);
+        await setProjectDirectory(path);
         setProjectPath(path);
         const pName = path.split(/[/\\]/).pop() || path;
         setProjectName(pName);

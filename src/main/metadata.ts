@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import matter from 'gray-matter';
 import { FileService } from './fs/FileService';
-import { NovelaidDocumentType } from '../novelaid-fs/models';
+import { NovelaidDocumentType } from '../novelaid-fs';
 
 export interface DocumentData {
   content: string;
