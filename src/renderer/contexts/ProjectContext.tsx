@@ -47,6 +47,7 @@ export interface ProjectConfig {
   submission?: {
     kakuyomuUrl?: string;
     naroUrl?: string;
+    talesNoteUrl?: string;
     customUrl?: string;
   };
   calibration?: {
@@ -101,6 +102,7 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
   submission: {
     kakuyomuUrl: 'https://kakuyomu.jp/my',
     naroUrl: 'https://syosetu.com/usernovel/list/',
+    talesNoteUrl: 'https://tales.note.com/posts/works',
   },
   calibration: {
     textlint: true,

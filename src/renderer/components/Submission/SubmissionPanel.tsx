@@ -1,23 +1,31 @@
 import React from 'react';
-import { ExternalLink, BookOpen, Send, Share2 } from 'lucide-react';
+import { ExternalLink, BookOpen, Send, Share2, Book } from 'lucide-react';
 import { Panel } from '../../types/panel';
 import { useProject } from '../../contexts/ProjectContext';
+import { useDocument } from '../../contexts/DocumentContext';
 import './SubmissionPanel.css';
 
-interface SubmissionPanelProps {
-  onOpenWeb: (url: string, title: string) => void;
-}
-
-export function SubmissionPanel({ onOpenWeb }: SubmissionPanelProps) {
+export function SubmissionPanel() {
   const { projectConfig } = useProject();
+  const { openDocument } = useDocument();
   const submission = projectConfig.submission || {};
 
   const handleOpenKakuyomu = () => {
-    onOpenWeb(submission.kakuyomuUrl || 'https://kakuyomu.jp/my', 'カクヨム');
+    openDocument(submission.kakuyomuUrl || 'https://kakuyomu.jp/my', {
+      title: 'カクヨム',
+    });
   };
 
   const handleOpenNaro = () => {
-    onOpenWeb(submission.naroUrl || 'https://syosetu.com/', '小説家になろう');
+    openDocument(submission.naroUrl || 'https://syosetu.com/', {
+      title: '小説家になろう',
+    });
+  };
+
+  const handleOpenTalesNote = () => {
+    openDocument(submission.talesNoteUrl || 'https://tales.note.com/posts/works', {
+      title: 'TALES(物語投稿サイト)',
+    });
   };
 
   return (
@@ -38,7 +46,15 @@ export function SubmissionPanel({ onOpenWeb }: SubmissionPanelProps) {
           onClick={handleOpenNaro}
         >
           <Send size={18} />
-          <span>なろうを開く</span>
+          <span>小説家になろうを開く</span>
+        </button>
+        <button
+          type="button"
+          className="submission-btn"
+          onClick={handleOpenTalesNote}
+        >
+          <Book size={18} />
+          <span>TALESを開く</span>
         </button>
       </div>
 
@@ -59,8 +75,8 @@ export const submissionPanelConfig: Panel = {
   id: 'submission',
   title: '投稿補助',
   icon: <Share2 size={24} strokeWidth={1.5} />,
-  component: ({ onOpenWebBrowser }: any) => (
-    <SubmissionPanel onOpenWeb={onOpenWebBrowser} />
+  component: () => (
+    <SubmissionPanel />
   ),
   defaultLocation: 'left',
 };

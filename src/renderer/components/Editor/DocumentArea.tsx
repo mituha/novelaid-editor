@@ -94,15 +94,15 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       return <NovelPreview content={data?.content || ''} />;
     }
 
-    if (activeTab?.documentType === 'git-diff') {
-      const parts = activePath.replace('git-diff://', '').split('/');
+    if (activeTab?.documentType === 'gitDiff') {
+      const parts = activePath.replace('gitDiff://', '').split('/');
       const staged = parts[0] === 'staged';
       const filePath = parts.slice(1).join('/');
       return <DiffViewer path={filePath} staged={staged} />;
     }
 
     if (activeTab?.documentType === 'browser') {
-      const url = activePath.replace('web-browser://', '');
+      const url = activePath.replace('browser://', '');
       return <WebBrowser initialUrl={url} />;
     }
 

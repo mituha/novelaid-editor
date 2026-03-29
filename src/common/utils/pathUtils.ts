@@ -4,7 +4,7 @@
 export function getFilePath(path: string): string {
   if (!path) return '';
   // スキーム:// の形式を置換して除去
-  return path.replace(/^(preview|git-diff|web-browser):\/\/+/, '').replace(/^staged\/|^unstaged\//, '');
+  return path.replace(/^(preview|git-diff|web-browser|browser|gitDiff):\/\/+/, '').replace(/^staged\/|^unstaged\//, '');
 }
 
 /**

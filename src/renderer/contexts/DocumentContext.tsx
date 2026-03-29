@@ -45,6 +45,7 @@ interface DocumentContextType {
       };
       side?: 'left' | 'right';
       requestedViewType?: DocumentViewType;
+      title?: string;
     },
   ) => Promise<void>;
   openPanelDocument: (
@@ -311,20 +312,56 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         };
         side?: 'left' | 'right';
         requestedViewType?: DocumentViewType;
+        title?: string;
       },
     ) => {
-      const normalizedPath = toDocumentPath(path);
-      const absolutePath = getAbsolutePath(normalizedPath);
-      const fileName =
-        (await window.electron.path.basename(absolutePath)) || 'Untitled';
+      let normalizedPath = toDocumentPath(path);
+      let absolutePath = getAbsolutePath(normalizedPath);
+      let currentType: NovelaidDocumentType | undefined = options?.data?.documentType;
+      let fileName = options?.title;
+
+      // URIスキームの早期判定
+      if (normalizedPath.startsWith('browser://') || normalizedPath.startsWith('http://') || normalizedPath.startsWith('https://')) {
+        currentType = 'browser';
+        const url = normalizedPath.startsWith('browser://') ? normalizedPath.replace('browser://', '') : normalizedPath;
+        normalizedPath = `browser://${url}`;
+        absolutePath = url;
+        fileName = fileName || url;
+      } else if (normalizedPath.startsWith('gitDiff://')) {
+        currentType = 'gitDiff';
+        const parts = normalizedPath.replace('gitDiff://', '').split('/');
+        const filePath = parts.slice(1).join('/');
+        fileName = fileName || `Diff: ${filePath.split('/').pop() || 'Untitled'} (${parts[0] === 'staged' ? 'Staged' : 'Changes'})`;
+      } else if (normalizedPath.startsWith('web-browser://')) {
+        // 互換性のための移行処理
+        return openDocument(normalizedPath.replace('web-browser://', 'browser://'), options);
+      } else if (normalizedPath.startsWith('git-diff://')) {
+        // 互換性のための移行処理
+        return openDocument(normalizedPath.replace('git-diff://', 'gitDiff://'), options);
+      }
+
+      const isVirtual = currentType === 'browser' || currentType === 'gitDiff';
+      if (!fileName && !isVirtual) {
+        fileName = (await window.electron.path.basename(absolutePath)) || 'Untitled';
+      }
+      fileName = fileName || 'Untitled';
+
       let targetSide = options?.side || activeSide;
       if (options?.requestedViewType === 'preview') {
         targetSide = 'left'; // preview展開時は元エディターを必ずleftに配置
       }
+      //ブラウザは投稿用想定であり、右側にひらく
+      if (currentType === 'browser' && !options?.side) {
+        targetSide = 'right';
+      }
+      //現在アクティブなサイドと異なるサイドに開く場合は、スプリット表示にする
+      if (targetSide != activeSide) {
+        setIsSplit(true);
+      }
 
       let currentData = options?.data || documentsRef.current[absolutePath];
 
-      if (!currentData) {
+      if (!currentData && !isVirtual) {
         try {
           currentData = await window.electron.ipcRenderer.invoke(
             'fs:readDocument',
@@ -350,12 +387,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         }));
       }
 
-      const currentType =
-        currentData?.documentType ||
-        documentsRef.current[absolutePath]?.documentType;
+      if (!currentType) {
+        currentType =
+          currentData?.documentType ||
+          documentsRef.current[absolutePath]?.documentType;
+      }
 
       const getInitialViewType = (docType?: NovelaidDocumentType): DocumentViewType => {
-        if (docType === 'chat') return 'canvas';
+        if (docType === 'chat' || docType === 'browser') return 'canvas';
         if (docType === 'image') return 'reader';
 
         if (options?.requestedViewType) {
@@ -501,55 +540,16 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const openDiff = useCallback(
     async (path: string, staged: boolean) => {
-      const diffPath = `git-diff://${staged ? 'staged' : 'unstaged'}/${path}`;
-      const diffName = `Diff: ${(await window.electron.path.basename(path)) || 'Untitled'} (${staged ? 'Staged' : 'Changes'})`;
-      const setTabs = activeSide === 'left' ? setLeftTabs : setRightTabs;
-      const setActivePath =
-        activeSide === 'left' ? setLeftActivePath : setRightActivePath;
-
-      setTabs((prev) => {
-        if (prev.find((tab) => tab.path === diffPath)) return prev;
-        return [
-          ...prev,
-          {
-            path: diffPath,
-            name: diffName,
-            isDirty: false,
-            documentType: 'git-diff',
-          },
-        ];
-      });
-      setActivePath(diffPath);
+      await openDocument(`gitDiff://${staged ? 'staged' : 'unstaged'}/${path}`);
     },
-    [activeSide],
+    [openDocument],
   );
 
   const openWebBrowser = useCallback(
     (url: string, title: string) => {
-      const webPath = `web-browser://${url}`;
-      const webName = `Web: ${title}`;
-      const targetSide = activeSide === 'left' ? 'right' : 'left';
-      const setTabs = targetSide === 'left' ? setLeftTabs : setRightTabs;
-      const setActivePath =
-        targetSide === 'left' ? setLeftActivePath : setRightActivePath;
-
-      setTabs((prev) => {
-        if (prev.find((tab) => tab.path === webPath)) return prev;
-        return [
-          ...prev,
-          {
-            path: webPath,
-            name: webName,
-            isDirty: false,
-            documentType: 'browser',
-            viewType: 'canvas',
-          },
-        ];
-      });
-      setActivePath(webPath);
-      setIsSplit(true);
+      openDocument(`browser://${url}`, { title });
     },
-    [activeSide],
+    [openDocument],
   );
 
   const renameDocument = useCallback(
