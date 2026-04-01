@@ -42,16 +42,15 @@ interface CalibrationIssue {
   suggestion?: string;
 }
 
-interface CalibrationPanelProps {
-  content: string;
-  activePath?: string | null;
-  documentType?: NovelaidDocumentType;
-}
-
-export default function CalibrationPanel({ content, activePath, documentType }: CalibrationPanelProps) {
+export default function CalibrationPanel() {
   const { projectConfig } = useProject();
-  const { getFileTitle } = useDocument();
+  const { getFileTitle, activeTabPath, documents, getAbsolutePath } = useDocument();
   const calibration = projectConfig.calibration;
+
+  const activePath = activeTabPath;
+  const activeDoc = activePath ? documents[getAbsolutePath(activePath)] : null;
+  const content = activeDoc?.content || '';
+  const documentType = activeDoc?.documentType;
 
   const handleIssueClick = (range: any) => {
     window.dispatchEvent(
@@ -294,16 +293,6 @@ export const calibrationPanelConfig: Panel = {
   id: 'calibration',
   title: '文章校正',
   icon: <CheckCircle size={24} strokeWidth={1.5} />,
-  component: ({ activeContent, activePath, documents }: any) => {
-    const documentType = activePath ? documents?.[activePath]?.documentType : undefined;
-
-    return (
-      <CalibrationPanel
-        content={activeContent || ''}
-        activePath={activePath}
-        documentType={documentType}
-      />
-    );
-  },
+  component: CalibrationPanel,
   defaultLocation: 'right',
 };
