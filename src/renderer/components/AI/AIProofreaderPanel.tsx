@@ -10,6 +10,7 @@ import ChatMessageList, {
 import AIChatInput from './AIChatInput';
 import { useDocument } from '../../contexts/DocumentContext';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface AIProofreaderPanelProps {}
 
 type ProofreadingMode = 'typo' | 'style' | 'editor';
@@ -55,11 +56,14 @@ export default function AIProofreaderPanel() {
   const {
     openPanelDocument,
     updateContent,
-    documents,
+    openDocuments,
     getFileTitle,
-    activeTabPath,
+    activeTabItem,
   } = useDocument();
-  const activeContent = (activeTabPath ? documents[activeTabPath]?.content : '') || '';
+
+  const activeTabPath = activeTabItem?.path || null;
+  const activeDoc = openDocuments.find(d => d.path === activeTabPath);
+  const activeContent = activeDoc?.content || '';
   const activePath = activeTabPath;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -87,9 +91,10 @@ export default function AIProofreaderPanel() {
   }, [panelPath, openPanelDocument]);
 
   useEffect(() => {
-    if (panelPath && documents[panelPath] && messages.length === 0) {
+    const panelDoc = panelPath ? openDocuments.find(d => d.path === panelPath) : null;
+    if (panelDoc && messages.length === 0) {
       try {
-        const { content } = documents[panelPath];
+        const { content } = panelDoc;
         if (content && content !== '[]') {
           const parsed = JSON.parse(content);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -101,7 +106,7 @@ export default function AIProofreaderPanel() {
         console.error('Failed to parse proofreader history', e);
       }
     }
-  }, [panelPath, documents, messages.length]);
+  }, [panelPath, openDocuments, messages.length]);
 
   useEffect(() => {
     if (panelPath && messages.length > 0 && updateContent && !isStreaming) {

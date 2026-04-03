@@ -13,8 +13,10 @@ interface MetadataPropertyEditorProps {
 export function MetadataPropertyEditor({
   onBlur = () => {},
 }: MetadataPropertyEditorProps) {
-  const { documents, activeTabPath, updateMetadata } = useDocument();
-  const metadata = (activeTabPath ? documents[activeTabPath]?.metadata : {}) || {};
+  const { openDocuments, activeTabItem, updateMetadata } = useDocument();
+  const activeTabPath = activeTabItem?.path || null;
+  const activeDoc = activeTabPath ? openDocuments.find(d => d.path === activeTabPath) : null;
+  const metadata = activeDoc?.metadata || {};
   const inferIconType = (value: string) => {
     if (!value) return 'lucide';
     if (/^https?:\/\//.test(value)) return 'url';

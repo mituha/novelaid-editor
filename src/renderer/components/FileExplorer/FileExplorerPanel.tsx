@@ -10,7 +10,7 @@ import {
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
-import { useDocument } from '../../contexts/DocumentContext';
+import { useDocument, TabItem } from '../../contexts/DocumentContext';
 import { Panel } from '../../types/panel';
 import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
@@ -86,19 +86,19 @@ interface FileExplorerProps {
 function OpenEditorItem({
   tab,
   side,
-  activeTabPath,
+  activeTabItem,
   closeTab,
   level = 1,
 }: {
   tab: Tab;
   side: 'left' | 'right';
-  activeTabPath: string | null;
+  activeTabItem: TabItem | null;
   closeTab: (path: string, side?: 'left' | 'right') => void;
   level?: number;
 }) {
   const { openDocument } = useDocument();
   const fileName = tab.name;
-  const isActive = tab.path === activeTabPath;
+  const isActive = tab.path === activeTabItem?.path || (activeTabItem?.isPreview && tab.path === `preview://${activeTabItem.path}`);
   return (
     <div
       className={`file-item open-editor-item ${isActive ? 'active' : ''}`}
@@ -189,9 +189,8 @@ function FileTreeItem({
   onRefreshItem: (path: string) => void;
   revealRequestToken?: number;
 }) {
-  const docContext = useDocument();
-  const openDocument = docContext.openDocument;
-  const activeTabPath = docContext.activeTabPath;
+  const { openDocument, activeTabItem } = useDocument();
+  const activeTabPath = activeTabItem?.path || null;
   const itemRef = React.useRef<HTMLDivElement>(null);
   const lastProcessedToken = React.useRef(0);
 
@@ -559,7 +558,8 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
   const [rootIsExpanded, setRootIsExpanded] = useState(true);
   const [rootIsDragOver, setRootIsDragOver] = useState(false);
   const { currentDir } = useGit();
-  const { leftTabs, rightTabs, activeTabPath, closeTab } = useDocument();
+  const { leftTabs, rightTabs, activeTabItem, closeTab } = useDocument();
+  const activeTabPath = activeTabItem?.path || null;
   const [openEditorsIsExpanded, setOpenEditorsIsExpanded] = useState(true);
   const [leftEditorsExpanded, setLeftEditorsExpanded] = useState(true);
   const [rightEditorsExpanded, setRightEditorsExpanded] = useState(true);
@@ -569,7 +569,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
     return leftTabs.filter(
       (tab) =>
         tab.viewType !== 'preview' &&
-        tab.documentType !== 'git-diff' &&
+        tab.documentType !== 'gitDiff' &&
         tab.documentType !== 'browser',
     );
   }, [leftTabs]);
@@ -578,7 +578,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
     return rightTabs.filter(
       (tab) =>
         tab.viewType !== 'preview' &&
-        tab.documentType !== 'git-diff' &&
+        tab.documentType !== 'gitDiff' &&
         tab.documentType !== 'browser',
     );
   }, [rightTabs]);
@@ -869,7 +869,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
                         key={tab.path}
                         tab={tab}
                         side="left"
-                        activeTabPath={activeTabPath}
+                        activeTabItem={activeTabItem}
                         closeTab={closeTab}
                       />
                     ))}
@@ -916,7 +916,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
                         key={tab.path}
                         tab={tab}
                         side="right"
-                        activeTabPath={activeTabPath}
+                        activeTabItem={activeTabItem}
                         closeTab={closeTab}
                       />
                     ))}

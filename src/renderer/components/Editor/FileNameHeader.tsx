@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './FileNameHeader.css';
 
 import { useDocument } from '../../contexts/DocumentContext';
@@ -16,27 +16,26 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
   onRename,
   isReadOnly = false,
 }) => {
-  const { getFileTitle } = useDocument();
+  const { getFileTitle, activeTabItem, openDocuments } = useDocument();
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(fileName);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const activeDoc = useMemo(() => {
+    const path = activeTabItem?.path;
+    return path ? openDocuments.find(d => d.path === path) : null;
+  }, [activeTabItem, openDocuments]);
+
   useEffect(() => {
-    let isMounted = true;
-    if (activePath) {
-      getFileTitle(activePath).then((title) => {
-        if (isMounted) {
-          setDisplayName(title);
-        }
-      });
+    if (activeDoc) {
+      setDisplayName(activeDoc.name);
+    } else if (activeTabItem?.path) {
+      getFileTitle(activeTabItem.path).then(setDisplayName);
     } else {
       setDisplayName(fileName);
     }
-    return () => {
-      isMounted = false;
-    };
-  }, [activePath, fileName, getFileTitle]);
+  }, [activeTabItem, activeDoc, getFileTitle, fileName]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -45,10 +44,9 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
   }, [isEditing]);
 
   const handleStartEditing = () => {
-    if (!isReadOnly) {
-      setEditValue(displayName);
-      setIsEditing(true);
-    }
+    if (isReadOnly || isEditing || activeDoc?.documentType === 'gitDiff') return;
+    setEditValue(displayName);
+    setIsEditing(true);
   };
 
   const handleCommit = () => {
@@ -87,7 +85,7 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
       className={`file-name-header ${isReadOnly ? 'readonly' : ''}`}
       onClick={handleStartEditing}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (activeDoc?.documentType !== 'gitDiff' && (e.key === 'Enter' || e.key === ' ')) {
           handleStartEditing();
         }
       }}

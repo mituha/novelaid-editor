@@ -22,6 +22,7 @@ interface Tab {
 
 // grammerContext removed, handled by system prompt in backend
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface AIChatPanelProps {}
 
 export default function AIChatPanel() {
@@ -29,11 +30,9 @@ export default function AIChatPanel() {
   const {
     openPanelDocument,
     updateContent,
-    documents,
-    leftActivePath,
-    rightActivePath,
-    leftTabs,
-    rightTabs,
+    openDocuments,
+    activeLeftItem,
+    activeRightItem,
   } = useDocument();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
   const { getContextText } = useAIContextContent();
@@ -96,9 +95,10 @@ export default function AIChatPanel() {
   }, [panelPath, openPanelDocument]);
 
   useEffect(() => {
-    if (panelPath && documents[panelPath] && messages.length === 0) {
+    const panelDoc = panelPath ? openDocuments.find(d => d.path === panelPath) : null;
+    if (panelDoc && messages.length === 0) {
       try {
-        const { content } = documents[panelPath];
+        const { content } = panelDoc;
         if (content && content !== '[]') {
           const parsed = JSON.parse(content);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -110,7 +110,7 @@ export default function AIChatPanel() {
         console.error('Failed to parse chat history', e);
       }
     }
-  }, [panelPath, documents, messages.length]);
+  }, [panelPath, openDocuments, messages.length]);
 
   useEffect(() => {
     if (panelPath && messages.length > 0 && updateContent && !isStreaming) {
@@ -125,11 +125,9 @@ export default function AIChatPanel() {
 
     // AIコンテキストの収集
     const contextText = await getContextText(
-      leftActivePath,
-      rightActivePath,
-      leftTabs,
-      rightTabs,
-      documents,
+      activeLeftItem,
+      activeRightItem,
+      openDocuments,
     );
 
     if (contextText) {

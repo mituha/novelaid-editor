@@ -44,11 +44,11 @@ interface CalibrationIssue {
 
 export default function CalibrationPanel() {
   const { projectConfig } = useProject();
-  const { getFileTitle, activeTabPath, documents, getAbsolutePath } = useDocument();
+  const { getFileTitle, activeTabItem, openDocuments, getAbsolutePath } = useDocument();
   const calibration = projectConfig.calibration;
 
-  const activePath = activeTabPath;
-  const activeDoc = activePath ? documents[getAbsolutePath(activePath)] : null;
+  const activePath = activeTabItem?.path || null;
+  const activeDoc = activePath ? openDocuments.find(d => d.path === getAbsolutePath(activePath)) : null;
   const content = activeDoc?.content || '';
   const documentType = activeDoc?.documentType;
 
