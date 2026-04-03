@@ -32,11 +32,11 @@ interface DocumentAreaProps {
 
 export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
   const {
-    documents,
+    openDocuments,
     leftTabs,
     rightTabs,
-    leftActivePath,
-    rightActivePath,
+    activeLeftItem,
+    activeRightItem,
     activeSide,
     isSplit,
     switchTab,
@@ -49,20 +49,27 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     renameDocument,
     markNavigated,
     changeViewType,
-    getFileTitle,
     getAbsolutePath,
   } = useDocument();
 
   const tabs = side === 'left' ? leftTabs : rightTabs;
-  const activePath = side === 'left' ? leftActivePath : rightActivePath;
+  const activeItem = side === 'left' ? activeLeftItem : activeRightItem;
   const isActive = activeSide === side;
-  const activeTab = tabs.find((t) => t.path === activePath);
+
+  // TabBar との互換性のために、プレビュー時は preview:// プレフィックスを付ける
+  const activeTabPath = activeItem
+    ? activeItem.isPreview
+      ? `preview://${activeItem.path}`
+      : activeItem.path
+    : null;
+
+  const activeTab = tabs.find((t) => t.path === activeTabPath);
   const viewType = activeTab?.viewType || 'editor';
 
   const onSetActive = () => setActiveSide(side);
 
   const renderContent = () => {
-    if (!activePath) {
+    if (!activeItem) {
       return (
         <div className="empty-editor-state">
           <p>ファイルを選択してください</p>
@@ -70,11 +77,11 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       );
     }
 
-    if (viewType === 'preview') {
-      const originalPath = getAbsolutePath(activePath);
-      const data = documents[originalPath];
+    const { path, isPreview } = activeItem;
+    const document = openDocuments.find((d) => d.path === path);
 
-      if (!isViewTypeSupported(data?.documentType, 'preview')) {
+    if (isPreview) {
+      if (!isViewTypeSupported(document?.documentType, 'preview')) {
         return (
           <div className="empty-editor-state">
             <p>このファイル形式ではプレビューをサポートしていません</p>
@@ -82,32 +89,31 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
         );
       }
 
-      if (data?.documentType === 'markdown') {
+      if (document?.documentType === 'markdown') {
         return (
           <MarkdownPreview
-            content={data.content || ''}
-            filePath={originalPath}
+            content={document.content || ''}
+            filePath={path}
             viewType="preview"
           />
         );
       }
-      return <NovelPreview content={data?.content || ''} />;
+      return <NovelPreview content={document?.content || ''} />;
     }
 
     if (activeTab?.documentType === 'gitDiff') {
-      const parts = activePath.replace('gitDiff://', '').split('/');
+      const parts = path.replace('gitDiff://', '').split('/');
       const staged = parts[0] === 'staged';
       const filePath = parts.slice(1).join('/');
-      return <DiffViewer key={`${side}-${activePath}`} path={filePath} staged={staged} />;
+      return <DiffViewer key={`${side}-${path}`} path={filePath} staged={staged} />;
     }
 
     if (activeTab?.documentType === 'browser') {
-      const url = activePath.replace('browser://', '');
-      return <WebBrowser key={`${side}-${activePath}`} initialUrl={url} />;
+      const url = path.replace('browser://', '');
+      return <WebBrowser key={`${side}-${path}`} initialUrl={url} />;
     }
 
-    const data = documents[activePath];
-    if (!data) {
+    if (!document) {
       return (
         <div className="loading-editor">
           <p>読み込み中...</p>
@@ -115,8 +121,8 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       );
     }
 
-    if (data.documentType === 'image') {
-      const normalized = activePath.replace(/\\/g, '/');
+    if (document.documentType === 'image') {
+      const normalized = path.replace(/\\/g, '/');
       const encodedPath = normalized
         .split('/')
         .map((segment) => encodeURIComponent(segment))
@@ -137,7 +143,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
         >
           <img
             src={src}
-            alt={activePath}
+            alt={path}
             style={{
               maxWidth: '100%',
               maxHeight: '100%',
@@ -148,59 +154,57 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       );
     }
 
-    if (viewType === 'canvas' && data.documentType === 'chat') {
+    if (viewType === 'canvas' && document.documentType === 'chat') {
       return (
         <ChView
-          key={activePath}
-          content={data.content}
-          path={activePath}
-          onContentChange={(val) => updateContent(activePath, side, val)}
-          leftActivePath={leftActivePath}
-          rightActivePath={rightActivePath}
-          leftTabs={leftTabs}
-          rightTabs={rightTabs}
-          documents={documents}
+          key={path}
+          content={document.content}
+          path={path}
+          onContentChange={(val) => updateContent(path, side, val)}
+          activeLeftItem={activeLeftItem}
+          activeRightItem={activeRightItem}
+          openDocuments={openDocuments}
         />
       );
     }
 
     if (viewType === 'reader') {
-      if (data.documentType === 'markdown') {
+      if (document.documentType === 'markdown') {
         return (
           <MarkdownPreview
-            content={data.content || ''}
-            filePath={activePath}
+            content={document.content || ''}
+            filePath={path}
             viewType="reader"
           />
         );
       }
-      return <NovelPreview content={data.content || ''} />;
+      return <NovelPreview content={document.content || ''} />;
     }
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <FileNameHeader
           fileName={activeTab?.name || ''}
-          activePath={activePath}
-          onRename={(newName) => renameDocument(activePath, newName)}
+          activePath={path}
+          onRename={(newName) => renameDocument(path, newName)}
         />
         <CodeEditor
-          key={`${side}-${activePath}`}
-          value={data.content}
-          language={getCodeEditorLanguage(data.documentType)}
-          lastSource={data.lastSource as any}
+          key={`${side}-${path}`}
+          value={document.content}
+          language={getCodeEditorLanguage(document.documentType)}
+          lastSource={document.lastSource as any}
           side={side}
-          activePath={activePath}
-          onChange={(val) => updateContent(activePath, side, val)}
+          activePath={path}
+          onChange={(val) => updateContent(path, side, val)}
           onFocus={onSetActive}
-          onBlur={() => saveDocument(activePath)}
-          initialLine={data.initialLine}
-          initialColumn={data.initialColumn}
-          searchQuery={data.searchQuery}
-          onNavigated={() => markNavigated(activePath)}
+          onBlur={() => saveDocument(path)}
+          initialLine={document.initialLine}
+          initialColumn={document.initialColumn}
+          searchQuery={document.searchQuery}
+          onNavigated={() => markNavigated(path)}
         />
-        {data.documentType === 'novel' && (
-          <NovelNavigator activePath={activePath} />
+        {document.documentType === 'novel' && (
+          <NovelNavigator activePath={path} />
         )}
       </div>
     );
@@ -237,16 +241,20 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     >
       <TabBar
         tabs={tabs}
-        activeTabPath={activePath}
-        onTabClick={(path) => switchTab(side, path)}
-        onTabClose={(path) => closeTab(path, side)}
+        activeTabPath={activeTabPath}
+        onTabClick={(p) => switchTab(side, p)}
+        onTabClose={(p) => closeTab(p, side)}
         onToggleSplit={toggleSplit}
         isSplit={isSplit}
         onOpenPreview={openPreview}
-        onChangeViewType={(path, vt) => changeViewType(side, path, vt)}
+        onChangeViewType={(p, vt) => {
+          const isP = p.startsWith('preview://');
+          const dp = isP ? p.replace('preview://', '') : p;
+          changeViewType(side, { path: dp, isPreview: isP }, vt);
+        }}
         activeDocumentType={
-          activePath
-            ? documents[getAbsolutePath(activePath)]?.documentType
+          activeItem
+            ? openDocuments.find((d) => d.path === activeItem.path)?.documentType
             : undefined
         }
       />

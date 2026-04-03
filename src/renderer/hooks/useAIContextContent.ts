@@ -1,34 +1,25 @@
 import { useCallback } from 'react';
 import { useAIContext } from '../contexts/AIContextContext';
 import { getFilePath } from '../../common/utils/pathUtils';
-
-interface Tab {
-  name: string;
-  path: string;
-  documentType?: string;
-  viewType?: string;
-}
+import { TabItem, DocumentState } from '../contexts/DocumentContext';
 
 export function useAIContextContent() {
   const { contextState } = useAIContext();
 
   const getContextText = useCallback(async (
-    leftActivePath: string | null,
-    rightActivePath: string | null,
-    leftTabs: Tab[],
-    rightTabs: Tab[],
-    documents: Record<string, any>
+    activeLeftItem: TabItem | null,
+    activeRightItem: TabItem | null,
+    openDocuments: DocumentState[]
   ): Promise<string> => {
     const paths = new Set<string>();
 
     // アクティブなドキュメント
-    if (contextState.includeLeftActive && leftActivePath) paths.add(leftActivePath);
-    if (contextState.includeRightActive && rightActivePath) paths.add(rightActivePath);
+    if (contextState.includeLeftActive && activeLeftItem) paths.add(activeLeftItem.path);
+    if (contextState.includeRightActive && activeRightItem) paths.add(activeRightItem.path);
 
     // その他の開いているタブ
     if (contextState.includeAllOpen) {
-      leftTabs.forEach(t => paths.add(t.path));
-      rightTabs.forEach(t => paths.add(t.path));
+      openDocuments.forEach(doc => paths.add(doc.path));
     }
 
     // カスタムで追加されたファイル
@@ -36,15 +27,19 @@ export function useAIContextContent() {
 
     let result = "";
     for (const path of paths) {
-      const tab = [...leftTabs, ...rightTabs].find(t => t.path === path);
-      if (tab?.viewType === 'preview' || tab?.documentType === 'git-diff' || tab?.documentType === 'browser') {
+      // openDocuments から該当するドキュメントを探す
+      const document = openDocuments.find(d => d.path === path);
+
+      // gitDiff や browser などは除外（プレビューは meta 情報などで判定可能だが、今は path で判定）
+      if (path.startsWith('gitDiff://') || path.startsWith('browser://')) {
         continue;
       }
 
       let content = "";
       const absolutePath = getFilePath(path);
-      if (documents[absolutePath]) {
-        content = documents[absolutePath].content;
+
+      if (document) {
+        content = document.content;
       } else {
         // オープンされていない場合はディスクから直接読み込む
         try {

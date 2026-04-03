@@ -19,15 +19,13 @@ import { SidePane } from '../components/Common/SidePane';
 
 export default function MainLayout() {
   const {
-    documents,
-    activeTabPath,
+    openDocuments,
+    activeTabItem,
     isSplit,
     leftTabs,
     rightTabs,
     openDocument,
     closeTab,
-    openDiff,
-    openWebBrowser,
     saveDocument,
   } = useDocument();
 
@@ -154,13 +152,14 @@ export default function MainLayout() {
     registerSettingTab,
     openSettings,
     closeTab,
+    openDocument,
   ]);
 
   const handleSave = useCallback(async () => {
-    if (activeTabPath) {
-      await saveDocument(activeTabPath);
+    if (activeTabItem) {
+      await saveDocument(activeTabItem.path);
     }
-  }, [activeTabPath, saveDocument]);
+  }, [activeTabItem, saveDocument]);
 
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
@@ -174,14 +173,15 @@ export default function MainLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSave]);
 
-  const activeTab = [...leftTabs, ...rightTabs].find(t => t.path === activeTabPath);
+  const activePath = activeTabItem?.path || null;
+  const activeTabUniquePath = activeTabItem
+    ? activeTabItem.isPreview
+      ? `preview://${activePath}`
+      : activePath
+    : null;
 
-  const getOriginalPath = (path: string | null) => {
-    if (!path) return path;
-    const tab = [...leftTabs, ...rightTabs].find(t => t.path === path);
-    return tab?.viewType === 'preview' ? path.replace('preview://', '') : path;
-  };
-
+  const activeTab = [...leftTabs, ...rightTabs].find(t => t.path === activeTabUniquePath);
+  const activeDocument = openDocuments.find(d => d.path === activePath);
 
   return (
     <div className="layout-wrapper">
@@ -253,14 +253,14 @@ export default function MainLayout() {
       </div>
       <StatusBar
         metrics={CharCounter.getMetrics(
-          activeTab && activeTab.viewType !== 'preview' && activeTab.documentType !== 'git-diff' && activeTab.documentType !== 'browser'
-            ? documents[activeTabPath!]?.content || ''
+          activeTab && !activeTabItem?.isPreview && activeTab.documentType !== 'gitDiff' && activeTab.documentType !== 'browser'
+            ? activeDocument?.content || ''
             : '',
-          activeTabPath,
+          activePath,
         )}
-        activePath={getOriginalPath(activeTabPath)}
-        documentType={activeTab?.documentType || (activeTabPath ? documents[getOriginalPath(activeTabPath)!]?.documentType : undefined)}
-        metadata={activeTab ? documents[getOriginalPath(activeTabPath)!]?.metadata : undefined}
+        activePath={activePath}
+        documentType={activeDocument?.documentType}
+        metadata={activeDocument?.metadata}
         openSettings={openSettings}
         onGoHome={() => navigate('/')}
         onToggleLeftPane={handleToggleLeftPane}

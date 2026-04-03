@@ -22,20 +22,16 @@ interface ChFileStructure {
   messages: ChatMessage[];
 }
 
-interface Tab {
-  name: string;
-  path: string;
-}
+import { TabItem, DocumentState } from '../../contexts/DocumentContext';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ChViewProps {
   content: string;
   path: string;
   onContentChange: (newContent: string) => void;
-  leftActivePath: string | null;
-  rightActivePath: string | null;
-  leftTabs: Tab[];
-  rightTabs: Tab[];
-  documents: Record<string, any>;
+  activeLeftItem: TabItem | null;
+  activeRightItem: TabItem | null;
+  openDocuments: DocumentState[];
 }
 
 const formatTimestamp = (d: Date = new Date()) => {
@@ -52,11 +48,9 @@ export default function ChView({
   content,
   path,
   onContentChange,
-  leftActivePath,
-  rightActivePath,
-  leftTabs,
-  rightTabs,
-  documents,
+  activeLeftItem,
+  activeRightItem,
+  openDocuments,
 }: ChViewProps) {
   const { projectConfig: settings } = useProject();
   const { allPersonas, staticPersonas, dynamicPersonas } = usePersonas();
@@ -170,11 +164,9 @@ export default function ChView({
 
     // AIコンテキストの収集
     const contextText = await getContextText(
-      leftActivePath,
-      rightActivePath,
-      leftTabs,
-      rightTabs,
-      documents,
+      activeLeftItem,
+      activeRightItem,
+      openDocuments,
     );
 
     let finalInput = input;
@@ -287,10 +279,6 @@ export default function ChView({
         isStreaming={isStreaming}
         placeholder="メッセージを入力..."
         showContextSelector
-        leftActivePath={leftActivePath}
-        rightActivePath={rightActivePath}
-        leftTabs={leftTabs}
-        rightTabs={rightTabs}
         useTools={useTools}
         onUseToolsChange={setUseTools}
         useReasoning={useReasoning}

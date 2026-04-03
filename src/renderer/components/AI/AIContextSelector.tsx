@@ -9,12 +9,14 @@ interface Tab {
   path: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface AIContextSelectorProps {}
 
 export default function AIContextSelector() {
   const {
-    leftActivePath,
-    rightActivePath,
+    activeLeftItem,
+    activeRightItem,
+    openDocuments,
     leftTabs,
     rightTabs,
   } = useDocument();
@@ -24,9 +26,8 @@ export default function AIContextSelector() {
 
   const getFileName = (path: string | null) => {
     if (!path) return '';
-    const allTabs = [...leftTabs, ...rightTabs];
-    const tab = allTabs.find((t) => t.path === path);
-    if (tab) return tab.name;
+    const doc = openDocuments.find(d => d.path === path);
+    if (doc) return doc.name;
     return path.split(/[/\\]/).pop() || path;
   };
 
@@ -61,6 +62,9 @@ export default function AIContextSelector() {
     }
   };
 
+  const leftActivePath = activeLeftItem?.path || null;
+  const rightActivePath = activeRightItem?.path || null;
+
   return (
     <div className="ai-context-selector">
       <div className="ai-context-summary" onClick={() => setIsExpanded(!isExpanded)}>
@@ -68,9 +72,9 @@ export default function AIContextSelector() {
         <Box size={14} className="icon-context" />
         <span className="summary-text">AI コンテキスト</span>
         <div className="badge">
-          { (contextState.includeLeftActive && leftActivePath ? 1 : 0) +
-            (contextState.includeRightActive && rightActivePath ? 1 : 0) +
-            (contextState.includeAllOpen ? Math.max(0, leftTabs.length + rightTabs.length - (leftActivePath ? 1 : 0) - (rightActivePath ? 1 : 0)) : 0) +
+          { (contextState.includeLeftActive && activeLeftItem ? 1 : 0) +
+            (contextState.includeRightActive && activeRightItem ? 1 : 0) +
+            (contextState.includeAllOpen ? Math.max(0, openDocuments.length - (activeLeftItem ? 1 : 0) - (activeRightItem && activeRightItem.path !== activeLeftItem?.path ? 1 : 0)) : 0) +
             contextState.customPaths.length }
         </div>
       </div>

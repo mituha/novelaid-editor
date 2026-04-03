@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useRef,
+  useMemo,
 } from 'react';
 import { Tab } from '../components/TabBar/TabBar';
 import { useSettings } from './SettingsContext'
@@ -13,7 +14,9 @@ import { DocumentViewType } from '../../common/types';
 import { toDocumentPath, getFilePath } from '../../common/utils/pathUtils';
 import { useProject } from './ProjectContext';
 
-export interface DocumentData {
+export interface DocumentState {
+  path: string;
+  name: string;
   content: string;
   metadata: Record<string, any>;
   lastSource?: 'user' | 'external' | 'user-left' | 'user-right' | string;
@@ -22,18 +25,34 @@ export interface DocumentData {
   searchQuery?: string;
   documentType?: NovelaidDocumentType;
   deleted?: boolean;
-  isPanel?: boolean;
+  isDirty: boolean;
+  isPanel?: boolean; // 互換性のために残す
+
+  // 各ペイン・各スロット（メイン/プレビュー）の表示状態。'none'ならタブが表示されない。
+  leftMainView: DocumentViewType;
+  rightMainView: DocumentViewType;
+  leftPreviewView: DocumentViewType;
+  rightPreviewView: DocumentViewType;
+
+  // パネル表示状態（サイドバーなど）
+  openPanelIds: string[];
+}
+
+export interface TabItem {
+  path: string;
+  isPreview: boolean;
 }
 
 interface DocumentContextType {
-  documents: Record<string, DocumentData>;
-  leftTabs: Tab[];
-  rightTabs: Tab[];
-  leftActivePath: string | null;
-  rightActivePath: string | null;
+  openDocuments: DocumentState[];
+  activeLeftItem: TabItem | null;
+  activeRightItem: TabItem | null;
   activeSide: 'left' | 'right';
   isSplit: boolean;
-  activeTabPath: string | null;
+  activeTabItem: TabItem | null; // 以前の activeTabPath に相当
+  // 後方互換性またはUI描画用
+  leftTabs: Tab[];
+  rightTabs: Tab[];
 
   openDocument: (
     path: string,
@@ -70,7 +89,7 @@ interface DocumentContextType {
   markNavigated: (path: string) => void;
   changeViewType: (
     side: 'left' | 'right',
-    path: string,
+    item: TabItem,
     viewType: DocumentViewType,
   ) => void;
   getFileTitle: (path: string) => Promise<string>;
@@ -92,11 +111,9 @@ export const useDocument = () => {
 export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [documents, setDocuments] = useState<Record<string, DocumentData>>({});
-  const [leftTabs, setLeftTabs] = useState<Tab[]>([]);
-  const [rightTabs, setRightTabs] = useState<Tab[]>([]);
-  const [leftActivePath, setLeftActivePath] = useState<string | null>(null);
-  const [rightActivePath, setRightActivePath] = useState<string | null>(null);
+  const [openDocuments, setOpenDocuments] = useState<DocumentState[]>([]);
+  const [activeLeftItem, setActiveLeftItem] = useState<TabItem | null>(null);
+  const [activeRightItem, setActiveRightItem] = useState<TabItem | null>(null);
   const [activeSide, setActiveSide] = useState<'left' | 'right'>('left');
   const [isSplit, setIsSplit] = useState(false);
 
@@ -105,23 +122,72 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   const restoredRef = useRef<string | null>(null);
   const savingPaths = useRef<Set<string>>(new Set());
   const autoSaveTimerRef = useRef<Record<string, any>>({});
-  const tabsRef = useRef({ left: leftTabs, right: rightTabs });
-  const documentsRef = useRef(documents);
+  const openDocumentsRef = useRef(openDocuments);
 
   useEffect(() => {
-    tabsRef.current = { left: leftTabs, right: rightTabs };
-  }, [leftTabs, rightTabs]);
+    openDocumentsRef.current = openDocuments;
+  }, [openDocuments]);
 
-  useEffect(() => {
-    documentsRef.current = documents;
-  }, [documents]);
-
-  const activeTabPath =
-    activeSide === 'left' ? leftActivePath : rightActivePath;
+  const activeTabItem =
+    activeSide === 'left' ? activeLeftItem : activeRightItem;
 
   const getAbsolutePath = useCallback((path: string) => {
     return getFilePath(toDocumentPath(path));
   }, []);
+
+  const getDocumentByPath = useCallback((path: string) => {
+    const absolutePath = getAbsolutePath(path);
+    return openDocumentsRef.current.find(d => d.path === absolutePath);
+  }, [getAbsolutePath]);
+
+  // Derive left/right tabs from openDocuments
+  const leftTabs = useMemo(() => {
+    return openDocuments.reduce((acc, doc) => {
+      if (doc.leftMainView !== 'none') {
+        acc.push({
+          path: doc.path,
+          name: doc.name,
+          isDirty: doc.isDirty,
+          viewType: doc.leftMainView,
+          documentType: doc.documentType,
+        } as Tab);
+      }
+      if (doc.leftPreviewView !== 'none') {
+        acc.push({
+          path: `preview://${doc.path}`,
+          name: `Preview: ${doc.name}`,
+          isDirty: false,
+          viewType: 'preview',
+          documentType: doc.documentType,
+        } as Tab);
+      }
+      return acc;
+    }, [] as Tab[]);
+  }, [openDocuments]);
+
+  const rightTabs = useMemo(() => {
+    return openDocuments.reduce((acc, doc) => {
+      if (doc.rightMainView !== 'none') {
+        acc.push({
+          path: doc.path,
+          name: doc.name,
+          isDirty: doc.isDirty,
+          viewType: doc.rightMainView,
+          documentType: doc.documentType,
+        } as Tab);
+      }
+      if (doc.rightPreviewView !== 'none') {
+        acc.push({
+          path: `preview://${doc.path}`,
+          name: `Preview: ${doc.name}`,
+          isDirty: false,
+          viewType: 'preview',
+          documentType: doc.documentType,
+        } as Tab);
+      }
+      return acc;
+    }, [] as Tab[]);
+  }, [openDocuments]);
 
   const clearTimer = useCallback((path: string) => {
     if (autoSaveTimerRef.current[path]) {
@@ -135,101 +201,88 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       const normalizedPath = toDocumentPath(path);
       clearTimer(normalizedPath);
 
-      if (reason === 'deleted') {
-        if (documentsRef.current[normalizedPath]) {
-          documentsRef.current[normalizedPath] = {
-            ...documentsRef.current[normalizedPath],
-            deleted: true,
-          };
+      setOpenDocuments((prev) => {
+        const docIndex = prev.findIndex((d) => d.path === normalizedPath);
+        if (docIndex === -1) return prev;
+
+        const doc = prev[docIndex];
+        const newDoc = { ...doc };
+
+        if (reason === 'deleted') {
+          newDoc.deleted = true;
         }
-      }
 
-      const closeInSide = (
-        targetSide: 'left' | 'right',
-        pathOrPreviewPath: string,
-      ) => {
-        const setTabs = targetSide === 'left' ? setLeftTabs : setRightTabs;
-        const activePath =
-          targetSide === 'left' ? leftActivePath : rightActivePath;
-        const setActivePath =
-          targetSide === 'left' ? setLeftActivePath : setRightActivePath;
+        // 指定されたサイド（または両方）の表示を消す
+        if (!side || side === 'left') {
+          newDoc.leftMainView = 'none';
+          newDoc.leftPreviewView = 'none';
+        }
+        if (!side || side === 'right') {
+          newDoc.rightMainView = 'none';
+          newDoc.rightPreviewView = 'none';
+        }
 
-        setTabs((prev) => {
-          const newTabs = prev.filter((tab) => tab.path !== pathOrPreviewPath);
-          if (activePath === pathOrPreviewPath) {
-            const closedTabIndex = prev.findIndex(
-              (tab) => tab.path === pathOrPreviewPath,
-            );
-            if (newTabs.length > 0) {
-              const nextIndex = Math.min(closedTabIndex, newTabs.length - 1);
-              setActivePath(newTabs[nextIndex].path);
-            } else {
-              setActivePath(null);
-            }
+        // 全ての表示が 'none' で、かつパネルでも開かれていないなら削除
+        const isActiveInAnyView =
+          newDoc.leftMainView !== 'none' ||
+          newDoc.rightMainView !== 'none' ||
+          newDoc.leftPreviewView !== 'none' ||
+          newDoc.rightPreviewView !== 'none' ||
+          newDoc.openPanelIds.length > 0;
+
+        // アクティブアイテムの更新（副作用的に行うのは難しいため、ここで判定して後でセットする）
+        // 実際には setOpenDocuments の外でやるのが理想だが、まずはリストの更新を優先
+
+        if (!isActiveInAnyView) {
+          return prev.filter((_, i) => i !== docIndex);
+        }
+
+        const newList = [...prev];
+        newList[docIndex] = newDoc;
+        return newList;
+      });
+
+      // アクティブアイテムの調整
+      const adjustActiveItem = (targetSide: 'left' | 'right') => {
+        const setActiveItem = targetSide === 'left' ? setActiveLeftItem : setActiveRightItem;
+        const currentTabs = targetSide === 'left' ? leftTabs : rightTabs;
+        const activeItem = targetSide === 'left' ? activeLeftItem : activeRightItem;
+
+        if (activeItem?.path === normalizedPath) {
+          const remainingTabs = currentTabs.filter(t => t.path !== normalizedPath);
+          if (remainingTabs.length > 0) {
+            const closedTabIndex = currentTabs.findIndex(t => t.path === normalizedPath);
+            const nextIndex = Math.min(closedTabIndex, remainingTabs.length - 1);
+            setActiveItem({ path: remainingTabs[nextIndex].path, isPreview: (remainingTabs[nextIndex] as any).viewType === 'preview' });
+          } else {
+            setActiveItem(null);
           }
-          return newTabs;
-        });
+        }
       };
 
-      if (!side || side === 'left') closeInSide('left', path);
-      if (!side || side === 'right') closeInSide('right', path);
-
-      const absolutePath = getAbsolutePath(path);
-      if (path === absolutePath) { // スキーム無しの絶対パスが閉じられた場合
-        const previewPath = `preview://${absolutePath}`;
-        const previewInLeft = tabsRef.current.left.some(
-          (t) => t.path === previewPath,
-        );
-        const previewInRight = tabsRef.current.right.some(
-          (t) => t.path === previewPath,
-        );
-        if (previewInLeft) closeInSide('left', previewPath);
-        if (previewInRight) closeInSide('right', previewPath);
-      }
-
-      setDocuments((prevContents) => {
-        const stillInAnyTabs = () => {
-          if (!side) return false;
-          const otherSide = side === 'left' ? 'right' : 'left';
-          const otherTabs = tabsRef.current[otherSide];
-          return otherTabs.some((t) => getAbsolutePath(t.path) === absolutePath);
-        };
-
-        if (!stillInAnyTabs()) {
-          const newContents = { ...prevContents };
-          delete newContents[absolutePath];
-          return newContents;
-        }
-        return prevContents;
-      });
+      if (!side || side === 'left') adjustActiveItem('left');
+      if (!side || side === 'right') adjustActiveItem('right');
     },
-    [leftActivePath, rightActivePath, clearTimer, getAbsolutePath],
+    [clearTimer, activeLeftItem, activeRightItem, leftTabs, rightTabs],
   );
 
   const saveDocument = useCallback(
     async (path: string) => {
-      const data = documentsRef.current[path];
+      const data = getDocumentByPath(path);
       if (!path || !data) return;
 
       if (data.deleted) return;
-
-      if (!data.isPanel) {
-        const allTabs = [...tabsRef.current.left, ...tabsRef.current.right];
-        if (!allTabs.find((t) => t.path === path)) return;
-      }
 
       try {
         const absolutePath = getAbsolutePath(path);
         savingPaths.current.add(absolutePath);
         await window.electron.ipcRenderer.invoke('fs:saveDocument', absolutePath, data);
 
-        const updateClean = (tabs: Tab[]) =>
-          tabs.map((tab) =>
-            tab.path === path ? { ...tab, isDirty: false } : tab,
-          );
-
-        setLeftTabs(updateClean);
-        setRightTabs(updateClean);
+        setOpenDocuments((prev) =>
+          prev.map((doc) =>
+            doc.path === path ? { ...doc, isDirty: false } : doc,
+          ),
+        );
 
         setTimeout(() => {
           savingPaths.current.delete(path);
@@ -243,7 +296,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         savingPaths.current.delete(getAbsolutePath(path));
       }
     },
-    [setLeftTabs, setRightTabs, getAbsolutePath],
+    [getAbsolutePath, getDocumentByPath],
   );
 
   const triggerAutoSave = useCallback(
@@ -265,40 +318,61 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       initialData?: { content: string; metadata: Record<string, any> },
     ) => {
       const absolutePath = getAbsolutePath(path);
-      try {
-        if (!documentsRef.current[absolutePath]) {
-          try {
-            const data = await window.electron.ipcRenderer.invoke(
-              'fs:readDocument',
-              absolutePath,
-            );
-            setDocuments((prev) => ({
-              ...prev,
-              [absolutePath]: { ...data, lastSource: 'external', isPanel: true },
-            }));
-          } catch (e) {
-            if (initialData) {
-              setDocuments((prev) => ({
-                ...prev,
-                [absolutePath]: {
-                  ...initialData,
-                  lastSource: 'external',
-                  isPanel: true,
-                },
-              }));
-            }
+      const existing = getDocumentByPath(absolutePath);
+
+      if (!existing) {
+        try {
+          const data = await window.electron.ipcRenderer.invoke(
+            'fs:readDocument',
+            absolutePath,
+          );
+          const newDoc: DocumentState = {
+            path: absolutePath,
+            name: (await window.electron.path.basename(absolutePath)) || 'Untitled',
+            content: data.content,
+            metadata: data.metadata,
+            documentType: data.documentType,
+            isDirty: false,
+            leftMainView: 'none',
+            rightMainView: 'none',
+            leftPreviewView: 'none',
+            rightPreviewView: 'none',
+            openPanelIds: ['side-panel'], // 仮のID
+          };
+          setOpenDocuments((prev) => [...prev, newDoc]);
+        } catch (e) {
+          if (initialData) {
+            const newDoc: DocumentState = {
+              path: absolutePath,
+              name: (await window.electron.path.basename(absolutePath)) || 'Untitled',
+              content: initialData.content,
+              metadata: initialData.metadata,
+              isDirty: false,
+              leftMainView: 'none',
+              rightMainView: 'none',
+              leftPreviewView: 'none',
+              rightPreviewView: 'none',
+              openPanelIds: ['side-panel'],
+            };
+            setOpenDocuments((prev) => [...prev, newDoc]);
           }
-        } else {
-          setDocuments((prev) => ({
-            ...prev,
-            [absolutePath]: { ...prev[absolutePath], isPanel: true },
-          }));
         }
-      } catch (err) {
-        console.error('Failed to open panel document:', err);
+      } else {
+        setOpenDocuments((prev) =>
+          prev.map((d) =>
+            d.path === absolutePath
+              ? {
+                  ...d,
+                  openPanelIds: d.openPanelIds.includes('side-panel')
+                    ? d.openPanelIds
+                    : [...d.openPanelIds, 'side-panel'],
+                }
+              : d,
+          ),
+        );
       }
     },
-    [getAbsolutePath],
+    [getAbsolutePath, getDocumentByPath],
   );
 
   const openDocument = useCallback(
@@ -316,7 +390,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     ) => {
       let normalizedPath = toDocumentPath(path);
-      let absolutePath = getAbsolutePath(normalizedPath);
+      let absolutePath = getFilePath(normalizedPath);
       let currentType: NovelaidDocumentType | undefined = options?.data?.documentType;
       let fileName = options?.title;
 
@@ -325,19 +399,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         currentType = 'browser';
         const url = normalizedPath.startsWith('browser://') ? normalizedPath.replace('browser://', '') : normalizedPath;
         normalizedPath = `browser://${url}`;
-        absolutePath = url;
+        absolutePath = normalizedPath; // browserは normalizedPath を absolutePath とする
         fileName = fileName || url;
       } else if (normalizedPath.startsWith('gitDiff://')) {
         currentType = 'gitDiff';
         const parts = normalizedPath.replace('gitDiff://', '').split('/');
         const filePath = parts.slice(1).join('/');
         fileName = fileName || `Diff: ${filePath.split('/').pop() || 'Untitled'} (${parts[0] === 'staged' ? 'Staged' : 'Changes'})`;
-      } else if (normalizedPath.startsWith('web-browser://')) {
-        // 互換性のための移行処理
-        return openDocument(normalizedPath.replace('web-browser://', 'browser://'), options);
-      } else if (normalizedPath.startsWith('git-diff://')) {
-        // 互換性のための移行処理
-        return openDocument(normalizedPath.replace('git-diff://', 'gitDiff://'), options);
+        absolutePath = normalizedPath;
       }
 
       const isVirtual = currentType === 'browser' || currentType === 'gitDiff';
@@ -347,7 +416,9 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       fileName = fileName || 'Untitled';
 
       let targetSide = options?.side || activeSide;
-      if (options?.requestedViewType === 'preview') {
+      const requestedIsPreview = options?.requestedViewType === 'preview';
+
+      if (requestedIsPreview) {
         targetSide = 'left'; // preview展開時は元エディターを必ずleftに配置
       }
       //ブラウザは投稿用想定であり、右側にひらく
@@ -359,134 +430,135 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsSplit(true);
       }
 
-      let currentData = options?.data || documentsRef.current[absolutePath];
+      let existingDoc = getDocumentByPath(normalizedPath);
+      let docToUpdate: DocumentState;
 
-      if (!currentData && !isVirtual) {
+      if (!existingDoc && !isVirtual) {
         try {
-          currentData = await window.electron.ipcRenderer.invoke(
+          const loadedData = await window.electron.ipcRenderer.invoke(
             'fs:readDocument',
             absolutePath,
           );
-          setDocuments((prev) => ({
-            ...prev,
-            [absolutePath]: { ...currentData, lastSource: 'external' },
-          }));
+          existingDoc = {
+            path: absolutePath,
+            name: fileName,
+            content: loadedData.content,
+            metadata: loadedData.metadata,
+            documentType: loadedData.documentType || currentType,
+            isDirty: false,
+            leftMainView: 'none',
+            rightMainView: 'none',
+            leftPreviewView: 'none',
+            rightPreviewView: 'none',
+            openPanelIds: [],
+          };
         } catch (err) {
-          // eslint-disable-next-line no-console
           console.error('Failed to load document:', err);
           return;
         }
-      } else if (options?.data) {
-        setDocuments((prev) => ({
-          ...prev,
-          [absolutePath]: {
-            ...prev[absolutePath],
-            ...options.data,
-            lastSource: 'external',
-          },
-        }));
+      } else if (!existingDoc && isVirtual) {
+        existingDoc = {
+          path: normalizedPath,
+          name: fileName,
+          content: '',
+          metadata: {},
+          documentType: currentType,
+          isDirty: false,
+          leftMainView: 'none',
+          rightMainView: 'none',
+          leftPreviewView: 'none',
+          rightPreviewView: 'none',
+          openPanelIds: [],
+        };
       }
 
-      if (!currentType) {
-        currentType =
-          currentData?.documentType ||
-          documentsRef.current[absolutePath]?.documentType;
-      }
+      if (!existingDoc) return;
 
       const getInitialViewType = (docType?: NovelaidDocumentType): DocumentViewType => {
         if (docType === 'chat' || docType === 'browser') return 'canvas';
         if (docType === 'image') return 'reader';
-
-        if (options?.requestedViewType) {
-          // preview は特別扱い（後続の処理で openPreview するため、タブとしては editor として開く）
-          if (options.requestedViewType === 'preview') return 'editor';
+        if (options?.requestedViewType && options.requestedViewType !== 'preview') {
           return options.requestedViewType;
         }
         return 'editor';
       };
 
-      if (targetSide === 'left') {
-        setLeftTabs((prev) => {
-          if (prev.find((t) => t.path === normalizedPath)) return prev;
-          return [
-            ...prev,
-            {
-              name: fileName,
-              path: normalizedPath,
-              isDirty: false,
-              viewType: getInitialViewType(currentType),
-              documentType: currentType,
-            },
-          ];
-        });
-        setLeftActivePath(normalizedPath);
-        if (activeSide !== 'left') setActiveSide('left');
-      } else {
-        setRightTabs((prev) => {
-          if (prev.find((t) => t.path === normalizedPath)) return prev;
-          return [
-            ...prev,
-            {
-              name: fileName,
-              path: normalizedPath,
-              isDirty: false,
-              viewType: getInitialViewType(currentType),
-              documentType: currentType,
-            },
-          ];
-        });
-        setRightActivePath(normalizedPath);
-        if (activeSide !== 'right') setActiveSide('right');
+      const viewTypeToSet = getInitialViewType(existingDoc.documentType);
+
+      docToUpdate = { ...existingDoc };
+      if (options?.data) {
+        docToUpdate.content = options.data.content;
+        docToUpdate.metadata = options.data.metadata;
+        if (options.data.documentType) docToUpdate.documentType = options.data.documentType;
       }
 
-      // requestedViewType === 'preview' の場合は、タブ開設直後にプレビューも展開する
-      if (options?.requestedViewType === 'preview') {
-        const previewPath = `preview://${absolutePath}`;
-        const previewName = `Preview: ${fileName}`;
-        const targetPreviewSide = options?.side || activeSide; // previewの配置は呼び出し元に合わせる
-        const setPreviewTabs =
-          targetPreviewSide === 'left' ? setLeftTabs : setRightTabs;
-        const setPreviewActivePath =
-          targetPreviewSide === 'left' ? setLeftActivePath : setRightActivePath;
+      if (requestedIsPreview) {
+        if (targetSide === 'left') docToUpdate.leftPreviewView = 'preview';
+        else docToUpdate.rightPreviewView = 'preview';
+      } else {
+        if (targetSide === 'left') docToUpdate.leftMainView = viewTypeToSet;
+        else docToUpdate.rightMainView = viewTypeToSet;
+      }
 
-        setPreviewTabs((prev) => {
-          if (prev.find((tab) => tab.path === previewPath)) return prev;
-          return [
-            ...prev,
-            {
-              path: previewPath,
-              name: previewName,
-              isDirty: false,
-              viewType: 'preview',
-              documentType: currentType,
-            },
-          ];
-        });
-        setPreviewActivePath(previewPath);
-        setIsSplit(true);
+      setOpenDocuments((prev) => {
+        const index = prev.findIndex((d) => d.path === docToUpdate.path);
+        if (index >= 0) {
+          const newList = [...prev];
+          newList[index] = docToUpdate;
+          return newList;
+        }
+        return [...prev, docToUpdate];
+      });
+
+      const newTabItem: TabItem = { path: docToUpdate.path, isPreview: requestedIsPreview };
+      if (targetSide === 'left') {
+        setActiveLeftItem(newTabItem);
+        setActiveSide('left');
+      } else {
+        setActiveRightItem(newTabItem);
+        setActiveSide('right');
+      }
+
+      // requestedViewType === 'preview' の場合は、タブ開設直後にプレビューも展開する (以前の挙動の再現)
+      if (requestedIsPreview) {
+        // すでに上で設定済み
       }
     },
-    [activeSide, getAbsolutePath],
+    [activeSide, getAbsolutePath, getDocumentByPath],
   );
 
-  const switchTab = useCallback((side: 'left' | 'right', path: string) => {
-    setActiveSide(side);
-    if (side === 'left') {
-      setLeftActivePath(path);
-    } else {
-      setRightActivePath(path);
-    }
-  }, []);
+  const switchTab = useCallback(
+    (side: 'left' | 'right', path: string) => {
+      setActiveSide(side);
+      const isPreview = path.startsWith('preview://');
+      const docPath = isPreview ? path.replace('preview://', '') : path;
+      const item: TabItem = { path: docPath, isPreview };
+
+      if (side === 'left') {
+        setActiveLeftItem(item);
+      } else {
+        setActiveRightItem(item);
+      }
+    },
+    [setActiveLeftItem, setActiveRightItem, setActiveSide],
+  );
 
   const changeViewType = useCallback(
-    (side: 'left' | 'right', path: string, viewType: DocumentViewType) => {
-      const updateTabs = (tabs: Tab[]) =>
-        tabs.map((t) => (t.path === path ? { ...t, viewType } : t));
-      if (side === 'left') {
-        setLeftTabs(updateTabs);
-      } else {
-        setRightTabs(updateTabs);
-      }
+    (side: 'left' | 'right', item: TabItem, viewType: DocumentViewType) => {
+      setOpenDocuments((prev) =>
+        prev.map((doc) => {
+          if (doc.path !== item.path) return doc;
+          const newDoc = { ...doc };
+          if (item.isPreview) {
+            if (side === 'left') newDoc.leftPreviewView = viewType;
+            else newDoc.rightPreviewView = viewType;
+          } else {
+            if (side === 'left') newDoc.leftMainView = viewType;
+            else newDoc.rightMainView = viewType;
+          }
+          return newDoc;
+        }),
+      );
     },
     [],
   );
@@ -495,47 +567,51 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsSplit((prev) => {
       const next = !prev;
       if (next) {
-        if (rightTabs.length === 0 && leftActivePath) {
-          const activeTab = leftTabs.find((t) => t.path === leftActivePath);
-          if (activeTab) {
-            setRightTabs([activeTab]);
-            setRightActivePath(leftActivePath);
-          }
-        } else if (!rightActivePath && leftActivePath) {
-          setRightActivePath(leftActivePath);
+        if (!activeRightItem && activeLeftItem) {
+          setActiveRightItem(activeLeftItem);
+          setOpenDocuments((prevDocs) =>
+            prevDocs.map((d) => {
+              if (d.path === activeLeftItem.path) {
+                return {
+                  ...d,
+                  rightMainView:
+                    d.leftMainView !== 'none' ? d.leftMainView : 'editor',
+                  rightPreviewView: activeLeftItem.isPreview
+                    ? 'preview'
+                    : d.rightPreviewView,
+                };
+              }
+              return d;
+            }),
+          );
         }
       }
       return next;
     });
-  }, [leftTabs, rightTabs, leftActivePath, rightActivePath]);
+  }, [activeLeftItem, activeRightItem]);
 
   const openPreview = useCallback(
     async (path: string) => {
-      const absolutePath = getAbsolutePath(path);
-      const previewPath = `preview://${absolutePath}`;
-      const previewName = `Preview: ${(await window.electron.path.basename(absolutePath)) || 'Untitled'}`;
+      const normalizedPath = toDocumentPath(path);
       const targetSide = activeSide === 'left' ? 'right' : 'left';
-      const setTabs = targetSide === 'left' ? setLeftTabs : setRightTabs;
-      const setActivePath =
-        targetSide === 'left' ? setLeftActivePath : setRightActivePath;
 
-      setTabs((prev) => {
-        if (prev.find((tab) => tab.path === previewPath)) return prev;
-        return [
-          ...prev,
-          {
-            path: previewPath,
-            name: previewName,
-            isDirty: false,
-            viewType: 'preview',
-            documentType: documentsRef.current[absolutePath]?.documentType,
-          },
-        ];
-      });
-      setActivePath(previewPath);
+      setOpenDocuments((prev) =>
+        prev.map((doc) => {
+          if (doc.path !== normalizedPath) return doc;
+          const newDoc = { ...doc };
+          if (targetSide === 'left') newDoc.leftPreviewView = 'preview';
+          else newDoc.rightPreviewView = 'preview';
+          return newDoc;
+        }),
+      );
+
+      const previewItem = { path: normalizedPath, isPreview: true };
+      if (targetSide === 'left') setActiveLeftItem(previewItem);
+      else setActiveRightItem(previewItem);
+
       setIsSplit(true);
     },
-    [activeSide, getAbsolutePath],
+    [activeSide],
   );
 
   const openDiff = useCallback(
@@ -558,15 +634,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       const fileNameWithExt =
         (await window.electron.path.basename(oldPath)) || '';
       const lastDotIndex = fileNameWithExt.lastIndexOf('.');
-      const fileName =
-        lastDotIndex !== -1
-          ? fileNameWithExt.substring(0, lastDotIndex)
-          : fileNameWithExt;
       const fileExt =
         lastDotIndex !== -1 ? fileNameWithExt.substring(lastDotIndex) : '';
-
-      if (newName === fileName) return;
-      clearTimer(oldPath);
 
       const dir = await window.electron.path.dirname(oldPath);
       const newPath = await window.electron.path.join(
@@ -574,120 +643,95 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         `${newName}${fileExt}`,
       );
 
+      if (oldPath === newPath) return;
+      clearTimer(oldPath);
+
       try {
         await window.electron.ipcRenderer.invoke('fs:rename', oldPath, newPath);
 
-        const updateTabs = (tabs: Tab[]) =>
-          tabs.map((t) =>
-            t.path === oldPath
-              ? { ...t, path: newPath, name: `${newName}${fileExt}` }
-              : t,
-          );
+        setOpenDocuments((prev) =>
+          prev.map((doc) =>
+            doc.path === oldPath
+              ? { ...doc, path: newPath, name: `${newName}${fileExt}` }
+              : doc,
+          ),
+        );
 
-        setLeftTabs(updateTabs);
-        setRightTabs(updateTabs);
-
-        if (leftActivePath === oldPath) setLeftActivePath(newPath);
-        if (rightActivePath === oldPath) setRightActivePath(newPath);
-
-        setDocuments((prev) => {
-          const newContents = { ...prev };
-          newContents[newPath] = newContents[oldPath];
-          delete newContents[oldPath];
-          return newContents;
-        });
+        if (activeLeftItem?.path === oldPath) {
+          setActiveLeftItem((prev) => (prev ? { ...prev, path: newPath } : null));
+        }
+        if (activeRightItem?.path === oldPath) {
+          setActiveRightItem((prev) => (prev ? { ...prev, path: newPath } : null));
+        }
       } catch (error) {
         console.error('Failed to rename file:', error);
       }
     },
-    [clearTimer, leftActivePath, rightActivePath],
+    [clearTimer, activeLeftItem, activeRightItem],
   );
 
   const updateContent = useCallback(
     (path: string, side: 'left' | 'right', value: string | undefined) => {
-      const absolutePath = getAbsolutePath(path);
-      setDocuments((prev) => ({
-        ...prev,
-        [absolutePath]: {
-          ...prev[absolutePath],
-          content: value || '',
-          lastSource: `user-${side}`,
-        },
-      }));
-      const updateDirty = (tabs: Tab[]) =>
-        tabs.map((tab) =>
-          tab.path === path ? { ...tab, isDirty: true } : tab,
-        );
-      setLeftTabs(updateDirty);
-      setRightTabs(updateDirty);
-      triggerAutoSave(absolutePath);
+      const normalizedPath = toDocumentPath(path);
+      setOpenDocuments((prev) =>
+        prev.map((doc) =>
+          doc.path === normalizedPath
+            ? {
+                ...doc,
+                content: value || '',
+                lastSource: `user-${side}`,
+                isDirty: true,
+              }
+            : doc,
+        ),
+      );
+      triggerAutoSave(normalizedPath);
     },
-    [triggerAutoSave, getAbsolutePath],
+    [triggerAutoSave],
   );
 
   const updateMetadata = useCallback(
     (path: string, metadata: Record<string, any>) => {
-      const absolutePath = getAbsolutePath(path);
-      setDocuments((prev) => ({
-        ...prev,
-        [absolutePath]: {
-          ...prev[absolutePath],
-          metadata: { ...prev[absolutePath]?.metadata, ...metadata },
-        },
-      }));
-      const updateDirty = (tabs: Tab[]) =>
-        tabs.map((tab) =>
-          tab.path === path ? { ...tab, isDirty: true } : tab,
-        );
-      setLeftTabs(updateDirty);
-      setRightTabs(updateDirty);
-      triggerAutoSave(absolutePath);
+      const normalizedPath = toDocumentPath(path);
+      setOpenDocuments((prev) =>
+        prev.map((doc) =>
+          doc.path === normalizedPath
+            ? {
+                ...doc,
+                metadata: { ...doc.metadata, ...metadata },
+                isDirty: true,
+              }
+            : doc,
+        ),
+      );
+      triggerAutoSave(normalizedPath);
     },
-    [triggerAutoSave, getAbsolutePath],
+    [triggerAutoSave],
   );
 
-  const markNavigated = useCallback(
-    (path: string) => {
-      const absolutePath = getAbsolutePath(path);
-      setDocuments((current) => {
-        const currentTab = current[absolutePath];
-        if (!currentTab) return current;
+  const markNavigated = useCallback((path: string) => {
+    const normalizedPath = toDocumentPath(path);
+    setOpenDocuments((prev) =>
+      prev.map((doc) => {
+        if (doc.path !== normalizedPath) return doc;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const {
           initialLine: _,
           initialColumn: __,
           searchQuery: ___,
           ...rest
-        } = currentTab as any;
-        return { ...current, [absolutePath]: { ...rest } };
-      });
-    },
-    [getAbsolutePath],
-  );
-
-  const getFileTitle = useCallback(async (path: string) => {
-    if (!path) return '';
-    const parsed = await window.electron.path.parse(path);
-    return parsed.name;
+        } = doc;
+        return { ...rest } as DocumentState;
+      }),
+    );
   }, []);
-
 
   // Sync / Restore / Persist
   useEffect(() => {
     if (!projectPath || restoredRef.current === projectPath) return;
 
     const restore = async () => {
-      const previousProject = restoredRef.current;
       restoredRef.current = projectPath;
-
-      if (previousProject && previousProject !== projectPath) {
-        setLeftTabs([]);
-        setRightTabs([]);
-        setLeftActivePath(null);
-        setRightActivePath(null);
-        setDocuments({});
-        setIsSplit(false);
-        setActiveSide('left');
-      }
 
       if (!settings.lastOpenFiles) return;
 
@@ -699,133 +743,64 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         isSplit: savedSplit,
         activeSide: savedSide,
       } = settings.lastOpenFiles;
+
       if (savedSplit !== undefined) setIsSplit(savedSplit);
       if (savedSide !== undefined) setActiveSide(savedSide);
 
-      const restoreFiles = async (
-        files: {
-          path: string;
-          name: string;
-          viewType?: DocumentViewType;
-          documentType?: NovelaidDocumentType;
-        }[],
-      ) => {
-        const results = await Promise.all(
-          files.map(async (t) => {
-            try {
-              const absolutePath = getAbsolutePath(t.path);
-              const data = await window.electron.ipcRenderer.invoke(
-                'fs:readDocument',
-                absolutePath,
-              );
-              return {
-                path: t.path,
-                name: t.name,
-                data,
-                viewType: t.viewType,
-                documentType: t.documentType,
-              };
-            } catch (e) {
-              console.error(`Failed to restore ${t.path}`, e);
-              return null;
-            }
-          }),
-        );
-        return results.filter(
-          (
-            r,
-          ): r is {
-            path: string;
-            name: string;
-            data: any;
-            viewType: DocumentViewType | undefined;
-            documentType: NovelaidDocumentType | undefined;
-          } => r !== null,
-        );
-      };
+      // 古い形式からの復元ロジック
+      const allPaths = new Set<string>();
+      if (left) left.forEach((f: any) => allPaths.add(f.path));
+      if (right) right.forEach((f: any) => allPaths.add(f.path));
 
-      const [leftRaw, rightRaw] = await Promise.all([
-        restoreFiles(left),
-        restoreFiles(right),
-      ]);
-      const contentsUpdate: any = {};
-      leftRaw.forEach((r) => {
-        if (r) contentsUpdate[getAbsolutePath(r.path)] = { ...r.data, lastSource: 'external' };
-      });
-      rightRaw.forEach((r) => {
-        if (r) contentsUpdate[getAbsolutePath(r.path)] = { ...r.data, lastSource: 'external' };
-      });
-
-      setDocuments((prev) => ({ ...prev, ...contentsUpdate }));
-
-      const leftFiltered = leftRaw.filter(Boolean) as NonNullable<typeof leftRaw[number]>[];
-      if (leftFiltered.length > 0) {
-        setLeftTabs(
-          leftFiltered.map((r) => ({
-            name: r.name,
-            path: r.path,
-            isDirty: false,
-            viewType:
-              r.viewType ||
-              getFallbackViewTypeForRestore(
-                r.data?.documentType || r.documentType,
-              ),
-            documentType: r.data?.documentType || r.documentType,
-          })),
-        );
-        if (leftActive) setLeftActivePath(leftActive);
+      for (const path of allPaths) {
+        const lFile = left?.find((f: any) => f.path === path) as any;
+        const rFile = right?.find((f: any) => f.path === path) as any;
+        await openDocument(path, {
+          side: lFile ? 'left' : 'right',
+          requestedViewType: (lFile?.viewType || rFile?.viewType) as DocumentViewType,
+          title: lFile?.name || rFile?.name,
+        });
       }
 
-      const rightFiltered = rightRaw.filter(Boolean) as NonNullable<typeof rightRaw[number]>[];
-      if (rightFiltered.length > 0) {
-        setRightTabs(
-          rightFiltered.map((r) => ({
-            name: r.name,
-            path: r.path,
-            isDirty: false,
-            viewType:
-              r.viewType ||
-              getFallbackViewTypeForRestore(
-                r.data?.documentType || r.documentType,
-              ),
-            documentType: r.data?.documentType || r.documentType,
-          })),
-        );
-        if (rightActive) setRightActivePath(rightActive);
+      if (leftActive) {
+        setActiveLeftItem({
+          path: typeof leftActive === 'string' ? leftActive : (leftActive as any).path,
+          isPreview: typeof leftActive === 'string' ? leftActive.startsWith('preview://') : (leftActive as any).isPreview
+        });
       }
-    };
-
-    const getFallbackViewTypeForRestore = (
-      docType?: string,
-    ): DocumentViewType => {
-      if (docType === 'chat') return 'canvas';
-      if (docType === 'image') return 'reader';
-      return 'editor';
+      if (rightActive) {
+        setActiveRightItem({
+          path: typeof rightActive === 'string' ? rightActive : (rightActive as any).path,
+          isPreview: typeof rightActive === 'string' ? rightActive.startsWith('preview://') : (rightActive as any).isPreview
+        });
+      }
     };
 
     restore();
-  }, [projectPath, settings.lastOpenFiles]);
+  }, [projectPath, settings.lastOpenFiles, openDocument]);
 
   useEffect(() => {
     if (!projectPath || restoredRef.current !== projectPath) return;
+
     const lastOpenFiles = {
       left: leftTabs.map((t) => ({
         path: t.path,
         name: t.name,
-        viewType: t.viewType,
+        viewType: (t as any).viewType,
         documentType: t.documentType,
       })),
       right: rightTabs.map((t) => ({
         path: t.path,
         name: t.name,
-        viewType: t.viewType,
+        viewType: (t as any).viewType,
         documentType: t.documentType,
       })),
-      leftActive: leftActivePath,
-      rightActive: rightActivePath,
+      leftActive: activeLeftItem?.path || null,
+      rightActive: activeRightItem?.path || null,
       activeSide,
       isSplit,
     };
+
     if (
       JSON.stringify(lastOpenFiles) !== JSON.stringify(settings.lastOpenFiles)
     ) {
@@ -834,8 +809,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [
     leftTabs,
     rightTabs,
-    leftActivePath,
-    rightActivePath,
+    activeLeftItem,
+    activeRightItem,
     activeSide,
     isSplit,
     projectPath,
@@ -843,50 +818,48 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     settings.lastOpenFiles,
   ]);
 
+  const getFileTitle = useCallback(async (path: string) => {
+    if (!path) return '';
+    const parsed = await window.electron.path.parse(path);
+    return parsed.name;
+  }, []);
+
   // FS Watcher
   useEffect(() => {
     const cleanup = window.electron.fs.onFileChange(async ({ event, path }) => {
-      const { left: currentLeftTabs, right: currentRightTabs } =
-        tabsRef.current;
+      const currentDocs = openDocumentsRef.current;
+      const normalizedPath = toDocumentPath(path);
+
       if (event === 'change') {
-        const targetTab = [...currentLeftTabs, ...currentRightTabs].find(
-          (t) => t.path === path,
-        );
-        if (targetTab) {
-          if (savingPaths.current.has(path)) return;
-          if (targetTab.isDirty) {
+        const targetDoc = currentDocs.find((d) => d.path === normalizedPath);
+        if (targetDoc) {
+          if (savingPaths.current.has(normalizedPath)) return;
+          if (targetDoc.isDirty) {
             const confirmed = await window.electron.ipcRenderer.invoke(
               'dialog:confirm',
-              `${targetTab.name} は外部で変更されました。破棄して再読み込みしますか？`,
+              `${targetDoc.name} は外部で変更されました。破棄して再読み込みしますか？`,
             );
             if (!confirmed) return;
           }
           try {
-            const absolutePath = getAbsolutePath(path);
             const data = await window.electron.ipcRenderer.invoke(
               'fs:readDocument',
-              absolutePath,
+              normalizedPath,
             );
-            setDocuments((prev) => ({ ...prev, [absolutePath]: data }));
-            const updateClean = (tabs: Tab[]) =>
-              tabs.map((tab) =>
-                tab.path === path ? { ...tab, isDirty: false } : tab,
-              );
-            setLeftTabs(updateClean);
-            setRightTabs(updateClean);
+            setOpenDocuments((prev) =>
+              prev.map((d) =>
+                d.path === normalizedPath
+                  ? { ...d, content: data.content, metadata: data.metadata, isDirty: false }
+                  : d,
+              ),
+            );
           } catch (err) {
             console.error('Failed to reload file', err);
           }
         }
       } else if (event === 'unlink') {
-        clearTimer(path);
-        setLeftTabs((prev) => prev.filter((t) => t.path !== path));
-        setRightTabs((prev) => prev.filter((t) => t.path !== path));
-        setDocuments((prev) => {
-          const next = { ...prev };
-          delete next[path];
-          return next;
-        });
+        clearTimer(normalizedPath);
+        setOpenDocuments((prev) => prev.filter((d) => d.path !== normalizedPath));
       }
     });
     return () => cleanup();
@@ -895,28 +868,36 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!isSplit) return;
     if (leftTabs.length === 0 && rightTabs.length > 0) {
-      setLeftTabs(rightTabs);
-      setLeftActivePath(rightActivePath);
-      setRightTabs([]);
-      setRightActivePath(null);
+      // 全て右にある場合は左に寄せる（簡易的な不整合回避）
+      setOpenDocuments((prev) =>
+        prev.map((d) => ({
+          ...d,
+          leftMainView: d.rightMainView,
+          leftPreviewView: d.rightPreviewView,
+          rightMainView: 'none',
+          rightPreviewView: 'none',
+        })),
+      );
+      setActiveLeftItem(activeRightItem);
+      setActiveRightItem(null);
       setIsSplit(false);
       setActiveSide('left');
     } else if (rightTabs.length === 0) {
       setIsSplit(false);
       setActiveSide('left');
     }
-  }, [isSplit, leftTabs, rightTabs, rightActivePath]);
+  }, [isSplit, leftTabs.length, rightTabs.length, activeRightItem]);
 
-  const contextValue = React.useMemo(
+  const contextValue = useMemo(
     () => ({
-      documents,
-      leftTabs,
-      rightTabs,
-      leftActivePath,
-      rightActivePath,
+      openDocuments,
+      activeLeftItem,
+      activeRightItem,
       activeSide,
       isSplit,
-      activeTabPath,
+      activeTabItem,
+      leftTabs,
+      rightTabs,
       openDocument,
       openPanelDocument,
       closeTab,
@@ -936,14 +917,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       getAbsolutePath,
     }),
     [
-      documents,
-      leftTabs,
-      rightTabs,
-      leftActivePath,
-      rightActivePath,
+      openDocuments,
+      activeLeftItem,
+      activeRightItem,
       activeSide,
       isSplit,
-      activeTabPath,
+      activeTabItem,
+      leftTabs,
+      rightTabs,
       openDocument,
       openPanelDocument,
       closeTab,
