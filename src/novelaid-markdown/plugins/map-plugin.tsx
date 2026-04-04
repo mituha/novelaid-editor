@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import Map, { Marker } from 'react-map-gl/maplibre';
-import { MapPin } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import yaml from 'js-yaml';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MarkdownPlugin } from '../types';
@@ -15,6 +15,25 @@ interface MapMarker {
   link?: string;
   description?: string;
 }
+
+/**
+ * 文字列から Lucide アイコンを取得するヘルパー
+ */
+const getIcon = (type?: string) => {
+  if (!type || type === 'default') return Icons.MapPin;
+
+  // kebab-case, snake_case を PascalCase に変換する (map-pin -> MapPin)
+  const name = type
+    .split(/[-_ ]+/)
+    .map(
+      (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+    )
+    .join('');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const IconComponent = (Icons as any)[name];
+  return IconComponent || Icons.MapPin;
+};
 
 /**
  * 地図を表示するコンポーネント
@@ -157,25 +176,28 @@ const MapComponent: React.FC<{ value: string }> = ({ value }) => {
         style={{ width: '100%', height: '100%' }}
         mapStyle={mapStyle as any}
       >
-        {markers.map((marker, index) => (
-          <Marker
-            key={`marker-${index}-${marker.lat}-${marker.long}`}
-            longitude={marker.long}
-            latitude={marker.lat}
-            anchor="bottom"
-          >
-            <div
-              style={{
-                cursor: 'pointer',
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-                zIndex: 10,
-              }}
-              title={marker.description || marker.type}
+        {markers.map((marker, index) => {
+          const Icon = getIcon(marker.type);
+          return (
+            <Marker
+              key={`marker-${index}-${marker.lat}-${marker.long}`}
+              longitude={marker.long}
+              latitude={marker.lat}
+              anchor="bottom"
             >
-              <MapPin size={24} color="#e91e63" fill="#ffffff" />
-            </div>
-          </Marker>
-        ))}
+              <div
+                style={{
+                  cursor: 'pointer',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+                  zIndex: 10,
+                }}
+                title={marker.description || marker.type}
+              >
+                <Icon size={24} color="#e91e63" fill="#ffffff" />
+              </div>
+            </Marker>
+          );
+        })}
       </Map>
     </div>
   );
