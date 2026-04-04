@@ -245,7 +245,6 @@ export const mapPlugin: MarkdownPlugin = {
   name: 'map',
   codeProcessors: [
     { language: 'carto-paw', component: MapComponent },
-    { language: 'carto-pow', component: MapComponent },
     { language: 'map', component: MapComponent },
     { language: 'leaflet', component: MapComponent },
   ],
