@@ -726,11 +726,29 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   }, []);
 
+  // プロジェクトが閉じられた際、または切り替わった際に状態をリセットする
+  useEffect(() => {
+    if (!projectPath) {
+      setOpenDocuments([]);
+      setActiveLeftItem(null);
+      setActiveRightItem(null);
+      setIsSplit(false);
+      setActiveSide('left');
+      restoredRef.current = null;
+    }
+  }, [projectPath]);
+
   // Sync / Restore / Persist
   useEffect(() => {
     if (!projectPath || restoredRef.current === projectPath) return;
 
     const restore = async () => {
+      // 復元前に状態をクリア（プロジェクト切り替え時など）
+      setOpenDocuments([]);
+      setActiveLeftItem(null);
+      setActiveRightItem(null);
+      setIsSplit(false);
+
       restoredRef.current = projectPath;
 
       if (!settings.lastOpenFiles) return;
@@ -780,6 +798,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [projectPath, settings.lastOpenFiles, openDocument]);
 
   useEffect(() => {
+    // プロジェクトパスがない、または復元が完了していない場合は保存しない
     if (!projectPath || restoredRef.current !== projectPath) return;
 
     const lastOpenFiles = {

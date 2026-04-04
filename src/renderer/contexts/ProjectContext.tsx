@@ -74,6 +74,7 @@ interface ProjectContextType {
   projectConfig: ProjectConfig;
   loadProject: (path: string) => Promise<void>;
   updateProjectConfig: (newConfig: Partial<ProjectConfig>) => Promise<void>;
+  closeProject: () => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -139,9 +140,17 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     initVersion();
   }, [updateTitle, projectName]);
+  const closeProject = useCallback(() => {
+    setProjectPath(null);
+    setProjectName(null);
+    setProjectConfig(DEFAULT_PROJECT_CONFIG);
+    updateTitle(null, appVersion);
+  }, [updateTitle, appVersion]);
 
   const loadProject = useCallback(async (path: string) => {
     try {
+      // 新しいプロジェクトをロードする前に現在の状態をクリア
+      closeProject();
       const result = await window.electron.ipcRenderer.invoke('project:load', path);
       if (result) {
         // バックエンドの FileService にもプロジェクトディレクトリを設定
@@ -182,8 +191,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       projectConfig,
       loadProject,
       updateProjectConfig,
+      closeProject,
     }),
-    [projectPath, projectName, projectConfig, loadProject, updateProjectConfig]
+    [projectPath, projectName, projectConfig, loadProject, updateProjectConfig, closeProject]
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
