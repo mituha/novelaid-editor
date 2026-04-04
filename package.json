@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.46.0",
+  "version": "0.47.0",
   "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
@@ -114,12 +114,14 @@
     "js-yaml": "^4.1.1",
     "kuromoji": "^0.1.2",
     "lucide-react": "^0.577.0",
+    "maplibre-gl": "^5.22.0",
     "mermaid": "^11.14.0",
     "monaco-editor": "^0.55.1",
     "monaco-editor-nls": "^3.1.0",
     "monaco-editor-webpack-plugin": "^7.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-map-gl": "^8.1.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.3.0",
     "rehype-raw": "^7.0.0",

@@ -1,6 +1,7 @@
 import { MarkdownProcessorRegistry } from './registry';
 import { novelSyntaxPlugin } from './plugins/novel-syntax';
 import { mermaidPlugin } from './plugins/mermaid-plugin';
+import { mapPlugin } from './plugins/map-plugin';
 import { MarkdownCodeProcessor } from './types';
 
 /**
@@ -14,6 +15,7 @@ export class NovelaidMarkdownProcessor {
     // デフォルトプラグインの登録
     this.registry.register(novelSyntaxPlugin);
     this.registry.register(mermaidPlugin);
+    this.registry.register(mapPlugin);
   }
 
   /**
