@@ -19,7 +19,7 @@ interface TabBarProps {
   tabs: Tab[];
   activeTabPath: string | null;
   onTabClick: (path: string) => void;
-  onTabClose: (path: string) => void;
+  onTabClose: (tab: Tab) => void;
   onToggleSplit?: () => void;
   onOpenPreview?: (path: string) => void;
   onChangeViewType?: (path: string, viewType: DocumentViewType) => void;
@@ -62,9 +62,9 @@ export function TabBar({
     }
   };
 
-  const handleClose = (e: MouseEvent, path: string) => {
+  const handleClose = (e: MouseEvent, tab: Tab) => {
     e.stopPropagation();
-    onTabClose(path);
+    onTabClose(tab);
   };
 
   const handleKeyDown = (path: string) => (e: React.KeyboardEvent) => {
@@ -153,7 +153,7 @@ export function TabBar({
                     type="button"
                     className="tab-close-btn dropdown-close-btn"
                     onClick={(e) => {
-                      handleClose(e, tab.path);
+                    handleClose(e, tab);
                       if (tabs.length <= 1) setIsDropdownOpen(false);
                     }}
                   >
@@ -184,7 +184,7 @@ export function TabBar({
             <button
               type="button"
               className="tab-close-btn"
-              onClick={(e) => handleClose(e, tab.path)}
+              onClick={(e) => handleClose(e, tab)}
               aria-label="Close tab"
             >
               <X size={14} />

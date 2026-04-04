@@ -71,7 +71,12 @@ interface DocumentContextType {
     path: string,
     initialData?: { content: string; metadata: Record<string, any> },
   ) => Promise<void>;
-  closeTab: (path: string, side?: 'left' | 'right', reason?: string) => void;
+  closeTab: (
+    path: string,
+    side?: 'left' | 'right',
+    viewType?: DocumentViewType,
+    reason?: string,
+  ) => void;
   switchTab: (side: 'left' | 'right', path: string) => void;
   setActiveSide: (side: 'left' | 'right') => void;
   toggleSplit: () => void;
@@ -197,8 +202,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const closeTab = useCallback(
-    (path: string, side?: 'left' | 'right', reason?: string) => {
-      const normalizedPath = toDocumentPath(path);
+    (
+      path: string,
+      side?: 'left' | 'right',
+      viewType?: DocumentViewType,
+      reason?: string,
+    ) => {
+      const docPath = getFilePath(path);
+      const normalizedPath = toDocumentPath(docPath);
       clearTimer(normalizedPath);
 
       setOpenDocuments((prev) => {
@@ -212,14 +223,26 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           newDoc.deleted = true;
         }
 
+        const isPreviewClosing = viewType === 'preview';
+
         // 指定されたサイド（または両方）の表示を消す
         if (!side || side === 'left') {
-          newDoc.leftMainView = 'none';
-          newDoc.leftPreviewView = 'none';
+          if (isPreviewClosing) {
+            newDoc.leftPreviewView = 'none';
+          } else {
+            newDoc.leftMainView = 'none';
+            // 連動終了: エディターを閉じたら反対側のプレビューも閉じる
+            newDoc.rightPreviewView = 'none';
+          }
         }
         if (!side || side === 'right') {
-          newDoc.rightMainView = 'none';
-          newDoc.rightPreviewView = 'none';
+          if (isPreviewClosing) {
+            newDoc.rightPreviewView = 'none';
+          } else {
+            newDoc.rightMainView = 'none';
+            // 連動終了: エディターを閉じたら反対側のプレビューも閉じる
+            newDoc.leftPreviewView = 'none';
+          }
         }
 
         // 全ての表示が 'none' で、かつパネルでも開かれていないなら削除
@@ -229,9 +252,6 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           newDoc.leftPreviewView !== 'none' ||
           newDoc.rightPreviewView !== 'none' ||
           newDoc.openPanelIds.length > 0;
-
-        // アクティブアイテムの更新（副作用的に行うのは難しいため、ここで判定して後でセットする）
-        // 実際には setOpenDocuments の外でやるのが理想だが、まずはリストの更新を優先
 
         if (!isActiveInAnyView) {
           return prev.filter((_, i) => i !== docIndex);
@@ -243,25 +263,58 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       // アクティブアイテムの調整
-      const adjustActiveItem = (targetSide: 'left' | 'right') => {
-        const setActiveItem = targetSide === 'left' ? setActiveLeftItem : setActiveRightItem;
+      const adjustActiveItem = (
+        targetSide: 'left' | 'right',
+        closedViewType: DocumentViewType,
+      ) => {
+        const setActiveItem =
+          targetSide === 'left' ? setActiveLeftItem : setActiveRightItem;
         const currentTabs = targetSide === 'left' ? leftTabs : rightTabs;
-        const activeItem = targetSide === 'left' ? activeLeftItem : activeRightItem;
+        const activeItem =
+          targetSide === 'left' ? activeLeftItem : activeRightItem;
 
-        if (activeItem?.path === normalizedPath) {
-          const remainingTabs = currentTabs.filter(t => t.path !== normalizedPath);
+        if (!activeItem) return;
+
+        // 閉じられたビューが現在のアクティブ項目と一致するか判定
+        const isClosedActive =
+          activeItem.path === normalizedPath &&
+          (closedViewType === 'preview'
+            ? activeItem.isPreview
+            : !activeItem.isPreview);
+
+        if (isClosedActive) {
+          const closedTabPath =
+            closedViewType === 'preview'
+              ? `preview://${normalizedPath}`
+              : normalizedPath;
+          const remainingTabs = currentTabs.filter((t) => t.path !== closedTabPath);
+
           if (remainingTabs.length > 0) {
-            const closedTabIndex = currentTabs.findIndex(t => t.path === normalizedPath);
+            const closedTabIndex = currentTabs.findIndex(
+              (t) => t.path === closedTabPath,
+            );
             const nextIndex = Math.min(closedTabIndex, remainingTabs.length - 1);
-            setActiveItem({ path: remainingTabs[nextIndex].path, isPreview: (remainingTabs[nextIndex] as any).viewType === 'preview' });
+            const nextTab = remainingTabs[nextIndex];
+            setActiveItem({
+              path: getFilePath(nextTab.path),
+              isPreview: nextTab.path.startsWith('preview://'),
+            });
           } else {
             setActiveItem(null);
           }
         }
       };
 
-      if (!side || side === 'left') adjustActiveItem('left');
-      if (!side || side === 'right') adjustActiveItem('right');
+      if (!side || side === 'left') {
+        adjustActiveItem('left', viewType || 'editor');
+        // メインビューを閉じた場合、右側のプレビューも閉じられた可能性があるため調整
+        if (viewType !== 'preview') adjustActiveItem('right', 'preview');
+      }
+      if (!side || side === 'right') {
+        adjustActiveItem('right', viewType || 'editor');
+        // メインビューを閉じた場合、左側のプレビューも閉じられた可能性があるため調整
+        if (viewType !== 'preview') adjustActiveItem('left', 'preview');
+      }
     },
     [clearTimer, activeLeftItem, activeRightItem, leftTabs, rightTabs],
   );

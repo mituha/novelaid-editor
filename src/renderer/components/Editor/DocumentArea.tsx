@@ -12,6 +12,7 @@ import { NovelaidDocumentType } from '../../../novelaid-fs';
 
 import { useDocument } from '../../contexts/DocumentContext';
 import { isViewTypeSupported } from '../../../common/documentSupport';
+import { getFilePath } from '../../../common/utils/pathUtils';
 
 const getCodeEditorLanguage = (docType?: NovelaidDocumentType): string => {
   if (!docType) return 'novel';
@@ -243,7 +244,10 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
         tabs={tabs}
         activeTabPath={activeTabPath}
         onTabClick={(p) => switchTab(side, p)}
-        onTabClose={(p) => closeTab(p, side)}
+        onTabClose={(tab) => {
+          const docPath = getFilePath(tab.path);
+          closeTab(docPath, side, tab.viewType);
+        }}
         onToggleSplit={toggleSplit}
         isSplit={isSplit}
         onOpenPreview={openPreview}
