@@ -4,6 +4,7 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useEffect,
   ReactNode,
 } from 'react';
 import { setProjectDirectory } from '../../novelaid-fs';
@@ -164,25 +165,34 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
         } else {
           setProjectConfig(DEFAULT_PROJECT_CONFIG);
         }
+
+        if (result.warning) {
+          await window.electron.ipcRenderer.invoke('dialog:alert', result.warning);
+        }
       }
     } catch (error) {
       console.error('Failed to load project:', error);
     }
-  }, [updateTitle, appVersion]);
+  }, [updateTitle, appVersion, closeProject]);
 
-  const updateProjectConfig = useCallback(async (newConfig: Partial<ProjectConfig>) => {
+  useEffect(() => {
+    // プロジェクトパスがない場合は保存しない
     if (!projectPath) return;
 
-    setProjectConfig((prev) => {
-      const updated = { ...prev, ...newConfig };
-      window.electron.ipcRenderer
-        .invoke('project:save-config', projectPath, updated)
-        .catch((err) => {
-          console.error('Failed to save project config:', err);
-        });
-      return updated;
-    });
-  }, [projectPath]);
+    const save = async () => {
+      try {
+        await window.electron.ipcRenderer.invoke('project:save-config', projectPath, projectConfig);
+      } catch (err) {
+        console.error('Failed to auto-save project config:', err);
+      }
+    };
+    
+    save();
+  }, [projectConfig, projectPath]);
+
+  const updateProjectConfig = useCallback(async (newConfig: Partial<ProjectConfig>) => {
+    setProjectConfig((prev) => ({ ...prev, ...newConfig }));
+  }, []);
 
   const value = useMemo(
     () => ({

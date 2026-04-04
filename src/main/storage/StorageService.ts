@@ -34,7 +34,7 @@ export class StorageService {
   /**
    * グローバルな設定ファイルを読み込む
    */
-  public async loadGlobal<T>(name: string): Promise<T | null> {
+  public async loadGlobal<T>(name: string): Promise<{ data: T | null; isCorrupted: boolean }> {
     const filePath = path.join(this.getGlobalDir(), `${name}.json`);
     return this.readJson<T>(filePath);
   }
@@ -51,7 +51,7 @@ export class StorageService {
   /**
    * ローカル（プロジェクト内）の設定ファイルを読み込む
    */
-  public async loadLocal<T>(projectPath: string, name: string): Promise<T | null> {
+  public async loadLocal<T>(projectPath: string, name: string): Promise<{ data: T | null; isCorrupted: boolean }> {
     const filePath = path.join(this.getLocalDir(projectPath), `${name}.json`);
     return this.readJson<T>(filePath);
   }
@@ -68,13 +68,17 @@ export class StorageService {
     await this.writeJson(filePath, data);
   }
 
-  private async readJson<T>(filePath: string): Promise<T | null> {
+  private async readJson<T>(filePath: string): Promise<{ data: T | null; isCorrupted: boolean }> {
     try {
       const data = await fs.readFile(filePath, 'utf-8');
-      return JSON.parse(data);
+      return { data: JSON.parse(data), isCorrupted: false };
     } catch (error) {
       if ((error as any).code === 'ENOENT') {
-        return null;
+        return { data: null, isCorrupted: false };
+      }
+      if (error instanceof SyntaxError) {
+        console.error(`Syntax error in JSON file ${filePath}:`, error);
+        return { data: null, isCorrupted: true };
       }
       console.error(`Failed to read JSON from ${filePath}:`, error);
       throw error;

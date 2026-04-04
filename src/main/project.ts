@@ -48,6 +48,7 @@ export interface PluginManifest {
 export interface LoadedProject {
   config: ProjectConfig;
   plugins: PluginManifest[];
+  warning?: string;
 }
 
 const NOVELAID_DIR = '.novelaid';
@@ -73,12 +74,13 @@ export async function loadProject(
   }
 
   const storage = StorageService.getInstance();
-  const config = (await storage.loadLocal<ProjectConfig>(projectPath, CONFIG_FILE)) || {};
+  const { data: config, isCorrupted } = await storage.loadLocal<ProjectConfig>(projectPath, CONFIG_FILE);
   const plugins = await loadPlugins(novelaidPath);
 
   return {
-    config,
+    config: config || {},
     plugins,
+    warning: isCorrupted ? 'プロジェクト設定ファイルが破損しているため、デフォルト設定でロードしました。' : undefined,
   };
 }
 

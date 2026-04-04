@@ -6,6 +6,7 @@ export type Channels =
   | 'ipc-example'
   | 'dialog:openDirectory'
   | 'dialog:confirm'
+  | 'dialog:alert'
   | 'fs:readDirectory'
   | 'fs:getDirectoryType'
   | 'fs:getDocumentType'
@@ -36,12 +37,15 @@ export type Channels =
   | 'app:close-file'
   | 'app:restore-project'
   | 'storage:load-global'
+  | 'storage:load-global-data'
   | 'storage:save-global'
   | 'storage:load-local'
+  | 'storage:load-local-data'
   | 'storage:save-local'
   | 'recent:get'
   | 'recent:add'
   | 'recent:remove'
+  | 'project:load'
   | 'project:save-config';
 
 const electronHandler = {

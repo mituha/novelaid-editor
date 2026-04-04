@@ -124,6 +124,17 @@ ipcMain.handle('dialog:confirm', async (_, message: string) => {
   return response === 0;
 });
 
+ipcMain.handle('dialog:alert', async (_, message: string, title: string = '通知') => {
+  if (!mainWindow) return;
+  await dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    buttons: ['OK'],
+    defaultId: 0,
+    title,
+    message,
+  });
+});
+
 ipcMain.handle(
   'fs:readDirectory',
   async (_, dirPath: string, recursive: boolean = false, parentType?: NovelaidDocumentType) => {
@@ -425,12 +436,22 @@ ipcMain.handle('storage:load-global', async (_, name: string) => {
   return await StorageService.getInstance().loadGlobal(name);
 });
 
+ipcMain.handle('storage:load-global-data', async (_, name: string) => {
+  const { data } = await StorageService.getInstance().loadGlobal(name);
+  return data;
+});
+
 ipcMain.handle('storage:save-global', async (_, name: string, data: any) => {
   return await StorageService.getInstance().saveGlobal(name, data);
 });
 
 ipcMain.handle('storage:load-local', async (_, projectPath: string, name: string) => {
   return await StorageService.getInstance().loadLocal(projectPath, name);
+});
+
+ipcMain.handle('storage:load-local-data', async (_, projectPath: string, name: string) => {
+  const { data } = await StorageService.getInstance().loadLocal(projectPath, name);
+  return data;
 });
 
 ipcMain.handle('storage:save-local', async (_, projectPath: string, name: string, data: any) => {
@@ -672,7 +693,7 @@ const createWindow = async () => {
   });
 
   // Restore last project
-  const sessionData = await StorageService.getInstance().loadGlobal<AppSession>(SESSION_FILE);
+  const { data: sessionData } = await StorageService.getInstance().loadGlobal<AppSession>(SESSION_FILE);
   if (sessionData?.lastProjectPath) {
     try {
       await fs.access(sessionData.lastProjectPath);
