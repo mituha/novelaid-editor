@@ -468,7 +468,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       let targetSide = options?.side || activeSide;
       const requestedIsPreview = options?.requestedViewType === 'preview';
 
-      if (requestedIsPreview) {
+      if (requestedIsPreview && !options?.side) {
         targetSide = 'left'; // preview展開時は元エディターを必ずleftに配置
       }
       //ブラウザは投稿用想定であり、右側にひらく
@@ -554,7 +554,16 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         const index = prev.findIndex((d) => d.path === docToUpdate.path);
         if (index >= 0) {
           const newList = [...prev];
-          newList[index] = docToUpdate;
+          const existing = newList[index];
+          // 明示的に指定されたViewType以外は既存の状態を保持する
+          newList[index] = {
+            ...docToUpdate,
+            leftMainView: docToUpdate.leftMainView !== 'none' ? docToUpdate.leftMainView : existing.leftMainView,
+            rightMainView: docToUpdate.rightMainView !== 'none' ? docToUpdate.rightMainView : existing.rightMainView,
+            leftPreviewView: docToUpdate.leftPreviewView !== 'none' ? docToUpdate.leftPreviewView : existing.leftPreviewView,
+            rightPreviewView: docToUpdate.rightPreviewView !== 'none' ? docToUpdate.rightPreviewView : existing.rightPreviewView,
+            openPanelIds: docToUpdate.openPanelIds.length > 0 ? docToUpdate.openPanelIds : existing.openPanelIds,
+          };
           return newList;
         }
         return [...prev, docToUpdate];
@@ -799,8 +808,6 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       setActiveRightItem(null);
       setIsSplit(false);
 
-      restoredRef.current = projectPath;
-
       if (!settings.lastOpenFiles || !settings.lastOpenFiles.documents) return;
 
       const {
@@ -867,6 +874,9 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         setActiveRightItem({ ...rightActive, path: absPath });
       }
+
+      // 最後に復元フラグを立てて保存を許可する
+      restoredRef.current = projectPath;
     };
 
     restore();
