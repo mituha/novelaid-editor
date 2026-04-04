@@ -190,15 +190,15 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     // プロジェクトパスがない場合は保存しない
     if (!projectPath) return;
 
-    const save = async () => {
+    const timer = setTimeout(async () => {
       try {
         await window.electron.ipcRenderer.invoke('project:save-config', projectPath, projectConfig);
       } catch (err) {
         console.error('Failed to auto-save project config:', err);
       }
-    };
-    
-    save();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [projectConfig, projectPath]);
 
   const updateProjectConfig = useCallback(async (newConfig: Partial<ProjectConfig>) => {

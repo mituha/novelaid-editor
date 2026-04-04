@@ -85,13 +85,27 @@ export class StorageService {
     }
   }
 
+  private writeQueues: Map<string, Promise<void>> = new Map();
+
   private async writeJson<T>(filePath: string, data: T): Promise<void> {
-    try {
-      const json = JSON.stringify(data, null, 2);
-      await fs.writeFile(filePath, json, 'utf-8');
-    } catch (error) {
-      console.error(`Failed to write JSON to ${filePath}:`, error);
-      throw error;
-    }
+    // 同一ファイルへの書き込みをシリアル化するためのキュー
+    const currentQueue = this.writeQueues.get(filePath) || Promise.resolve();
+
+    const nextWrite = currentQueue.then(async () => {
+      try {
+        const json = JSON.stringify(data, null, 2);
+        await fs.writeFile(filePath, json, 'utf-8');
+      } catch (error) {
+        console.error(`Failed to write JSON to ${filePath}:`, error);
+        throw error;
+      }
+    });
+
+    // 次の書き込みのためにプロミスを登録
+    this.writeQueues.set(filePath, nextWrite);
+
+    // 書き込みが終わったらキューから削除するか、後続があるか確認
+    // （今回は単純化のため、終わったあとも Map に残るが、Promise自体は解決済みになる）
+    return nextWrite;
   }
 }

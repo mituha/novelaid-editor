@@ -854,10 +854,18 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (leftActive) {
-        setActiveLeftItem(leftActive);
+        let absPath = leftActive.path;
+        if (!absPath.includes('://') && projectPath) {
+          absPath = await window.electron.path.join(projectPath, absPath);
+        }
+        setActiveLeftItem({ ...leftActive, path: absPath });
       }
       if (rightActive) {
-        setActiveRightItem(rightActive);
+        let absPath = rightActive.path;
+        if (!absPath.includes('://') && projectPath) {
+          absPath = await window.electron.path.join(projectPath, absPath);
+        }
+        setActiveRightItem({ ...rightActive, path: absPath });
       }
     };
 
@@ -868,46 +876,55 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     // プロジェクトパスがない、または復元が完了していない場合は保存しない
     if (!projectPath || restoredRef.current !== projectPath) return;
 
-    const persist = async () => {
-      const documentsPromises = openDocuments.map(async (doc) => {
-        let relPath = doc.path;
-        if (!relPath.includes('://') && projectPath) {
-          relPath = await window.electron.path.relative(projectPath, doc.path);
-        }
-        return {
-          path: relPath,
-          leftMainView: doc.leftMainView,
-          rightMainView: doc.rightMainView,
-          leftPreviewView: doc.leftPreviewView,
-          rightPreviewView: doc.rightPreviewView,
+      const persist = async () => {
+        const documentsPromises = openDocuments.map(async (doc) => {
+          let relPath = doc.path;
+          if (!relPath.includes('://') && projectPath) {
+            relPath = await window.electron.path.relative(projectPath, doc.path);
+          }
+          return {
+            path: relPath,
+            leftMainView: doc.leftMainView,
+            rightMainView: doc.rightMainView,
+            leftPreviewView: doc.leftPreviewView,
+            rightPreviewView: doc.rightPreviewView,
+          };
+        });
+
+        const documents = await Promise.all(documentsPromises);
+
+        // アクティブ項目のパスも相対化
+        const getRelTabItem = async (item: TabItem | null) => {
+          if (!item || !projectPath || item.path.includes('://')) return item;
+          return {
+            ...item,
+            path: await window.electron.path.relative(projectPath, item.path),
+          };
         };
-      });
 
-      const documents = await Promise.all(documentsPromises);
+        const lastOpenFiles = {
+          documents: documents.filter(
+            (d) =>
+              d.leftMainView !== 'none' ||
+              d.rightMainView !== 'none' ||
+              d.leftPreviewView !== 'none' ||
+              d.rightPreviewView !== 'none'
+          ),
+          leftActive: await getRelTabItem(activeLeftItem),
+          rightActive: await getRelTabItem(activeRightItem),
+          activeSide,
+          isSplit,
+        };
 
-      const lastOpenFiles = {
-        documents: documents.filter(
-          (d) =>
-            d.leftMainView !== 'none' ||
-            d.rightMainView !== 'none' ||
-            d.leftPreviewView !== 'none' ||
-            d.rightPreviewView !== 'none'
-        ),
-        leftActive: activeLeftItem,
-        rightActive: activeRightItem,
-        activeSide,
-        isSplit,
+        if (
+          JSON.stringify(lastOpenFiles) !== JSON.stringify(settings.lastOpenFiles)
+        ) {
+          updateSettings({ lastOpenFiles });
+        }
       };
 
-      if (
-        JSON.stringify(lastOpenFiles) !== JSON.stringify(settings.lastOpenFiles)
-      ) {
-        updateSettings({ lastOpenFiles });
-      }
-    };
-
-    persist();
-  }, [
+      persist();
+    }, [
     leftTabs,
     rightTabs,
     activeLeftItem,
