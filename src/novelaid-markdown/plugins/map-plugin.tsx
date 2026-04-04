@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import Map, { Marker } from 'react-map-gl/maplibre';
-import * as yaml from 'js-yaml';
+import yaml from 'js-yaml';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MarkdownPlugin } from '../types';
 
@@ -21,10 +21,8 @@ interface MapMarker {
 const MapComponent: React.FC<{ value: string }> = ({ value }) => {
   const config = useMemo(() => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (yaml.load(value) as any) || {};
     } catch (e) {
-      console.error('YAML parse error:', e);
       return {};
     }
   }, [value]);
@@ -32,57 +30,85 @@ const MapComponent: React.FC<{ value: string }> = ({ value }) => {
   const lat = parseFloat(config.lat) || 0;
   const lng = parseFloat(config.long || config.lng) || 0;
   const zoom = parseFloat(config.defaultZoom || config.zoom) || 12;
-  const height = config.height || '400px';
-  const width = config.width || '100%';
+  const height =
+    typeof config.height === 'number'
+      ? `${config.height}px`
+      : config.height || '400px';
+  const width =
+    typeof config.width === 'number'
+      ? `${config.width}%`
+      : config.width || '100%';
 
   // マーカーの抽出
   const markers: MapMarker[] = useMemo(() => {
     const rawMarker = config.marker || config.markers || [];
-    const markerList = Array.isArray(rawMarker)
-      ? Array.isArray(rawMarker[0]) || typeof rawMarker[0] === 'object'
-        ? rawMarker
-        : [rawMarker]
-      : typeof rawMarker === 'string'
-      ? [rawMarker]
-      : [];
+    let rawList: any[] = [];
 
-    return markerList
-      .map((m: any) => {
+    if (Array.isArray(rawMarker)) {
+      if (rawMarker.length === 0) {
+        rawList = [];
+      } else if (
+        Array.isArray(rawMarker[0]) ||
+        (typeof rawMarker[0] === 'object' && rawMarker[0] !== null)
+      ) {
+        // マーカーのリスト [[...], [...]] または [{...}, {...}]
+        rawList = rawMarker;
+      } else if (typeof rawMarker[0] === 'string' && rawMarker[0].includes(',')) {
+        // "type, lat, long" などの文字列の配列（マーカーリスト）
+        rawList = rawMarker;
+      } else {
+        // [type, lat, long] などの単一マーカーを構成する配列とみなす
+        rawList = [rawMarker];
+      }
+    } else if (rawMarker) {
+      // 単一の文字列または単一のオブジェクト
+      rawList = [rawMarker];
+    }
+
+    const result = rawList
+      .map((m: any): MapMarker | null => {
         if (!m) return null;
-        // カンマ区切りの文字列形式: "type, lat, long, link, desc"
+        // 文字列形式: "type, lat, long, link, desc"
         if (typeof m === 'string') {
           const parts = m.split(',').map((s) => s.trim());
+          if (parts.length < 2) return null;
+          const hasType = isNaN(parseFloat(parts[0]));
           return {
-            type: parts[0],
-            lat: parseFloat(parts[1]) || 0,
-            long: parseFloat(parts[2]) || 0,
-            link: parts[3],
-            description: parts[4],
+            type: hasType ? parts[0] : 'default',
+            lat: parseFloat(hasType ? parts[1] : parts[0]) || 0,
+            long: parseFloat(hasType ? parts[2] : parts[1]) || 0,
+            link: hasType ? parts[3] : parts[2],
           };
         }
-        // 配列形式: [type, lat, long, link, desc]
+        // 配列形式
         if (Array.isArray(m)) {
+          if (m.length < 2) return null;
+          const hasType = isNaN(parseFloat(String(m[0])));
           return {
-            type: String(m[0]),
-            lat: parseFloat(m[1]) || 0,
-            long: parseFloat(m[2]) || 0,
-            link: m[3] ? String(m[3]) : undefined,
-            description: m[4] ? String(m[4]) : undefined,
+            type: hasType ? String(m[0]) : 'default',
+            lat: parseFloat(String(hasType ? m[1] : m[0])) || 0,
+            long: parseFloat(String(hasType ? m[2] : m[1])) || 0,
+            link: hasType ? String(m[3] || '') : String(m[2] || ''),
           };
         }
         // オブジェクト形式
         if (typeof m === 'object') {
+          const mLat = parseFloat(m.lat ?? m.latitude);
+          const mLng = parseFloat(m.long ?? m.lng ?? m.longitude);
+          if (isNaN(mLat) || isNaN(mLng)) return null;
           return {
-            type: m.type,
-            lat: parseFloat(m.lat) || 0,
-            long: parseFloat(m.long || m.lng) || 0,
-            link: m.link,
-            description: m.description,
+            type: m.type ? String(m.type) : 'default',
+            lat: mLat,
+            long: mLng,
+            link: m.link ? String(m.link) : undefined,
+            description: m.description ? String(m.description) : undefined,
           };
         }
         return null;
       })
       .filter((m): m is MapMarker => m !== null);
+
+    return result;
   }, [config]);
 
   // シンプルな OSM スタイル
@@ -107,7 +133,7 @@ const MapComponent: React.FC<{ value: string }> = ({ value }) => {
 
   return (
     <div
-      key={`${lat}-${lng}-${zoom}`}
+      key={`${lat}-${lng}-${zoom}-${height}-${width}`}
       className="novelaid-map-container"
       style={{
         height,
@@ -118,6 +144,7 @@ const MapComponent: React.FC<{ value: string }> = ({ value }) => {
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         border: '1px solid var(--border-color, #ccc)',
         position: 'relative',
+        backgroundColor: '#f0f0f0', // ロード中の背景色
       }}
     >
       <Map
@@ -131,17 +158,17 @@ const MapComponent: React.FC<{ value: string }> = ({ value }) => {
       >
         {markers.map((marker, index) => (
           <Marker
-            key={index}
+            key={`marker-${index}-${marker.lat}-${marker.long}`}
             longitude={marker.long}
             latitude={marker.lat}
             anchor="bottom"
           >
             <div
               style={{
-                color: '#e91e63',
-                cursor: 'pointer',
                 fontSize: '24px',
+                cursor: 'pointer',
                 filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+                zIndex: 10,
               }}
               title={marker.description || marker.type}
             >
