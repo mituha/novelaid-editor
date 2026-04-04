@@ -13,6 +13,7 @@ export interface MarkdownCodeProcessor {
   component: React.ComponentType<{
     value: string;
     language?: string;
+    attributes?: Record<string, any>;
   }>;
 }
 

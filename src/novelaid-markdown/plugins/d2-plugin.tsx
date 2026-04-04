@@ -85,12 +85,18 @@ const stringifyError = (err: any): string => {
 /**
  * D2 ダイアグラムをレンダリングするコンポーネント
  */
-const D2Component: React.FC<{ value: string }> = ({ value }) => {
+const D2Component: React.FC<{
+  value: string;
+  attributes?: Record<string, any>;
+}> = ({ value, attributes = {} }) => {
   const { theme } = useTheme();
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // 属性からサイズを取得
+  const { width, height, pad } = attributes;
 
   useEffect(() => {
     let isMounted = true;
@@ -125,6 +131,7 @@ const D2Component: React.FC<{ value: string }> = ({ value }) => {
               ...compileResult.renderOptions,
               themeID: themeId,
               noXMLTag: true,
+              pad: pad !== undefined ? parseInt(String(pad), 10) : 20,
             };
 
             // レンダリング実行
@@ -173,11 +180,18 @@ const D2Component: React.FC<{ value: string }> = ({ value }) => {
         margin: '1.5em 0',
         maxWidth: '100%',
         overflow: 'auto',
+        width: width || '100%',
+        height: height || 'auto',
         minHeight: loading ? '100px' : 'auto',
       }}
     >
       {/* 背景を透明にするためのスタイル注入 */}
       <style>{`
+        .d2-container svg {
+          max-width: 100%;
+          max-height: 100%;
+          height: auto;
+        }
         .d2-container svg rect.d2-background {
           fill: none !important;
         }
@@ -206,7 +220,14 @@ const D2Component: React.FC<{ value: string }> = ({ value }) => {
       ) : (
         <div
           dangerouslySetInnerHTML={{ __html: svg }}
-          style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+          style={{ 
+            width: '100%', 
+            flex: 1, 
+            minHeight: 0, 
+            display: 'flex', 
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
         />
       )}
     </div>

@@ -38,7 +38,10 @@ const getIcon = (type?: string) => {
 /**
  * 地図を表示するコンポーネント
  */
-const MapComponent: React.FC<{ value: string }> = ({ value }) => {
+const MapComponent: React.FC<{
+  value: string;
+  attributes?: Record<string, any>;
+}> = ({ value, attributes = {} }) => {
   const [hoveredMarker, setHoveredMarker] = useState<MapMarker | null>(null);
 
   const config = useMemo(() => {
@@ -53,13 +56,15 @@ const MapComponent: React.FC<{ value: string }> = ({ value }) => {
   const lng = parseFloat(config.long || config.lng) || 0;
   const zoom = parseFloat(config.defaultZoom || config.zoom) || 12;
   const height =
-    typeof config.height === 'number'
+    attributes.height ||
+    (typeof config.height === 'number'
       ? `${config.height}px`
-      : config.height || '400px';
+      : config.height || '400px');
   const width =
-    typeof config.width === 'number'
+    attributes.width ||
+    (typeof config.width === 'number'
       ? `${config.width}%`
-      : config.width || '100%';
+      : config.width || '100%');
 
   // マーカーの抽出
   const markers: MapMarker[] = useMemo(() => {

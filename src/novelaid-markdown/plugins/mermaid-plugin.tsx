@@ -5,10 +5,16 @@ import { MarkdownPlugin } from '../types';
 /**
  * Mermaid グラフをレンダリングするコンポーネント
  */
-const MermaidComponent: React.FC<{ value: string }> = ({ value }) => {
+const MermaidComponent: React.FC<{
+  value: string;
+  attributes?: Record<string, any>;
+}> = ({ value, attributes = {} }) => {
   const { theme } = useTheme();
   const [svg, setSvg] = useState<string>('');
   const initialized = useRef(false);
+
+  // 属性からサイズを取得
+  const { width, height } = attributes;
 
   useEffect(() => {
     const renderDiagram = async () => {
@@ -47,12 +53,26 @@ const MermaidComponent: React.FC<{ value: string }> = ({ value }) => {
       style={{
         display: 'flex',
         justifyContent: 'center',
+        alignItems: 'center',
         margin: '1.5em 0',
         maxWidth: '100%',
         overflow: 'auto',
+        width: width || '100%',
+        height: height || 'auto',
       }}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+    >
+      <style>{`
+        .mermaid-container svg {
+          max-width: 100%;
+          max-height: 100%;
+          height: auto;
+        }
+      `}</style>
+      <div 
+        style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+        dangerouslySetInnerHTML={{ __html: svg }} 
+      />
+    </div>
   );
 };
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { defaultProcessor } from '../index';
+import { parseAttributes } from '../utils/attribute-parser';
 
 export interface BaseMarkdownProps {
   content: string;
@@ -179,8 +180,23 @@ export default function BaseMarkdown({
       ),
       code: (props: any) => {
         const { children, className, node, ...rest } = props;
-        const match = /language-(\w+)/.exec(className || '');
-        const language = match ? match[1] : undefined;
+        const match = /language-([^ \n\r\t]+)/.exec(className || '');
+        const fullLang = match ? match[1] : undefined;
+
+        let language = fullLang;
+        let metaString = (node as any)?.meta || '';
+
+        // 言語名に { が含まれる場合 (例: mermaid{width=100})
+        if (fullLang && fullLang.includes('{')) {
+          const bracketIndex = fullLang.indexOf('{');
+          language = fullLang.substring(0, bracketIndex);
+          if (!metaString) {
+            metaString = fullLang.substring(bracketIndex);
+          }
+        }
+
+        // 属性のパース
+        const attributes = parseAttributes(metaString);
 
         // 登録されているコードプロセッサを探す
         const processors = defaultProcessor.getCodeProcessors();
@@ -192,6 +208,7 @@ export default function BaseMarkdown({
             <ProcessorComponent
               value={String(children).replace(/\n$/, '')}
               language={language}
+              attributes={attributes}
               {...rest}
             />
           );
