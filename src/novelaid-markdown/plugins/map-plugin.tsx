@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import Map, { Marker } from 'react-map-gl/maplibre';
+import React, { useMemo, useState } from 'react';
+import Map, { Marker, Popup } from 'react-map-gl/maplibre';
 import * as Icons from 'lucide-react';
 import yaml from 'js-yaml';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -39,6 +39,8 @@ const getIcon = (type?: string) => {
  * 地図を表示するコンポーネント
  */
 const MapComponent: React.FC<{ value: string }> = ({ value }) => {
+  const [hoveredMarker, setHoveredMarker] = useState<MapMarker | null>(null);
+
   const config = useMemo(() => {
     try {
       return (yaml.load(value) as any) || {};
@@ -191,13 +193,46 @@ const MapComponent: React.FC<{ value: string }> = ({ value }) => {
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
                   zIndex: 10,
                 }}
-                title={marker.description || marker.type}
+                onMouseEnter={() => setHoveredMarker(marker)}
+                onMouseLeave={() => setHoveredMarker(null)}
               >
                 <Icon size={24} color="#e91e63" fill="#ffffff" />
               </div>
             </Marker>
           );
         })}
+
+        {hoveredMarker && (
+          <Popup
+            longitude={hoveredMarker.long}
+            latitude={hoveredMarker.lat}
+            anchor="bottom"
+            offset={28}
+            closeButton={false}
+            closeOnClick={false}
+          >
+            <div
+              style={{
+                color: '#333',
+                fontSize: '12px',
+                padding: '2px 4px',
+                whiteSpace: 'pre-wrap',
+                maxWidth: '200px',
+              }}
+            >
+              {hoveredMarker.description && (
+                <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
+                  {hoveredMarker.description}
+                </div>
+              )}
+              {hoveredMarker.link && (
+                <div style={{ fontSize: '11px', color: '#666' }}>
+                  {hoveredMarker.link}
+                </div>
+              )}
+            </div>
+          </Popup>
+        )}
       </Map>
     </div>
   );
