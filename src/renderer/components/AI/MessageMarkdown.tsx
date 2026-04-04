@@ -1,5 +1,5 @@
 import React from 'react';
-import BaseMarkdown from '../Common/BaseMarkdown';
+import { BaseMarkdown } from '../../../novelaid-markdown';
 
 interface MessageMarkdownProps {
   content: string;

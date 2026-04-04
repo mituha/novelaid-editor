@@ -4,7 +4,7 @@ import CodeEditor from './CodeEditor';
 import { FileNameHeader } from './FileNameHeader';
 import NovelNavigator from './NovelNavigator';
 import NovelPreview from '../Preview/NovelPreview';
-import MarkdownPreview from '../Preview/MarkdownPreview';
+import { MarkdownPreview } from '../../../novelaid-markdown';
 import DiffViewer from '../Git/DiffViewer';
 import WebBrowser from '../Common/WebBrowser';
 import ChView from '../ch/ChView';

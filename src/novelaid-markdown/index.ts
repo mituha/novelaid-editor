@@ -44,3 +44,5 @@ export class NovelaidMarkdownProcessor {
 // シングルトンとしてデフォルトのプロセッサをエクスポート
 export const defaultProcessor = new NovelaidMarkdownProcessor();
 export * from './types';
+export { default as BaseMarkdown } from './renderer/BaseMarkdown';
+export { default as MarkdownPreview } from './renderer/MarkdownPreview';

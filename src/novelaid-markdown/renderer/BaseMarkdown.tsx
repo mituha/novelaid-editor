@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { defaultProcessor } from '../../../novelaid-markdown';
+import { defaultProcessor } from '../index';
 
 export interface BaseMarkdownProps {
   content: string;

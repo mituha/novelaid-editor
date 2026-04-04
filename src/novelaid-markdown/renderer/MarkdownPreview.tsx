@@ -1,8 +1,8 @@
 import React from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
-import BaseMarkdown from '../Common/BaseMarkdown';
-import { useDocument } from '../../contexts/DocumentContext';
-import { DocumentViewType } from '../../../common/types';
+import { useTheme } from '../../renderer/contexts/ThemeContext';
+import BaseMarkdown from './BaseMarkdown';
+import { useDocument } from '../../renderer/contexts/DocumentContext';
+import { DocumentViewType } from '../../common/types';
 import './MarkdownPreview.css';
 
 interface MarkdownPreviewProps {
