@@ -1,4 +1,4 @@
-import { MarkdownPlugin, MarkdownPreprocessor, MarkdownCodeProcessor } from './types';
+import { MarkdownPlugin, MarkdownPreprocessor, MarkdownCodeProcessor, MarkdownCodePreprocessor } from './types';
 
 /**
  * マークダウンプロセッサのレジストリ
@@ -18,6 +18,13 @@ export class MarkdownProcessorRegistry {
    */
   getPreprocessors(): MarkdownPreprocessor[] {
     return this.plugins.flatMap((p) => p.preprocessors || []);
+  }
+
+  /**
+   * 全てのコードプレプロセッサを取得
+   */
+  getCodePreprocessors(): MarkdownCodePreprocessor[] {
+    return this.plugins.flatMap((p) => p.codePreprocessors || []);
   }
 
   /**

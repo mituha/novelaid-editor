@@ -198,17 +198,39 @@ export default function BaseMarkdown({
         // 属性のパース
         const attributes = parseAttributes(metaString);
 
+        let currentLanguage = language || '';
+        let currentCode = String(children).replace(/\n$/, '');
+        let currentAttributes = { ...attributes };
+
+        // 登録されているコードプレプロセッサを実行
+        const preprocessors = defaultProcessor.getCodePreprocessors();
+        for (const preprocessor of preprocessors) {
+          if (
+            preprocessor.languages.includes(currentLanguage) ||
+            preprocessor.languages.includes('*')
+          ) {
+            const result = preprocessor.preprocess({
+              language: currentLanguage,
+              code: currentCode,
+              attributes: currentAttributes,
+            });
+            currentLanguage = result.language;
+            currentCode = result.code;
+            currentAttributes = result.attributes;
+          }
+        }
+
         // 登録されているコードプロセッサを探す
         const processors = defaultProcessor.getCodeProcessors();
-        const processor = processors.find((p) => p.language === language);
+        const processor = processors.find((p) => p.language === currentLanguage);
 
         if (processor) {
           const ProcessorComponent = processor.component;
           return (
             <ProcessorComponent
-              value={String(children).replace(/\n$/, '')}
-              language={language}
-              attributes={attributes}
+              value={currentCode}
+              language={currentLanguage}
+              attributes={currentAttributes}
               {...rest}
             />
           );

@@ -3,7 +3,8 @@ import { novelSyntaxPlugin } from './plugins/novel-syntax';
 import { mermaidPlugin } from './plugins/mermaid-plugin';
 import { mapPlugin } from './plugins/map-plugin';
 import { d2Plugin } from './plugins/d2-plugin';
-import { MarkdownCodeProcessor } from './types';
+import { radarPlugin } from './plugins/radar-plugin';
+import { MarkdownCodeProcessor, MarkdownCodePreprocessor } from './types';
 
 /**
  * 日本語小説執筆向けに最適化されたマークダウンプロセッサ
@@ -18,6 +19,7 @@ export class NovelaidMarkdownProcessor {
     this.registry.register(mermaidPlugin);
     this.registry.register(mapPlugin);
     this.registry.register(d2Plugin);
+    this.registry.register(radarPlugin);
   }
 
   /**
@@ -37,6 +39,13 @@ export class NovelaidMarkdownProcessor {
       processed = preprocessor(processed);
     }
     return processed;
+  }
+
+  /**
+   * コードブロックプレプロセッサを取得
+   */
+  getCodePreprocessors(): MarkdownCodePreprocessor[] {
+    return this.registry.getCodePreprocessors();
   }
 
   /**
