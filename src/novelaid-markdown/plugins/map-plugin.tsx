@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import Map, { Marker } from 'react-map-gl/maplibre';
+import { MapPin } from 'lucide-react';
 import yaml from 'js-yaml';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MarkdownPlugin } from '../types';
@@ -165,14 +166,13 @@ const MapComponent: React.FC<{ value: string }> = ({ value }) => {
           >
             <div
               style={{
-                fontSize: '24px',
                 cursor: 'pointer',
                 filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
                 zIndex: 10,
               }}
               title={marker.description || marker.type}
             >
-              📍
+              <MapPin size={24} color="#e91e63" fill="#ffffff" />
             </div>
           </Marker>
         ))}
