@@ -15,7 +15,14 @@ const STATE_FILE = 'state';
 
 export async function getRecentProjects(): Promise<RecentProject[]> {
   const storage = StorageService.getInstance();
-  const state = await storage.loadGlobal<AppState>(STATE_FILE);
+  const { data } = await storage.loadGlobal<AppState>(STATE_FILE);
+  let state = data;
+  
+  // 以前のバグでデータが二重にラップされていた場合の救済策
+  if (state && (state as any).data && !state.recentProjects) {
+    state = (state as any).data;
+  }
+  
   const projects = state?.recentProjects || [];
 
   // 存在確認を行って、存在しないパスは除外する
@@ -34,7 +41,14 @@ export async function getRecentProjects(): Promise<RecentProject[]> {
 
 export async function addRecentProject(projectPath: string): Promise<void> {
   const storage = StorageService.getInstance();
-  const state = (await storage.loadGlobal<AppState>(STATE_FILE)) || {};
+  const { data } = await storage.loadGlobal<AppState>(STATE_FILE);
+  let state = data || {};
+
+  // 以前のバグでデータが二重にラップされていた場合の救済策
+  if ((state as any).data && !state.recentProjects) {
+    state = (state as any).data;
+  }
+
   const projects = state.recentProjects || [];
   const name = path.basename(projectPath);
   const now = Date.now();
@@ -56,7 +70,14 @@ export async function addRecentProject(projectPath: string): Promise<void> {
 
 export async function removeRecentProject(projectPath: string): Promise<void> {
   const storage = StorageService.getInstance();
-  const state = await storage.loadGlobal<AppState>(STATE_FILE);
+  const { data } = await storage.loadGlobal<AppState>(STATE_FILE);
+  let state = data;
+
+  // 以前のバグでデータが二重にラップされていた場合の救済策
+  if (state && (state as any).data && !state.recentProjects) {
+    state = (state as any).data;
+  }
+
   if (state?.recentProjects) {
     state.recentProjects = state.recentProjects.filter((p) => p.path !== projectPath);
     await storage.saveGlobal(STATE_FILE, state);

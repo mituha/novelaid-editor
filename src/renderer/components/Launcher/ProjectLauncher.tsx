@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { FolderOpen, Plus, Clock, X, Book } from 'lucide-react';
 import { useGit } from '../../contexts/GitContext';
 import { useProject } from '../../contexts/ProjectContext';
-import { useApp, RecentProject } from '../../contexts/AppContext';
+import { useApp } from '../../contexts/AppContext';
 import './ProjectLauncher.css';
 
 export default function ProjectLauncher() {
-  const { recentProjects, addRecentProject, removeRecentProject } = useApp();
+  const { recentProjects, removeRecentProject } = useApp();
   const { loadProject } = useProject();
   const { currentDir } = useGit();
   const { version } = useApp();
@@ -22,11 +22,10 @@ export default function ProjectLauncher() {
 
   const openProject = useCallback(
     async (path: string) => {
-      await addRecentProject(path);
       await loadProject(path);
       navigate('/editor');
     },
-    [addRecentProject, loadProject, navigate],
+    [loadProject, navigate],
   );
 
   // The loadRecent useEffect is no longer needed as recentProjects are managed by AppContext

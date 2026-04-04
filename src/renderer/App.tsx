@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import MainLayout from './layouts/MainLayout';
 import { useSettings, SettingsProvider } from './contexts/SettingsContext';
 import { GitContextProvider } from './contexts/GitContext';
-import { useApp, AppProvider } from './contexts/AppContext';
+import { AppProvider } from './contexts/AppContext';
 import './App.css';
 
 import { PanelProvider } from './contexts/PanelContext';
@@ -17,7 +17,6 @@ import { ProjectProvider, useProject } from './contexts/ProjectContext';
 
 function AppRoutes() {
   const navigate = useNavigate();
-  const { addRecentProject } = useApp();
   const { loadProject } = useProject();
 
   useEffect(() => {
@@ -32,7 +31,6 @@ function AppRoutes() {
       const unsubscribeOpenProject = window.electron.ipcRenderer.on(
         'menu:open-project',
         async (path: any) => {
-          await addRecentProject(path);
           await loadProject(path);
           navigate('/editor');
         },
@@ -52,7 +50,7 @@ function AppRoutes() {
     } catch (e) {
       console.error('Failed to setup menu:go-home listener', e);
     }
-  }, [navigate, addRecentProject, loadProject]);
+  }, [navigate, loadProject]);
 
   return (
     <Routes>

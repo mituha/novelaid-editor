@@ -8,6 +8,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { setProjectDirectory } from '../../novelaid-fs';
+import { useApp } from './AppContext';
 
 // プロジェクト設定の型定義
 export interface ProjectConfig {
@@ -116,6 +117,7 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
 };
 
 export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { addRecentProject } = useApp();
   const [projectPath, setProjectPath] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string | null>(null);
   const [projectConfig, setProjectConfig] = useState<ProjectConfig>(DEFAULT_PROJECT_CONFIG);
@@ -169,6 +171,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
         if (result.warning) {
           await window.electron.ipcRenderer.invoke('dialog:alert', result.warning);
         }
+
+        // 最近使ったプロジェクトのリストを更新
+        await addRecentProject(path);
       }
     } catch (error) {
       console.error('Failed to load project:', error);
