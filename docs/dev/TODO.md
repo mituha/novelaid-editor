@@ -1,17 +1,29 @@
 TODO
 =========================
 
+## config.json の lastOpenFilesの変更
 
-## マークダウン表示
+ドキュメントの保持とタブの扱い方を変更したため、保存されるlastOpenFilesの形式を変更(削除)する必要があります。
+タブの内容を保持する必要はなく、保持していたDocumentStateから情報を保存するだけで良い。
 
-マークダウン表示時、コードブロックの内容などを独自の形式で処理できるような構造を追加します。
-現在、カクヨム記法のルビ表示に対応しているが、どこでどのように処理しているかを確認。
-これらの処理を共通化し、拡張しやすい構造にします。
-これは、将来的にプラグインなどでの機能拡張を容易にするためです。
+```
+  path: string;
 
-まず、ObsidianやVSCodeのMarkdown Preview Enhancedの拡張機能のように、marmeid.jsのコードブロックで図が表示できる機能の追加を検討します。
+  // 各ペイン・各スロット（メイン/プレビュー）の表示状態。'none'ならタブが表示されない。
+  leftMainView: DocumentViewType;
+  rightMainView: DocumentViewType;
+  leftPreviewView: DocumentViewType;
+  rightPreviewView: DocumentViewType;
 
-なお、コードは`src/novelaid-markdown/`以下に実装します。
+  // パネル表示状態（サイドバーなど）
+  openPanelIds: string[];
+```
+
+上記情報があれば良い。
+実際上の処理としては、openDocumentを上記内容に従って、有効なタブの分繰り返し呼んでも良い。
+
+保存されるpathについてはプロジェクトパスからの相対パスとしたほうが良い。
+
 
 
 

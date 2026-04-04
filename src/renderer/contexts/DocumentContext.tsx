@@ -10,7 +10,7 @@ import React, {
 import { Tab } from '../components/TabBar/TabBar';
 import { useSettings } from './SettingsContext'
 import { NovelaidDocumentType } from '../../novelaid-fs';
-import { DocumentViewType } from '../../common/types';
+import { DocumentViewType, TabItem } from '../../common/types';
 import { toDocumentPath, getFilePath } from '../../common/utils/pathUtils';
 import { useProject } from './ProjectContext';
 
@@ -38,10 +38,7 @@ export interface DocumentState {
   openPanelIds: string[];
 }
 
-export interface TabItem {
-  path: string;
-  isPreview: boolean;
-}
+// TabItem type is now imported from ../../common/types
 
 interface DocumentContextType {
   openDocuments: DocumentState[];
@@ -804,11 +801,10 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
       restoredRef.current = projectPath;
 
-      if (!settings.lastOpenFiles) return;
+      if (!settings.lastOpenFiles || !settings.lastOpenFiles.documents) return;
 
       const {
-        left,
-        right,
+        documents: savedDocs,
         leftActive,
         rightActive,
         isSplit: savedSplit,
@@ -818,32 +814,50 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       if (savedSplit !== undefined) setIsSplit(savedSplit);
       if (savedSide !== undefined) setActiveSide(savedSide);
 
-      // 古い形式からの復元ロジック
-      const allPaths = new Set<string>();
-      if (left) left.forEach((f: any) => allPaths.add(f.path));
-      if (right) right.forEach((f: any) => allPaths.add(f.path));
+      // 新しい形式からの復元ロジック
+      for (const doc of savedDocs) {
+        let absPath = doc.path;
+        // URIスキームでない場合はプロジェクトパスと結合して絶対パスにする
+        if (!absPath.includes('://') && projectPath) {
+          absPath = await window.electron.path.join(projectPath, absPath);
+        }
 
-      for (const path of allPaths) {
-        const lFile = left?.find((f: any) => f.path === path) as any;
-        const rFile = right?.find((f: any) => f.path === path) as any;
-        await openDocument(path, {
-          side: lFile ? 'left' : 'right',
-          requestedViewType: (lFile?.viewType || rFile?.viewType) as DocumentViewType,
-          title: lFile?.name || rFile?.name,
-        });
+        // 各View設定に従ってドキュメントを開く
+        // leftMainView
+        if (doc.leftMainView !== 'none') {
+          await openDocument(absPath, {
+            side: 'left',
+            requestedViewType: doc.leftMainView,
+          });
+        }
+        // rightMainView
+        if (doc.rightMainView !== 'none') {
+          await openDocument(absPath, {
+            side: 'right',
+            requestedViewType: doc.rightMainView,
+          });
+        }
+        // leftPreviewView
+        if (doc.leftPreviewView === 'preview') {
+          await openDocument(absPath, {
+            side: 'left',
+            requestedViewType: 'preview',
+          });
+        }
+        // rightPreviewView
+        if (doc.rightPreviewView === 'preview') {
+          await openDocument(absPath, {
+            side: 'right',
+            requestedViewType: 'preview',
+          });
+        }
       }
 
       if (leftActive) {
-        setActiveLeftItem({
-          path: typeof leftActive === 'string' ? leftActive : (leftActive as any).path,
-          isPreview: typeof leftActive === 'string' ? leftActive.startsWith('preview://') : (leftActive as any).isPreview
-        });
+        setActiveLeftItem(leftActive);
       }
       if (rightActive) {
-        setActiveRightItem({
-          path: typeof rightActive === 'string' ? rightActive : (rightActive as any).path,
-          isPreview: typeof rightActive === 'string' ? rightActive.startsWith('preview://') : (rightActive as any).isPreview
-        });
+        setActiveRightItem(rightActive);
       }
     };
 
@@ -854,30 +868,45 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     // プロジェクトパスがない、または復元が完了していない場合は保存しない
     if (!projectPath || restoredRef.current !== projectPath) return;
 
-    const lastOpenFiles = {
-      left: leftTabs.map((t) => ({
-        path: t.path,
-        name: t.name,
-        viewType: (t as any).viewType,
-        documentType: t.documentType,
-      })),
-      right: rightTabs.map((t) => ({
-        path: t.path,
-        name: t.name,
-        viewType: (t as any).viewType,
-        documentType: t.documentType,
-      })),
-      leftActive: activeLeftItem?.path || null,
-      rightActive: activeRightItem?.path || null,
-      activeSide,
-      isSplit,
+    const persist = async () => {
+      const documentsPromises = openDocuments.map(async (doc) => {
+        let relPath = doc.path;
+        if (!relPath.includes('://') && projectPath) {
+          relPath = await window.electron.path.relative(projectPath, doc.path);
+        }
+        return {
+          path: relPath,
+          leftMainView: doc.leftMainView,
+          rightMainView: doc.rightMainView,
+          leftPreviewView: doc.leftPreviewView,
+          rightPreviewView: doc.rightPreviewView,
+        };
+      });
+
+      const documents = await Promise.all(documentsPromises);
+
+      const lastOpenFiles = {
+        documents: documents.filter(
+          (d) =>
+            d.leftMainView !== 'none' ||
+            d.rightMainView !== 'none' ||
+            d.leftPreviewView !== 'none' ||
+            d.rightPreviewView !== 'none'
+        ),
+        leftActive: activeLeftItem,
+        rightActive: activeRightItem,
+        activeSide,
+        isSplit,
+      };
+
+      if (
+        JSON.stringify(lastOpenFiles) !== JSON.stringify(settings.lastOpenFiles)
+      ) {
+        updateSettings({ lastOpenFiles });
+      }
     };
 
-    if (
-      JSON.stringify(lastOpenFiles) !== JSON.stringify(settings.lastOpenFiles)
-    ) {
-      updateSettings({ lastOpenFiles });
-    }
+    persist();
   }, [
     leftTabs,
     rightTabs,
