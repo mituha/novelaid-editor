@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Languages, Type } from 'lucide-react';
-import { transformNovelSyntax } from '../../../common/utils/novelUtils';
+import { defaultProcessor } from '../../../novelaid-markdown';
 import './NovelPreview.css';
 
 interface NovelPreviewProps {
@@ -13,8 +13,8 @@ export default function NovelPreview({ content }: NovelPreviewProps) {
   const parseNovelContent = (text: string) => {
     if (!text) return [];
 
-    // 共通ユーティリティでルビと傍点の処理を実施
-    const processed = transformNovelSyntax(text);
+    // novelaid-markdown プロセッサでルビと傍点の処理を実施
+    const processed = defaultProcessor.preprocess(text);
 
     // 3. Handle newlines
     const lines = processed.split('\n');

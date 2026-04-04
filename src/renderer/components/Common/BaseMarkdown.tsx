@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { transformNovelSyntax } from '../../../common/utils/novelUtils';
+import { defaultProcessor } from '../../../novelaid-markdown';
 
 export interface BaseMarkdownProps {
   content: string;
@@ -177,7 +177,33 @@ export default function BaseMarkdown({
           }}
         />
       ),
-      // TODO: コードブロックなどの共通拡張処理が必要になればここに追加する
+      code: (props: any) => {
+        const { children, className, node, ...rest } = props;
+        const match = /language-(\w+)/.exec(className || '');
+        const language = match ? match[1] : undefined;
+
+        // 登録されているコードプロセッサを探す
+        const processors = defaultProcessor.getCodeProcessors();
+        const processor = processors.find((p) => p.language === language);
+
+        if (processor) {
+          const ProcessorComponent = processor.component;
+          return (
+            <ProcessorComponent
+              value={String(children).replace(/\n$/, '')}
+              language={language}
+              {...rest}
+            />
+          );
+        }
+
+        // デフォルトの表示
+        return (
+          <code className={className} {...rest}>
+            {children}
+          </code>
+        );
+      },
     }),
     [filePath, onLinkClick],
   );
@@ -186,7 +212,7 @@ export default function BaseMarkdown({
     return <div>Loading preview...</div>;
   }
 
-  const transformedContent = transformNovelSyntax(content);
+  const transformedContent = defaultProcessor.preprocess(content);
 
   return (
     <div className={className}>
