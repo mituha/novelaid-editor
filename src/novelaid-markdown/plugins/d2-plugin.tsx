@@ -3,6 +3,86 @@ import { useTheme } from '../../renderer/contexts/ThemeContext';
 import { MarkdownPlugin } from '../types';
 
 /**
+ * D2 インスタンスのシングルトン保持用（WASM の多重ロードを避けるため）
+ */
+let sharedD2Instance: any = null;
+let d2Promise: Promise<any> | null = null;
+
+const getD2Instance = async () => {
+  if (sharedD2Instance) return sharedD2Instance;
+  if (!d2Promise) {
+    d2Promise = (async () => {
+      try {
+        const { D2 } = await import('@terrastruct/d2');
+        sharedD2Instance = new D2();
+        // 初期化待ち
+        await sharedD2Instance.ready;
+        return sharedD2Instance;
+      } catch (err) {
+        d2Promise = null;
+        throw err;
+      }
+    })();
+  }
+  return d2Promise;
+};
+
+/**
+ * D2 は WASM エンジンを共有するため、複数を同時に実行するとハングする可能性がある。
+ * そのため、レンダリング処理を直列化するためのキューを設ける。
+ */
+let globalRenderQueue = Promise.resolve();
+
+/**
+ * 戻り値（SVG）が文字列でない場合に、適切に抽出またはデコードする
+ */
+const extractSvg = (val: any): string => {
+  if (typeof val === 'string') return val;
+  if (!val) return '';
+
+  // Uint8Array (バイナリ) の場合
+  if (val instanceof Uint8Array || (val.buffer && val.byteLength !== undefined)) {
+    try {
+      return new TextDecoder().decode(val);
+    } catch {
+      return 'Error: Failed to decode D2 binary output';
+    }
+  }
+
+  // オブジェクトの場合
+  if (typeof val === 'object') {
+    // 可能性のあるプロパティをチェック
+    const svg = val.contents || val.svg || val.data;
+    if (typeof svg === 'string') return svg;
+    if (svg instanceof Uint8Array) return new TextDecoder().decode(svg);
+
+    // 最終手段として JSON 文字列化（デバッグ用）
+    try {
+      return JSON.stringify(val);
+    } catch {
+      return 'Error: D2 returned an un-stringifiable object';
+    }
+  }
+
+  return String(val);
+};
+
+/**
+ * 任意のエラー値を文字列に変換する
+ */
+const stringifyError = (err: any): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    const stringified = JSON.stringify(err);
+    if (stringified === '{}' && err.toString) return err.toString();
+    return stringified;
+  } catch {
+    return 'Unknown D2 error';
+  }
+};
+
+/**
  * D2 ダイアグラムをレンダリングするコンポーネント
  */
 const D2Component: React.FC<{ value: string }> = ({ value }) => {
@@ -21,45 +101,64 @@ const D2Component: React.FC<{ value: string }> = ({ value }) => {
       setLoading(true);
       setError(null);
 
-      try {
-        // @terrastruct/d2 は WASM/Worker を含むため動的インポートを使用
-        const { D2 } = await import('@terrastruct/d2');
-        const d2 = new D2();
+      // キューに入れて順番に処理する
+      globalRenderQueue = globalRenderQueue
+        .catch(() => {}) // 前の処理が失敗しても次へ
+        .then(async () => {
+          if (!isMounted) return;
 
-        // テーマの設定 (0: ライト/デフォルト, 200: ダーク)
-        const themeId = theme === 'dark' ? 200 : 0;
+          try {
+            // インスタンス取得
+            const d2 = await getD2Instance();
 
-        // コンパイル
-        const compileResult = await d2.compile(value);
+            // コンパイル
+            const compileResult = await d2.compile(value);
 
-        // レンダリングオプションの設定
-        const renderOptions = {
-          ...compileResult.renderOptions,
-          theme: themeId,
-          transparent: true, // 背景を透明に設定
-        };
+            // エラーチェック
+            if (compileResult && compileResult.errors && compileResult.errors.length > 0) {
+              throw new Error(compileResult.errors[0].message || 'D2 Syntax Error');
+            }
 
-        // レンダリング
-        const renderedSvg = await d2.render(compileResult.diagram, renderOptions);
+            // テーマ設定
+            const themeId = theme === 'dark' ? 200 : 0;
+            const renderOptions = {
+              ...compileResult.renderOptions,
+              themeID: themeId,
+              noXMLTag: true,
+            };
 
-        if (isMounted) {
-          setSvg(renderedSvg);
-          setLoading(false);
-        }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('D2 rendering failed:', err);
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Invalid D2 syntax');
-          setLoading(false);
-        }
-      }
+            // レンダリング実行
+            const result = await d2.render(compileResult.diagram, renderOptions);
+
+            if (isMounted) {
+              const svgString = extractSvg(result);
+              // 万が一空だったり、[object Object] の名残がある場合はエラーとする
+              if (!svgString || svgString.startsWith('[object Object]')) {
+                throw new Error('D2 rendering failed to produce a valid SVG string');
+              }
+              setSvg(svgString);
+              setLoading(false);
+              setError(null);
+            }
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('D2 rendering failed:', err);
+            if (isMounted) {
+              setError(stringifyError(err));
+              setLoading(false);
+            }
+          }
+        });
     };
 
-    renderDiagram();
+    // デバウンス
+    const timer = setTimeout(() => {
+      renderDiagram();
+    }, 300);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
   }, [value, theme]);
 
@@ -82,10 +181,8 @@ const D2Component: React.FC<{ value: string }> = ({ value }) => {
         .d2-container svg rect.d2-background {
           fill: none !important;
         }
-        /* ダークモード時はデフォルトでテキストが黒い場合があるため微調整が必要な場合があるが、
-           theme: 200 を指定していれば D2 側で白に近い色にしてくれるはず */
       `}</style>
-      {loading && (
+      {loading && !error && (
         <div style={{ padding: '1em', color: 'var(--text-muted)' }}>
           Rendering D2 diagram...
         </div>
@@ -100,6 +197,8 @@ const D2Component: React.FC<{ value: string }> = ({ value }) => {
             borderRadius: '4px',
             maxWidth: '100%',
             overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
           }}
         >
           D2 Error: {error}
