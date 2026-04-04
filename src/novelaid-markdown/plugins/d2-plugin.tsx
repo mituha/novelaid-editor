@@ -36,8 +36,7 @@ const D2Component: React.FC<{ value: string }> = ({ value }) => {
         const renderOptions = {
           ...compileResult.renderOptions,
           theme: themeId,
-          // スケッチ風 (手書き風) にしたい場合はここを true にできる
-          // sketch: true,
+          transparent: true, // 背景を透明に設定
         };
 
         // レンダリング
@@ -78,6 +77,14 @@ const D2Component: React.FC<{ value: string }> = ({ value }) => {
         minHeight: loading ? '100px' : 'auto',
       }}
     >
+      {/* 背景を透明にするためのスタイル注入 */}
+      <style>{`
+        .d2-container svg rect.d2-background {
+          fill: none !important;
+        }
+        /* ダークモード時はデフォルトでテキストが黒い場合があるため微調整が必要な場合があるが、
+           theme: 200 を指定していれば D2 側で白に近い色にしてくれるはず */
+      `}</style>
       {loading && (
         <div style={{ padding: '1em', color: 'var(--text-muted)' }}>
           Rendering D2 diagram...
