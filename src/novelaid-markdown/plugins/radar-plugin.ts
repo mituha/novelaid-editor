@@ -31,17 +31,31 @@ export const radarPlugin: MarkdownPlugin = {
           const headerData = { ...header };
 
           // フロントマター用の構成データ (title, config)
-          const mermaidFrontmatterData: any = {};
+          const mermaidFrontmatterData: any = {
+            config: headerData.config || {}
+          };
+          delete headerData.config;
+
           if (headerData.title || headerData['タイトル']) {
             mermaidFrontmatterData.title = headerData.title || headerData['タイトル'];
           }
-          if (headerData.config) {
-            mermaidFrontmatterData.config = headerData.config;
-          }
-
           delete headerData.title;
           delete headerData['タイトル'];
-          delete headerData.config;
+
+          // theme の処理 (config.theme にマッピング)
+          const theme = headerData.theme || headerData['テーマ'];
+          if (theme) {
+            mermaidFrontmatterData.config.theme = theme;
+          }
+          // デフォルト値の設定
+          if (!mermaidFrontmatterData.config.theme) {
+            // カラフルなテーマが良いが、デフォルトではない。
+            // また、forestにすると現状バックがダークの場合に文字が見えない
+            // default | neutral | dark | forest | base
+            mermaidFrontmatterData.config.theme = 'dark';
+          }
+          delete headerData.theme;
+          delete headerData['テーマ'];
 
           // 曲線名用の項目 (name)
           const curveName = headerData.name || headerData['名前'] || 'Unnamed';
