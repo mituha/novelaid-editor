@@ -194,6 +194,8 @@ export class FileService {
     if (this.beforeDeleteCallback) {
       this.beforeDeleteCallback(targetPath, 'deleted');
     }
+    // Renderer側でタブを閉じ、ファイルハンドルを解放させるための猶予を設ける
+    await new Promise((resolve) => setTimeout(resolve, 100));
     await fs.rm(targetPath, { recursive: true, force: true });
     return true;
   }

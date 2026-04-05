@@ -211,55 +211,66 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       reason?: string,
     ) => {
       const normalizedPath = toDocumentPath(getFilePath(path));
-      clearTimer(normalizedPath);
 
       setOpenDocuments((prev) => {
-        const docIndex = prev.findIndex((d) => d.path === normalizedPath);
-        if (docIndex === -1) return prev;
+        const isMatch = (docPath: string) =>
+          docPath === normalizedPath || docPath.startsWith(normalizedPath + '/');
 
-        const doc = prev[docIndex];
-        const newDoc = { ...doc };
+        const matchingIndices = prev
+          .map((d, index) => (isMatch(d.path) ? index : -1))
+          .filter((i) => i !== -1);
 
-        if (reason === 'deleted') {
-          newDoc.deleted = true;
-        }
+        if (matchingIndices.length === 0) return prev;
 
         const isPreviewClosing = viewType === 'preview';
-
-        // 指定されたサイド（または両方）の表示を消す
-        if (!side || side === 'left') {
-          if (isPreviewClosing) {
-            newDoc.leftPreviewView = 'none';
-          } else {
-            newDoc.leftMainView = 'none';
-            // 連動終了: エディターを閉じたら反対側のプレビューも閉じる
-            newDoc.rightPreviewView = 'none';
-          }
-        }
-        if (!side || side === 'right') {
-          if (isPreviewClosing) {
-            newDoc.rightPreviewView = 'none';
-          } else {
-            newDoc.rightMainView = 'none';
-            // 連動終了: エディターを閉じたら反対側のプレビューも閉じる
-            newDoc.leftPreviewView = 'none';
-          }
-        }
-
-        // 全ての表示が 'none' で、かつパネルでも開かれていないなら削除
-        const isActiveInAnyView =
-          newDoc.leftMainView !== 'none' ||
-          newDoc.rightMainView !== 'none' ||
-          newDoc.leftPreviewView !== 'none' ||
-          newDoc.rightPreviewView !== 'none' ||
-          newDoc.openPanelIds.length > 0;
-
-        if (!isActiveInAnyView) {
-          return prev.filter((_, i) => i !== docIndex);
-        }
-
         const newList = [...prev];
-        newList[docIndex] = newDoc;
+        const indicesToRemove = new Set<number>();
+
+        for (const index of matchingIndices) {
+          const doc = prev[index];
+          const newDoc = { ...doc };
+
+          if (reason === 'deleted') {
+            newDoc.deleted = true;
+          }
+          // 指定されたサイド（または両方）の表示を消す
+          if (!side || side === 'left') {
+            if (isPreviewClosing) {
+              newDoc.leftPreviewView = 'none';
+            } else {
+              newDoc.leftMainView = 'none';
+              // エディターを閉じたら反対側のプレビューも閉じる（連動終了）
+              newDoc.rightPreviewView = 'none';
+            }
+          }
+          if (!side || side === 'right') {
+            if (isPreviewClosing) {
+              newDoc.rightPreviewView = 'none';
+            } else {
+              newDoc.rightMainView = 'none';
+              // エディターを閉じたら反対側のプレビューも閉じる（連動終了）
+              newDoc.leftPreviewView = 'none';
+            }
+          }
+
+          // 全ての表示が 'none' で、かつパネルでも開かれていないなら削除対象
+          const isActiveInAnyView =
+            newDoc.leftMainView !== 'none' ||
+            newDoc.rightMainView !== 'none' ||
+            newDoc.leftPreviewView !== 'none' ||
+            newDoc.rightPreviewView !== 'none' ||
+            newDoc.openPanelIds.length > 0;
+
+          if (!isActiveInAnyView) {
+            indicesToRemove.add(index);
+          } else {
+            newList[index] = newDoc;
+          }
+        }
+
+        if (indicesToRemove.size > 0) {
+          return newList.filter((_, i) => !indicesToRemove.has(i));
+        }
         return newList;
       });
 
@@ -276,24 +287,39 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (!activeItem) return;
 
-        // 閉じられたビューが現在のアクティブ項目と一致するか判定
+        // 閉じられたビューが現在のアクティブ項目（またはそのディレクトリ配下）と一致するか判定
+        const isPathMatch =
+          activeItem.path === normalizedPath ||
+          activeItem.path.startsWith(normalizedPath + '/');
+
         const isClosedActive =
-          activeItem.path === normalizedPath &&
+          isPathMatch &&
           (closedViewType === 'preview'
             ? activeItem.isPreview
             : !activeItem.isPreview);
 
         if (isClosedActive) {
-          const closedTabPath =
-            closedViewType === 'preview'
-              ? `preview://${normalizedPath}`
-              : normalizedPath;
-          const remainingTabs = currentTabs.filter((t) => t.path !== closedTabPath);
+          // 閉じる対象に現在のアクティブ項目が含まれている場合、別のタブに切り替える
+          const remainingTabs = currentTabs.filter((t) => {
+            const tPath = getFilePath(t.path);
+            const tIsPreview = t.path.startsWith('preview://');
+            const isTPathMatch =
+              tPath === normalizedPath || tPath.startsWith(normalizedPath + '/');
+            const isTClosed =
+              isTPathMatch &&
+              (closedViewType === 'preview' ? tIsPreview : !tIsPreview);
+            return !isTClosed;
+          });
 
           if (remainingTabs.length > 0) {
-            const closedTabIndex = currentTabs.findIndex(
-              (t) => t.path === closedTabPath,
-            );
+            // 現在のインデックスに近いタブを探す
+            const closedTabIndex = currentTabs.findIndex((t) => {
+              const tPath = getFilePath(t.path);
+              const tIsPreview = t.path.startsWith('preview://');
+              return (
+                tPath === activeItem.path && tIsPreview === activeItem.isPreview
+              );
+            });
             const nextIndex = Math.min(closedTabIndex, remainingTabs.length - 1);
             const nextTab = remainingTabs[nextIndex];
             setActiveItem({
@@ -308,12 +334,10 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (!side || side === 'left') {
         adjustActiveItem('left', viewType || 'editor');
-        // メインビューを閉じた場合、右側のプレビューも閉じられた可能性があるため調整
         if (viewType !== 'preview') adjustActiveItem('right', 'preview');
       }
       if (!side || side === 'right') {
         adjustActiveItem('right', viewType || 'editor');
-        // メインビューを閉じた場合、左側のプレビューも閉じられた可能性があるため調整
         if (viewType !== 'preview') adjustActiveItem('left', 'preview');
       }
     },
