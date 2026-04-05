@@ -8,7 +8,7 @@ export const radarPlugin: MarkdownPlugin = {
   name: 'novelaid-radar',
   codePreprocessors: [
     {
-      languages: ['novelaid-radar'],
+      languages: ['novelaid-radar', 'radar'],
       preprocess: ({ code, attributes }) => {
         try {
           // YAML セパレーター --- で分割
