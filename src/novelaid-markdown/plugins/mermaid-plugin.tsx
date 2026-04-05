@@ -25,11 +25,13 @@ const MermaidComponent: React.FC<{
         const { default: mermaid } = await import('mermaid');
 
         // テーマに合わせて初期化
-        mermaid.initialize({
+        // Note: Mermaid 11では内部型定義が厳格なため、suppressErrorを指定するために as any を使用
+        (mermaid as any).initialize({
           startOnLoad: false,
           theme: theme === 'dark' ? 'dark' : 'default',
           securityLevel: 'loose',
           fontFamily: 'Inter, system-ui, sans-serif',
+          suppressError: true, // 自動エラー表示を抑制
         });
         initialized.current = true;
 
@@ -39,6 +41,21 @@ const MermaidComponent: React.FC<{
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Mermaid rendering failed:', error);
+        
+        // Mermaidが作成した可能性のあるデバッグ要素を削除（レイアウト崩れ対策）
+        // Mermaidは解析エラー時に document.body に要素を追加することがあるため、それを除去
+        const strayElements = [
+          document.getElementById('dmermaid-debug'),
+          document.querySelector('.mermaid-error-container'),
+          document.querySelector('[id^="dmermaid-"]')
+        ];
+        
+        strayElements.forEach(el => {
+          if (el && el.parentNode === document.body) {
+            el.remove();
+          }
+        });
+
         // エラー時は元のテキストを pre で表示するか、エラーメッセージを表示
         setSvg(`<pre class="mermaid-error" style="color: #f44336; padding: 1em; border: 1px solid #f44336; border-radius: 4px;">Mermaid Error: ${error instanceof Error ? error.message : 'Invalid syntax'}</pre>`);
       }
