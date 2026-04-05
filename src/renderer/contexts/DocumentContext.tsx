@@ -127,9 +127,15 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   const autoSaveTimerRef = useRef<Record<string, any>>({});
   const openDocumentsRef = useRef(openDocuments);
 
+  const activeSideRef = useRef(activeSide);
+
   useEffect(() => {
     openDocumentsRef.current = openDocuments;
   }, [openDocuments]);
+
+  useEffect(() => {
+    activeSideRef.current = activeSide;
+  }, [activeSide]);
 
   const activeTabItem =
     activeSide === 'left' ? activeLeftItem : activeRightItem;
@@ -501,7 +507,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         fileTitle = await getFileTitle(absolutePath);
       }
 
-      let targetSide = options?.side || activeSide;
+      let targetSide = options?.side || activeSideRef.current;
       const requestedIsPreview = options?.requestedViewType === 'preview';
 
       if (requestedIsPreview && !options?.side) {
@@ -621,7 +627,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         // すでに上で設定済み
       }
     },
-    [activeSide, getAbsolutePath, getDocumentByPath],
+    [getAbsolutePath, getDocumentByPath],
   );
 
   const switchTab = useCallback(
@@ -840,6 +846,9 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!projectPath || restoredRef.current === projectPath) return;
 
     const restore = async () => {
+      if (restoredRef.current === projectPath) return;
+      restoredRef.current = projectPath;
+
       // 復元前に状態をクリア（プロジェクト切り替え時など）
       setOpenDocuments([]);
       setActiveLeftItem(null);
@@ -913,12 +922,12 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         setActiveRightItem({ ...rightActive, path: absPath });
       }
 
-      // 最後に復元フラグを立てて保存を許可する
+      // 最後に復元フラグを立てて保存を許可する (すでに上で設定済みだが念のため)
       restoredRef.current = projectPath;
     };
 
     restore();
-  }, [projectPath, settings.lastOpenFiles, openDocument]);
+  }, [projectPath, settings.lastOpenFiles]);
 
   useEffect(() => {
     // プロジェクトパスがない、または復元が完了していない場合は保存しない
@@ -1032,7 +1041,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [clearTimer]);
 
   useEffect(() => {
-    if (!isSplit) return;
+    if (!isSplit || openDocuments.length === 0) return;
     if (leftTabs.length === 0 && rightTabs.length > 0) {
       // 全て右にある場合は左に寄せる（簡易的な不整合回避）
       setOpenDocuments((prev) =>
