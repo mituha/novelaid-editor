@@ -58,7 +58,8 @@ export const radarPlugin: MarkdownPlugin = {
           delete headerData['テーマ'];
 
           // 曲線名用の項目 (name)
-          const curveName = headerData.name || headerData['名前'] || 'Unnamed';
+          // デフォルト値は空文字列とすることで、タイトルのみのレーダーチャートも描画可能にする
+          const curveName = headerData.name || headerData['名前'] || '';
           delete headerData.name;
           delete headerData['名前'];
 

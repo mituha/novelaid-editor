@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.50.7",
+  "version": "0.50.8",
   "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
