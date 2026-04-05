@@ -16,7 +16,8 @@ import { useProject } from './ProjectContext';
 
 export interface DocumentState {
   path: string;
-  name: string;
+  baseName: string;
+  fileTitle: string;
   content: string;
   metadata: Record<string, any>;
   lastSource?: 'user' | 'external' | 'user-left' | 'user-right' | string;
@@ -148,7 +149,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       if (doc.leftMainView !== 'none') {
         acc.push({
           path: doc.path,
-          name: doc.name,
+          baseName: doc.baseName,
+          fileTitle: doc.fileTitle,
           isDirty: doc.isDirty,
           viewType: doc.leftMainView,
           documentType: doc.documentType,
@@ -157,7 +159,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       if (doc.leftPreviewView !== 'none') {
         acc.push({
           path: `preview://${doc.path}`,
-          name: `Preview: ${doc.name}`,
+          baseName: `Preview: ${doc.baseName}`,
+          fileTitle: `Preview: ${doc.fileTitle}`,
           isDirty: false,
           viewType: 'preview',
           documentType: doc.documentType,
@@ -172,7 +175,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       if (doc.rightMainView !== 'none') {
         acc.push({
           path: doc.path,
-          name: doc.name,
+          baseName: doc.baseName,
+          fileTitle: doc.fileTitle,
           isDirty: doc.isDirty,
           viewType: doc.rightMainView,
           documentType: doc.documentType,
@@ -181,7 +185,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       if (doc.rightPreviewView !== 'none') {
         acc.push({
           path: `preview://${doc.path}`,
-          name: `Preview: ${doc.name}`,
+          baseName: `Preview: ${doc.baseName}`,
+          fileTitle: `Preview: ${doc.fileTitle}`,
           isDirty: false,
           viewType: 'preview',
           documentType: doc.documentType,
@@ -378,7 +383,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           );
           const newDoc: DocumentState = {
             path: absolutePath,
-            name: await getFileTitle(absolutePath),
+            baseName: await window.electron.path.basename(absolutePath),
+            fileTitle: await getFileTitle(absolutePath),
             content: data.content,
             metadata: data.metadata,
             documentType: data.documentType,
@@ -394,7 +400,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           if (initialData) {
             const newDoc: DocumentState = {
               path: absolutePath,
-              name: await getFileTitle(absolutePath),
+              baseName: await window.electron.path.basename(absolutePath),
+              fileTitle: await getFileTitle(absolutePath),
               content: initialData.content,
               metadata: initialData.metadata,
               isDirty: false,
@@ -460,10 +467,16 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const isVirtual = currentType === 'browser' || currentType === 'gitDiff';
-      if (!fileName && !isVirtual) {
-        fileName = await getFileTitle(absolutePath);
+      let baseName = '';
+      let fileTitle = '';
+
+      if (isVirtual) {
+        baseName = fileName || 'Untitled';
+        fileTitle = fileName || 'Untitled';
+      } else {
+        baseName = await window.electron.path.basename(absolutePath);
+        fileTitle = await getFileTitle(absolutePath);
       }
-      fileName = fileName || 'Untitled';
 
       let targetSide = options?.side || activeSide;
       const requestedIsPreview = options?.requestedViewType === 'preview';
@@ -491,7 +504,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           );
           existingDoc = {
             path: absolutePath,
-            name: fileName,
+            baseName: baseName,
+            fileTitle: fileTitle,
             content: loadedData.content,
             metadata: loadedData.metadata,
             documentType: loadedData.documentType || currentType,
@@ -509,7 +523,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       } else if (!existingDoc && isVirtual) {
         existingDoc = {
           path: normalizedPath,
-          name: fileName,
+          baseName: baseName,
+          fileTitle: fileTitle,
           content: '',
           metadata: {},
           documentType: currentType,
@@ -706,7 +721,12 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         setOpenDocuments((prev) =>
           prev.map((doc) =>
             doc.path === oldPath
-              ? { ...doc, path: newPath, name: newName }
+              ? {
+                  ...doc,
+                  path: newPath,
+                  baseName: `${newName}${fileExt}`,
+                  fileTitle: newName,
+                }
               : doc,
           ),
         );
@@ -960,7 +980,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           if (targetDoc.isDirty) {
             const confirmed = await window.electron.ipcRenderer.invoke(
               'dialog:confirm',
-              `${targetDoc.name} は外部で変更されました。破棄して再読み込みしますか？`,
+              `${targetDoc.baseName} は外部で変更されました。破棄して再読み込みしますか？`,
             );
             if (!confirmed) return;
           }

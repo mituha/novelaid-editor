@@ -10,7 +10,8 @@ import {
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../../contexts/GitContext';
-import { useDocument, TabItem } from '../../contexts/DocumentContext';
+import { useDocument } from '../../contexts/DocumentContext';
+import { TabItem } from '../../../common/types';
 import { Panel } from '../../types/panel';
 import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
@@ -97,7 +98,7 @@ function OpenEditorItem({
   level?: number;
 }) {
   const { openDocument } = useDocument();
-  const fileName = tab.name;
+  const fileName = tab.baseName;
   const isActive = tab.path === activeTabItem?.path || (activeTabItem?.isPreview && tab.path === `preview://${activeTabItem.path}`);
   return (
     <div

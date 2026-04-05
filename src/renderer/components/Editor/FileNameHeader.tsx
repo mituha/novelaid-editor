@@ -4,21 +4,21 @@ import './FileNameHeader.css';
 import { useDocument } from '../../contexts/DocumentContext';
 
 interface FileNameHeaderProps {
-  fileName: string; // fallback name
+  fileTitle: string; // fallback title
   activePath: string | null;
   onRename: (newName: string) => void;
   isReadOnly?: boolean;
 }
 
 export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
-  fileName,
+  fileTitle,
   activePath,
   onRename,
   isReadOnly = false,
 }) => {
   const { getFileTitle, activeTabItem, openDocuments } = useDocument();
   const [isEditing, setIsEditing] = useState(false);
-  const [displayName, setDisplayName] = useState(fileName);
+  const [displayName, setDisplayName] = useState(fileTitle);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -29,13 +29,13 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
 
   useEffect(() => {
     if (activeDoc) {
-      setDisplayName(activeDoc.name);
+      setDisplayName(activeDoc.fileTitle);
     } else if (activeTabItem?.path) {
       getFileTitle(activeTabItem.path).then(setDisplayName);
     } else {
-      setDisplayName(fileName);
+      setDisplayName(fileTitle);
     }
-  }, [activeTabItem, activeDoc, getFileTitle, fileName]);
+  }, [activeTabItem, activeDoc, getFileTitle, fileTitle]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {

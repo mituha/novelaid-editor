@@ -27,7 +27,7 @@ export default function AIContextSelector() {
   const getFileName = (path: string | null) => {
     if (!path) return '';
     const doc = openDocuments.find(d => d.path === path);
-    if (doc) return doc.name;
+    if (doc) return doc.baseName;
     return path.split(/[/\\]/).pop() || path;
   };
 

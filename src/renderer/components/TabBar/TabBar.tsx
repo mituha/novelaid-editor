@@ -9,7 +9,8 @@ import DocumentIcon from '../../utils/DocumentIcon';
 
 export interface Tab {
   path: string;
-  name: string;
+  baseName: string;
+  fileTitle: string;
   documentType?: NovelaidDocumentType;
   isDirty?: boolean;
   viewType?: DocumentViewType;
@@ -146,8 +147,8 @@ export function TabBar({
                     setIsDropdownOpen(false);
                   }}
                 >
-                  <DocumentIcon name={tab.name} isDirectory={false} className="tab-file-icon" />
-                  <span className="tab-dropdown-name">{tab.name}</span>
+                  <DocumentIcon name={tab.baseName} isDirectory={false} className="tab-file-icon" />
+                  <span className="tab-dropdown-name">{tab.baseName}</span>
                   {tab.isDirty && <span className="tab-dirty-indicator" />}
                   <button
                     type="button"
@@ -178,8 +179,8 @@ export function TabBar({
             aria-selected={tab.path === activeTabPath}
             tabIndex={0}
           >
-            <DocumentIcon name={tab.name} isDirectory={false} className="tab-file-icon" />
-            <span className="tab-name">{tab.name}</span>
+            <DocumentIcon name={tab.baseName} isDirectory={false} className="tab-file-icon" />
+            <span className="tab-name">{tab.baseName}</span>
             {tab.isDirty && <span className="tab-dirty-indicator" />}
             <button
               type="button"

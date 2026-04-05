@@ -185,7 +185,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <FileNameHeader
-          fileName={activeTab?.name || ''}
+          fileTitle={activeTab?.fileTitle || ''}
           activePath={path}
           onRename={(newName) => renameDocument(path, newName)}
         />
