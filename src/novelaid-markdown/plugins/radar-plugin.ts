@@ -30,10 +30,18 @@ export const radarPlugin: MarkdownPlugin = {
           // 1. 各項目の抽出と整理
           const headerData = { ...header };
 
-          // フロントマター用の項目 (title)
-          const title = headerData.title || headerData['タイトル'];
+          // フロントマター用の構成データ (title, config)
+          const mermaidFrontmatterData: any = {};
+          if (headerData.title || headerData['タイトル']) {
+            mermaidFrontmatterData.title = headerData.title || headerData['タイトル'];
+          }
+          if (headerData.config) {
+            mermaidFrontmatterData.config = headerData.config;
+          }
+
           delete headerData.title;
           delete headerData['タイトル'];
+          delete headerData.config;
 
           // 曲線名用の項目 (name)
           const curveName = headerData.name || headerData['名前'] || 'Unnamed';
@@ -59,9 +67,9 @@ export const radarPlugin: MarkdownPlugin = {
           // Mermaid の radar-beta 構文を構築
           let mermaidCode = '';
 
-          // A. フロントマター (title のみ Mermaid 標準として出力)
-          if (title) {
-            mermaidCode += `---\ntitle: ${JSON.stringify(title)}\n---\n`;
+          // A. フロントマター (title, config を Mermaid 標準として出力)
+          if (Object.keys(mermaidFrontmatterData).length > 0) {
+            mermaidCode += `---\n${yaml.dump(mermaidFrontmatterData)}---\n`;
           }
 
           // B. radar-beta ブロックの開始
