@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './FileNameHeader.css';
-
-import { useDocument } from '../../contexts/DocumentContext';
 
 interface FileNameHeaderProps {
   fileTitle: string; // fallback title
@@ -16,26 +14,9 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
   onRename,
   isReadOnly = false,
 }) => {
-  const { getFileTitle, activeTabItem, openDocuments } = useDocument();
   const [isEditing, setIsEditing] = useState(false);
-  const [displayName, setDisplayName] = useState(fileTitle);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const activeDoc = useMemo(() => {
-    const path = activeTabItem?.path;
-    return path ? openDocuments.find(d => d.path === path) : null;
-  }, [activeTabItem, openDocuments]);
-
-  useEffect(() => {
-    if (activeDoc) {
-      setDisplayName(activeDoc.fileTitle);
-    } else if (activeTabItem?.path) {
-      getFileTitle(activeTabItem.path).then(setDisplayName);
-    } else {
-      setDisplayName(fileTitle);
-    }
-  }, [activeTabItem, activeDoc, getFileTitle, fileTitle]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -44,14 +25,14 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
   }, [isEditing]);
 
   const handleStartEditing = () => {
-    if (isReadOnly || isEditing || activeDoc?.documentType === 'gitDiff') return;
-    setEditValue(displayName);
+    if (isReadOnly || isEditing) return;
+    setEditValue(fileTitle);
     setIsEditing(true);
   };
 
   const handleCommit = () => {
     setIsEditing(false);
-    if (editValue.trim() && editValue !== displayName) {
+    if (editValue.trim() && editValue !== fileTitle) {
       onRename(editValue);
     }
   };
@@ -85,7 +66,7 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
       className={`file-name-header ${isReadOnly ? 'readonly' : ''}`}
       onClick={handleStartEditing}
       onKeyDown={(e) => {
-        if (activeDoc?.documentType !== 'gitDiff' && (e.key === 'Enter' || e.key === ' ')) {
+        if (e.key === 'Enter' || e.key === ' ') {
           handleStartEditing();
         }
       }}
@@ -93,7 +74,7 @@ export const FileNameHeader: React.FC<FileNameHeaderProps> = ({
       role="button"
       tabIndex={0}
     >
-      <span className="file-name-text">{displayName}</span>
+      <span className="file-name-text">{fileTitle}</span>
     </div>
   );
 };
