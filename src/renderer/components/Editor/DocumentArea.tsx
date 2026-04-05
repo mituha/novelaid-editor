@@ -245,8 +245,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
         activeTabPath={activeTabPath}
         onTabClick={(p) => switchTab(side, p)}
         onTabClose={(tab) => {
-          const docPath = getFilePath(tab.path);
-          closeTab(docPath, side, tab.viewType);
+          closeTab(tab.path, side, tab.viewType);
         }}
         onToggleSplit={toggleSplit}
         isSplit={isSplit}

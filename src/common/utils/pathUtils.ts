@@ -3,8 +3,8 @@
  */
 export function getFilePath(path: string): string {
   if (!path) return '';
-  // スキーム:// の形式を置換して除去
-  return path.replace(/^(preview|git-diff|web-browser|browser|gitDiff):\/\/+/, '').replace(/^staged\/|^unstaged\//, '');
+  // preview:// の形式のみ置換して除去（実体ファイルパスを取得するため）
+  return path.replace(/^preview:\/\/+/, '');
 }
 
 /**

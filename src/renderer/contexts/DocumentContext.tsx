@@ -210,8 +210,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       viewType?: DocumentViewType,
       reason?: string,
     ) => {
-      const docPath = getFilePath(path);
-      const normalizedPath = toDocumentPath(docPath);
+      const normalizedPath = toDocumentPath(getFilePath(path));
       clearTimer(normalizedPath);
 
       setOpenDocuments((prev) => {
