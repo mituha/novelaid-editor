@@ -378,7 +378,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           );
           const newDoc: DocumentState = {
             path: absolutePath,
-            name: (await window.electron.path.basename(absolutePath)) || 'Untitled',
+            name: await getFileTitle(absolutePath),
             content: data.content,
             metadata: data.metadata,
             documentType: data.documentType,
@@ -394,7 +394,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           if (initialData) {
             const newDoc: DocumentState = {
               path: absolutePath,
-              name: (await window.electron.path.basename(absolutePath)) || 'Untitled',
+              name: await getFileTitle(absolutePath),
               content: initialData.content,
               metadata: initialData.metadata,
               isDirty: false,
@@ -461,7 +461,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const isVirtual = currentType === 'browser' || currentType === 'gitDiff';
       if (!fileName && !isVirtual) {
-        fileName = (await window.electron.path.basename(absolutePath)) || 'Untitled';
+        fileName = await getFileTitle(absolutePath);
       }
       fileName = fileName || 'Untitled';
 
@@ -690,12 +690,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   const renameDocument = useCallback(
     async (oldPath: string, newName: string) => {
       if (!newName) return;
-      const fileNameWithExt =
-        (await window.electron.path.basename(oldPath)) || '';
-      const lastDotIndex = fileNameWithExt.lastIndexOf('.');
-      const fileExt =
-        lastDotIndex !== -1 ? fileNameWithExt.substring(lastDotIndex) : '';
-
+      const fileExt = await window.electron.path.extname(oldPath);
       const dir = await window.electron.path.dirname(oldPath);
       const newPath = await window.electron.path.join(
         dir,
@@ -711,7 +706,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         setOpenDocuments((prev) =>
           prev.map((doc) =>
             doc.path === oldPath
-              ? { ...doc, path: newPath, name: `${newName}${fileExt}` }
+              ? { ...doc, path: newPath, name: newName }
               : doc,
           ),
         );
