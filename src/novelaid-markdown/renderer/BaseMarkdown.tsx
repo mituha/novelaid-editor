@@ -228,6 +228,7 @@ export default function BaseMarkdown({
           const ProcessorComponent = processor.component;
           return (
             <ProcessorComponent
+              key={currentCode}
               value={currentCode}
               language={currentLanguage}
               attributes={currentAttributes}
