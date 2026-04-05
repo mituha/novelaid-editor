@@ -35,6 +35,13 @@ export const radarPlugin: MarkdownPlugin = {
             config: headerData.config || {}
           };
           delete headerData.config;
+          //書き込めるように初期値を構成
+          if (!mermaidFrontmatterData.config.themeVariables) {
+            mermaidFrontmatterData.config.themeVariables = {};
+          }
+          if (!mermaidFrontmatterData.config.themeVariables.radar) {
+            mermaidFrontmatterData.config.themeVariables.radar = {};
+          }
 
           if (headerData.title || headerData['タイトル']) {
             mermaidFrontmatterData.title = headerData.title || headerData['タイトル'];
@@ -57,6 +64,31 @@ export const radarPlugin: MarkdownPlugin = {
           delete headerData.theme;
           delete headerData['テーマ'];
 
+          //タイトルフォントサイズの設定
+          const titleFontSize = headerData.titleFontSize;
+          if (titleFontSize) {
+            //pxがついていない場合、pxを付加
+            if (typeof titleFontSize === 'number') {
+              mermaidFrontmatterData.config.themeVariables.fontSize1 = `${titleFontSize}px`;
+            } else {
+              mermaidFrontmatterData.config.themeVariables.fontSize1 = titleFontSize;
+            }
+          }
+          if (!mermaidFrontmatterData.config.themeVariables.fontSize) {
+            mermaidFrontmatterData.config.themeVariables.fontSize = '24px';
+          }
+          delete headerData.titleFontSize;
+
+          //軸ラベルのフォントサイズの設定
+          const fontSize = headerData.fontSize;
+          if (fontSize) {
+            mermaidFrontmatterData.config.themeVariables.radar.axisLabelFontSize = fontSize;
+          }
+          if (!mermaidFrontmatterData.config.themeVariables.radar.axisLabelFontSize) {
+            mermaidFrontmatterData.config.themeVariables.radar.axisLabelFontSize = '20'; //pxはつかない
+          }
+          delete headerData.fontSize;
+
           // 曲線名用の項目 (name)
           // デフォルト値は空文字列とすることで、タイトルのみのレーダーチャートも描画可能にする
           const curveName = headerData.name || headerData['名前'] || '';
@@ -77,6 +109,13 @@ export const radarPlugin: MarkdownPlugin = {
           //  現状、用途としてステータス表示等であるため、polygonをデフォルトとする
           if (headerData['graticule'] === undefined) {
             headerData.graticule = 'polygon';
+          }
+          //判例表示の設定
+          // showLegend = true | false
+          // デフォルトはfalseとします。
+          // 現状、データが１種類のため、表示しても意味がない。
+          if (headerData['showLegend'] === undefined) {
+            headerData.showLegend = false;
           }
 
           // Mermaid の radar-beta 構文を構築
