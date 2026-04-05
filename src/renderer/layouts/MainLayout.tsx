@@ -157,6 +157,7 @@ export default function MainLayout() {
 
   const handleSave = useCallback(async () => {
     if (activeTabItem) {
+      console.log('MainLayout handleSave: ', activeTabItem.path);
       await saveDocument(activeTabItem.path);
     }
   }, [activeTabItem, saveDocument]);

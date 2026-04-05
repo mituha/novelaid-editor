@@ -26,6 +26,7 @@ export interface DocumentState {
   searchQuery?: string;
   documentType?: NovelaidDocumentType;
   deleted?: boolean;
+  isRenaming?: boolean;
   isDirty: boolean;
   isPanel?: boolean; // 互換性のために残す
 
@@ -353,13 +354,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
   const saveDocument = useCallback(
     async (path: string) => {
       const data = getDocumentByPath(path);
-      if (!path || !data) return;
+      if (!path || !data || data.isRenaming) return;
 
       if (data.deleted) return;
 
       try {
         const absolutePath = getAbsolutePath(path);
         savingPaths.current.add(absolutePath);
+        console.log('fs:saveDocument Saving document:', absolutePath);
         await window.electron.ipcRenderer.invoke('fs:saveDocument', absolutePath, data);
 
         setOpenDocuments((prev) =>
@@ -389,6 +391,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         clearTimeout(autoSaveTimerRef.current[path]);
       }
       autoSaveTimerRef.current[path] = setTimeout(() => {
+        console.log('Auto saving:', path);
         saveDocument(path);
         delete autoSaveTimerRef.current[path];
       }, 3000);
@@ -744,6 +747,13 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       if (oldPath === newPath) return;
       clearTimer(oldPath);
 
+      // リネーム中フラグを立てる
+      setOpenDocuments((prev) =>
+        prev.map((doc) =>
+          doc.path === oldPath ? { ...doc, isRenaming: true } : doc,
+        ),
+      );
+
       try {
         await window.electron.ipcRenderer.invoke('fs:rename', oldPath, newPath);
 
@@ -755,6 +765,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
                   path: newPath,
                   baseName: `${newName}${fileExt}`,
                   fileTitle: newName,
+                  isRenaming: false,
                 }
               : doc,
           ),
@@ -768,6 +779,12 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       } catch (error) {
         console.error('Failed to rename file:', error);
+        // エラー時はフラグを戻す
+        setOpenDocuments((prev) =>
+          prev.map((doc) =>
+            doc.path === oldPath ? { ...doc, isRenaming: false } : doc,
+          ),
+        );
       }
     },
     [clearTimer, activeLeftItem, activeRightItem],

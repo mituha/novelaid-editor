@@ -155,34 +155,42 @@ nfService.setMetadataProvider((p) => MetadataService.getInstance().queryByPath(p
 nfService.setIgnoreCheckProvider((p) => MetadataService.getInstance().isIgnored(p));
 
 ipcMain.handle('fs:getDirectoryType', async (_, dirPath: string) => {
+  console.log(`fs:getDirectoryType: ${dirPath}`);
   return NovelaidFileService.getInstance().getDirectoryType(dirPath);
 });
 
 ipcMain.handle('fs:getDocumentType', async (_, filePath: string) => {
+  console.log(`fs:getDocumentType: ${filePath}`);
   return await NovelaidFileService.getInstance().getDocumentType(filePath);
 });
 
 ipcMain.handle('fs:setProjectDirectory', async (_, dirPath: string) => {
+  console.log(`fs:setProjectDirectory: ${dirPath}`);
   await FileService.getInstance().setProjectDirectory(dirPath);
 });
 
 ipcMain.handle('fs:getProjectDirectory', async () => {
+  console.log(`fs:getProjectDirectory`);
   return await FileService.getInstance().getProjectDirectory();
 });
 
 ipcMain.handle('fs:readFile', async (_, filePath: string) => {
+  console.log(`fs:readFile: ${filePath}`);
   return await FileService.getInstance().readFile(filePath);
 });
 
 ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
+  console.log(`fs:writeFile: ${filePath}`);
   return await FileService.getInstance().writeFile(filePath, content);
 });
 
 ipcMain.handle('fs:readDocument', async (_, filePath: string) => {
+  console.log(`fs:readDocument: ${filePath}`);
   return await FileService.getInstance().readDocument(filePath);
 });
 
 ipcMain.handle('fs:saveDocument', async (_, filePath: string, data: any) => {
+  console.log(`fs:saveDocument: ${filePath}`);
   return await FileService.getInstance().saveDocument(filePath, data);
 });
 
@@ -192,6 +200,7 @@ ipcMain.handle('metadata:query', async (_, tagOrTags: string | string[]) => {
 
 ipcMain.handle('fs:createFile', async (_, filePath: string) => {
   try {
+    console.log(`fs:createFile: ${filePath}`);
     return await FileService.getInstance().createFile(filePath);
   } catch (error) {
     console.error('Error creating file:', error);
@@ -201,6 +210,7 @@ ipcMain.handle('fs:createFile', async (_, filePath: string) => {
 
 ipcMain.handle('fs:createUntitledDocument', async (_, dirPath: string) => {
   try {
+    console.log(`fs:createUntitledDocument: ${dirPath}`);
     return await FileService.getInstance().createUntitledDocument(dirPath);
   } catch (error) {
     console.error('Error creating untitled document:', error);
@@ -210,6 +220,7 @@ ipcMain.handle('fs:createUntitledDocument', async (_, dirPath: string) => {
 
 ipcMain.handle('fs:createDirectory', async (_, dirPath: string) => {
   try {
+    console.log(`fs:createDirectory: ${dirPath}`);
     return await FileService.getInstance().createDirectory(dirPath);
   } catch (error) {
     console.error('Error creating directory:', error);
@@ -219,6 +230,7 @@ ipcMain.handle('fs:createDirectory', async (_, dirPath: string) => {
 
 ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
   try {
+    console.log(`fs:rename: ${oldPath} -> ${newPath}`);
     return await FileService.getInstance().rename(oldPath, newPath);
   } catch (error) {
     console.error('Error renaming:', error);

@@ -198,7 +198,10 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
           activePath={path}
           onChange={(val) => updateContent(path, side, val)}
           onFocus={onSetActive}
-          onBlur={() => saveDocument(path)}
+          onBlur={() => {
+            console.log('DocumentArea onBlur saveDocument: ', path);
+            saveDocument(path)
+          }}
           initialLine={document.initialLine}
           initialColumn={document.initialColumn}
           searchQuery={document.searchQuery}
