@@ -89,6 +89,16 @@ export const radarPlugin: MarkdownPlugin = {
           }
           delete headerData.fontSize;
 
+          //色指定
+          const color = headerData.color;
+          if (color) {
+            mermaidFrontmatterData.config.themeVariables.cScale0 = color;
+          }
+          if (!mermaidFrontmatterData.config.themeVariables.cScale0) {
+            mermaidFrontmatterData.config.themeVariables.cScale0 = '#FF0000';
+          }
+          delete headerData.color;
+
           // 曲線名用の項目 (name)
           // デフォルト値は空文字列とすることで、タイトルのみのレーダーチャートも描画可能にする
           const curveName = headerData.name || headerData['名前'] || '';
