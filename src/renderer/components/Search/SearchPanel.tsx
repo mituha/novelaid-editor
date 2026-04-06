@@ -77,22 +77,13 @@ export const SearchPanel: React.FC<SearchPanelProps> = (_props) => {
     index: number,
   ) => {
     try {
-      // Read file content first
       const absolutePath = getFilePath(filePath);
-      const data = await window.electron.ipcRenderer.invoke(
-        'fs:readDocument',
-        absolutePath,
-      );
-
       // openDocument will open the tab
       // line is the relative line number from body (1-based)
       await openDocument(absolutePath, {
-        data: {
-          ...data,
-          initialLine: line,
-          initialColumn: index + 1, // Monaco is 1-based
-          searchQuery: query,
-        },
+        initialLine: line,
+        initialColumn: index + 1, // Monaco is 1-based
+        searchQuery: query,
       });
     } catch (err) {
       // Ignore errors

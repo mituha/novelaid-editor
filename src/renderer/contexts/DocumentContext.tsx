@@ -56,14 +56,12 @@ interface DocumentContextType {
   openDocument: (
     path: string,
     options?: {
-      data?: {
-        content: string;
-        metadata: Record<string, any>;
-        documentType?: NovelaidDocumentType;
-      };
       side?: 'left' | 'right';
       requestedViewType?: DocumentViewType;
       title?: string;
+      initialLine?: number;
+      initialColumn?: number;
+      searchQuery?: string;
     },
   ) => Promise<void>;
   openPanelDocument: (
@@ -468,19 +466,17 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     async (
       path: string,
       options?: {
-        data?: {
-          content: string;
-          metadata: Record<string, any>;
-          documentType?: NovelaidDocumentType;
-        };
         side?: 'left' | 'right';
         requestedViewType?: DocumentViewType;
         title?: string;
+        initialLine?: number;
+        initialColumn?: number;
+        searchQuery?: string;
       },
     ) => {
       let normalizedPath = toDocumentPath(path);
       let absolutePath = getFilePath(normalizedPath);
-      let currentType: NovelaidDocumentType | undefined = options?.data?.documentType;
+      let currentType: NovelaidDocumentType | undefined;
       let fileName = options?.title;
 
       // URIスキームの早期判定
@@ -582,12 +578,12 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const viewTypeToSet = getInitialViewType(existingDoc.documentType);
 
-      docToUpdate = { ...existingDoc };
-      if (options?.data) {
-        docToUpdate.content = options.data.content;
-        docToUpdate.metadata = options.data.metadata;
-        if (options.data.documentType) docToUpdate.documentType = options.data.documentType;
-      }
+      docToUpdate = {
+        ...existingDoc,
+        initialLine: options?.initialLine,
+        initialColumn: options?.initialColumn,
+        searchQuery: options?.searchQuery,
+      };
 
       if (requestedIsPreview) {
         if (targetSide === 'left') docToUpdate.leftPreviewView = 'preview';
