@@ -1,34 +1,6 @@
 TODO
 =========================
 
-## config.json の lastOpenFilesの変更
-
-ドキュメントの保持とタブの扱い方を変更したため、保存されるlastOpenFilesの形式を変更(削除)する必要があります。
-タブの内容を保持する必要はなく、保持していたDocumentStateから情報を保存するだけで良い。
-
-```
-  path: string;
-
-  // 各ペイン・各スロット（メイン/プレビュー）の表示状態。'none'ならタブが表示されない。
-  leftMainView: DocumentViewType;
-  rightMainView: DocumentViewType;
-  leftPreviewView: DocumentViewType;
-  rightPreviewView: DocumentViewType;
-
-  // パネル表示状態（サイドバーなど）
-  openPanelIds: string[];
-```
-
-上記情報があれば良い。
-実際上の処理としては、openDocumentを上記内容に従って、有効なタブの分繰り返し呼んでも良い。
-
-保存されるpathについてはプロジェクトパスからの相対パスとしたほうが良い。
-
-
-
-
-
-
 ## WebContentsView のよる表示
 
 現在のURL表示の問題点として、複数のbrowserタブの切替時にリセットされます。  
