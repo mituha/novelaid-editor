@@ -11,7 +11,7 @@ import ChView from '../ch/ChView';
 import { NovelaidDocumentType } from '../../../novelaid-fs';
 
 import { useDocument } from '../../contexts/DocumentContext';
-import { isViewTypeSupported } from '../../../common/documentSupport';
+import { isViewModeSupported } from '../../../common/documentSupport';
 import { getFilePath } from '../../../common/utils/pathUtils';
 
 const getCodeEditorLanguage = (docType?: NovelaidDocumentType): string => {
@@ -49,7 +49,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     saveDocument,
     renameDocument,
     markNavigated,
-    changeViewType,
+    changeViewMode: changeViewMode,
     getAbsolutePath,
   } = useDocument();
 
@@ -65,7 +65,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     : null;
 
   const activeTab = tabs.find((t) => t.path === activeTabPath);
-  const viewType = activeTab?.viewType || 'editor';
+  const viewMode = activeTab?.viewMode || 'editor';
 
   const onSetActive = () => setActiveSide(side);
 
@@ -82,7 +82,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
     const document = openDocuments.find((d) => d.path === path);
 
     if (isPreview) {
-      if (!isViewTypeSupported(document?.documentType, 'preview')) {
+      if (!isViewModeSupported(document?.documentType, 'preview')) {
         return (
           <div className="empty-editor-state">
             <p>このファイル形式ではプレビューをサポートしていません</p>
@@ -95,7 +95,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
           <MarkdownPreview
             content={document.content || ''}
             filePath={path}
-            viewType="preview"
+            viewMode="preview"
           />
         );
       }
@@ -155,7 +155,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       );
     }
 
-    if (viewType === 'canvas' && document.documentType === 'chat') {
+    if (viewMode === 'canvas' && document.documentType === 'chat') {
       return (
         <ChView
           key={path}
@@ -169,13 +169,13 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       );
     }
 
-    if (viewType === 'reader') {
+    if (viewMode === 'reader') {
       if (document.documentType === 'markdown') {
         return (
           <MarkdownPreview
             content={document.content || ''}
             filePath={path}
-            viewType="reader"
+            viewMode="reader"
           />
         );
       }
@@ -248,15 +248,15 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
         activeTabPath={activeTabPath}
         onTabClick={(p) => switchTab(side, p)}
         onTabClose={(tab) => {
-          closeTab(tab.path, side, tab.viewType);
+          closeTab(tab.path, side, tab.viewMode);
         }}
         onToggleSplit={toggleSplit}
         isSplit={isSplit}
         onOpenPreview={openPreview}
-        onChangeViewType={(p, vt) => {
+        onChangeViewMode={(p, vt) => {
           const isP = p.startsWith('preview://');
           const dp = isP ? p.replace('preview://', '') : p;
-          changeViewType(side, { path: dp, isPreview: isP }, vt);
+          changeViewMode(side, { path: dp, isPreview: isP }, vt);
         }}
         activeDocumentType={
           activeItem

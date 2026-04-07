@@ -2,19 +2,19 @@ import React from 'react';
 import { useTheme } from '../../renderer/contexts/ThemeContext';
 import BaseMarkdown from './BaseMarkdown';
 import { useDocument } from '../../renderer/contexts/DocumentContext';
-import { DocumentViewType } from '../../common/types';
+import { DocumentViewMode } from '../../common/types';
 import './MarkdownPreview.css';
 
 interface MarkdownPreviewProps {
   content: string;
   filePath?: string;
-  viewType?: DocumentViewType;
+  viewMode?: DocumentViewMode;
 }
 
 export default function MarkdownPreview({
   content,
   filePath,
-  viewType,
+  viewMode,
 }: MarkdownPreviewProps) {
   const { theme } = useTheme();
   const { openDocument, openWebBrowser, closeTab } = useDocument();
@@ -44,10 +44,10 @@ export default function MarkdownPreview({
       }
 
       // POSIX と Windows のパス区切りを OS 側で適宜解決させるため、そのまま openDocument へ渡す
-      openDocument(resolvedPath, { requestedViewType: viewType }).then(() => {
+      openDocument(resolvedPath, { requestedViewMode: viewMode }).then(() => {
         // 同じディレクトリ階層の場合かつ新規タブ指定でない場合は、元のタブを閉じて「置き換え遷移」に見せる
         if (!isAbsolute && !hasDirectoryTraversal && !newTab && filePath) {
-          const currentTabPath = viewType === 'preview' ? `preview://${filePath}` : filePath;
+          const currentTabPath = viewMode === 'preview' ? `preview://${filePath}` : filePath;
           // ※side指定はcloseInSideが必要だが、closeTabは全ペインから消すため汎用的に機能する
           closeTab(currentTabPath);
         }
@@ -73,5 +73,5 @@ export default function MarkdownPreview({
 
 MarkdownPreview.defaultProps = {
   filePath: '',
-  viewType: 'editor',
+  viewMode: 'editor',
 };

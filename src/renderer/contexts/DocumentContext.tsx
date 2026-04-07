@@ -10,7 +10,7 @@ import React, {
 import { Tab } from '../components/TabBar/TabBar';
 import { useSettings } from './SettingsContext'
 import { NovelaidDocumentType } from '../../novelaid-fs';
-import { DocumentViewType, TabItem } from '../../common/types';
+import { DocumentViewMode, TabItem } from '../../common/types';
 import { toDocumentPath, getFilePath } from '../../common/utils/pathUtils';
 import { useProject } from './ProjectContext';
 
@@ -31,10 +31,10 @@ export interface DocumentState {
   isPanel?: boolean; // 互換性のために残す
 
   // 各ペイン・各スロット（メイン/プレビュー）の表示状態。'none'ならタブが表示されない。
-  leftMainView: DocumentViewType;
-  rightMainView: DocumentViewType;
-  leftPreviewView: DocumentViewType;
-  rightPreviewView: DocumentViewType;
+  leftMainView: DocumentViewMode;
+  rightMainView: DocumentViewMode;
+  leftPreviewView: DocumentViewMode;
+  rightPreviewView: DocumentViewMode;
 
   // パネル表示状態（サイドバーなど）
   openPanelIds: string[];
@@ -57,7 +57,7 @@ interface DocumentContextType {
     path: string,
     options?: {
       side?: 'left' | 'right';
-      requestedViewType?: DocumentViewType;
+      requestedViewMode?: DocumentViewMode;
       title?: string;
       initialLine?: number;
       initialColumn?: number;
@@ -71,7 +71,7 @@ interface DocumentContextType {
   closeTab: (
     path: string,
     side?: 'left' | 'right',
-    viewType?: DocumentViewType,
+    viewMode?: DocumentViewMode,
     reason?: string,
   ) => void;
   switchTab: (side: 'left' | 'right', path: string) => void;
@@ -89,10 +89,10 @@ interface DocumentContextType {
   ) => void;
   updateMetadata: (path: string, metadata: Record<string, any>) => void;
   markNavigated: (path: string) => void;
-  changeViewType: (
+  changeViewMode: (
     side: 'left' | 'right',
     item: TabItem,
-    viewType: DocumentViewType,
+    viewMode: DocumentViewMode,
   ) => void;
   getFileTitle: (path: string) => Promise<string>;
   getAbsolutePath: (path: string) => string;
@@ -157,7 +157,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           baseName: doc.baseName,
           fileTitle: doc.fileTitle,
           isDirty: doc.isDirty,
-          viewType: doc.leftMainView,
+          viewMode: doc.leftMainView,
           documentType: doc.documentType,
         } as Tab);
       }
@@ -167,7 +167,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           baseName: `Preview: ${doc.baseName}`,
           fileTitle: `Preview: ${doc.fileTitle}`,
           isDirty: false,
-          viewType: 'preview',
+          viewMode: 'preview',
           documentType: doc.documentType,
         } as Tab);
       }
@@ -183,7 +183,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           baseName: doc.baseName,
           fileTitle: doc.fileTitle,
           isDirty: doc.isDirty,
-          viewType: doc.rightMainView,
+          viewMode: doc.rightMainView,
           documentType: doc.documentType,
         } as Tab);
       }
@@ -193,7 +193,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
           baseName: `Preview: ${doc.baseName}`,
           fileTitle: `Preview: ${doc.fileTitle}`,
           isDirty: false,
-          viewType: 'preview',
+          viewMode: 'preview',
           documentType: doc.documentType,
         } as Tab);
       }
@@ -212,7 +212,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     (
       path: string,
       side?: 'left' | 'right',
-      viewType?: DocumentViewType,
+      viewMode?: DocumentViewMode,
       reason?: string,
     ) => {
       const normalizedPath = toDocumentPath(getFilePath(path));
@@ -227,7 +227,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (matchingIndices.length === 0) return prev;
 
-        const isPreviewClosing = viewType === 'preview';
+        const isPreviewClosing = viewMode === 'preview';
         const newList = [...prev];
         const indicesToRemove = new Set<number>();
 
@@ -282,7 +282,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       // アクティブアイテムの調整
       const adjustActiveItem = (
         targetSide: 'left' | 'right',
-        closedViewType: DocumentViewType,
+        closedViewMode: DocumentViewMode,
       ) => {
         const setActiveItem =
           targetSide === 'left' ? setActiveLeftItem : setActiveRightItem;
@@ -299,7 +299,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const isClosedActive =
           isPathMatch &&
-          (closedViewType === 'preview'
+          (closedViewMode === 'preview'
             ? activeItem.isPreview
             : !activeItem.isPreview);
 
@@ -312,7 +312,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
               tPath === normalizedPath || tPath.startsWith(normalizedPath + '/');
             const isTClosed =
               isTPathMatch &&
-              (closedViewType === 'preview' ? tIsPreview : !tIsPreview);
+              (closedViewMode === 'preview' ? tIsPreview : !tIsPreview);
             return !isTClosed;
           });
 
@@ -338,12 +338,12 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       };
 
       if (!side || side === 'left') {
-        adjustActiveItem('left', viewType || 'editor');
-        if (viewType !== 'preview') adjustActiveItem('right', 'preview');
+        adjustActiveItem('left', viewMode || 'editor');
+        if (viewMode !== 'preview') adjustActiveItem('right', 'preview');
       }
       if (!side || side === 'right') {
-        adjustActiveItem('right', viewType || 'editor');
-        if (viewType !== 'preview') adjustActiveItem('left', 'preview');
+        adjustActiveItem('right', viewMode || 'editor');
+        if (viewMode !== 'preview') adjustActiveItem('left', 'preview');
       }
     },
     [clearTimer, activeLeftItem, activeRightItem, leftTabs, rightTabs],
@@ -467,7 +467,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       path: string,
       options?: {
         side?: 'left' | 'right';
-        requestedViewType?: DocumentViewType;
+        requestedViewMode?: DocumentViewMode;
         title?: string;
         initialLine?: number;
         initialColumn?: number;
@@ -507,7 +507,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       let targetSide = options?.side || activeSideRef.current;
-      const requestedIsPreview = options?.requestedViewType === 'preview';
+      const requestedIsPreview = options?.requestedViewMode === 'preview';
 
       if (requestedIsPreview && !options?.side) {
         targetSide = 'left'; // preview展開時は元エディターを必ずleftに配置
@@ -567,16 +567,16 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (!existingDoc) return;
 
-      const getInitialViewType = (docType?: NovelaidDocumentType): DocumentViewType => {
+      const getInitialViewMode = (docType?: NovelaidDocumentType): DocumentViewMode => {
         if (docType === 'chat' || docType === 'browser') return 'canvas';
         if (docType === 'image') return 'reader';
-        if (options?.requestedViewType && options.requestedViewType !== 'preview') {
-          return options.requestedViewType;
+        if (options?.requestedViewMode && options.requestedViewMode !== 'preview') {
+          return options.requestedViewMode;
         }
         return 'editor';
       };
 
-      const viewTypeToSet = getInitialViewType(existingDoc.documentType);
+      const viewModeToSet = getInitialViewMode(existingDoc.documentType);
 
       docToUpdate = {
         ...existingDoc,
@@ -589,8 +589,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         if (targetSide === 'left') docToUpdate.leftPreviewView = 'preview';
         else docToUpdate.rightPreviewView = 'preview';
       } else {
-        if (targetSide === 'left') docToUpdate.leftMainView = viewTypeToSet;
-        else docToUpdate.rightMainView = viewTypeToSet;
+        if (targetSide === 'left') docToUpdate.leftMainView = viewModeToSet;
+        else docToUpdate.rightMainView = viewModeToSet;
       }
 
       setOpenDocuments((prev) => {
@@ -598,7 +598,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         if (index >= 0) {
           const newList = [...prev];
           const existing = newList[index];
-          // 明示的に指定されたViewType以外は既存の状態を保持する
+          // 明示的に指定されたViewMode以外は既存の状態を保持する
           newList[index] = {
             ...docToUpdate,
             leftMainView: docToUpdate.leftMainView !== 'none' ? docToUpdate.leftMainView : existing.leftMainView,
@@ -621,7 +621,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         setActiveSide('right');
       }
 
-      // requestedViewType === 'preview' の場合は、タブ開設直後にプレビューも展開する (以前の挙動の再現)
+      // requestedViewMode === 'preview' の場合は、タブ開設直後にプレビューも展開する (以前の挙動の再現)
       if (requestedIsPreview) {
         // すでに上で設定済み
       }
@@ -645,18 +645,18 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     [setActiveLeftItem, setActiveRightItem, setActiveSide],
   );
 
-  const changeViewType = useCallback(
-    (side: 'left' | 'right', item: TabItem, viewType: DocumentViewType) => {
+  const changeViewMode = useCallback(
+    (side: 'left' | 'right', item: TabItem, viewMode: DocumentViewMode) => {
       setOpenDocuments((prev) =>
         prev.map((doc) => {
           if (doc.path !== item.path) return doc;
           const newDoc = { ...doc };
           if (item.isPreview) {
-            if (side === 'left') newDoc.leftPreviewView = viewType;
-            else newDoc.rightPreviewView = viewType;
+            if (side === 'left') newDoc.leftPreviewView = viewMode;
+            else newDoc.rightPreviewView = viewMode;
           } else {
-            if (side === 'left') newDoc.leftMainView = viewType;
-            else newDoc.rightMainView = viewType;
+            if (side === 'left') newDoc.leftMainView = viewMode;
+            else newDoc.rightMainView = viewMode;
           }
           return newDoc;
         }),
@@ -894,28 +894,28 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
         if (doc.leftMainView !== 'none') {
           await openDocument(absPath, {
             side: 'left',
-            requestedViewType: doc.leftMainView,
+            requestedViewMode: doc.leftMainView,
           });
         }
         // rightMainView
         if (doc.rightMainView !== 'none') {
           await openDocument(absPath, {
             side: 'right',
-            requestedViewType: doc.rightMainView,
+            requestedViewMode: doc.rightMainView,
           });
         }
         // leftPreviewView
         if (doc.leftPreviewView === 'preview') {
           await openDocument(absPath, {
             side: 'left',
-            requestedViewType: 'preview',
+            requestedViewMode: 'preview',
           });
         }
         // rightPreviewView
         if (doc.rightPreviewView === 'preview') {
           await openDocument(absPath, {
             side: 'right',
-            requestedViewType: 'preview',
+            requestedViewMode: 'preview',
           });
         }
       }
@@ -1100,7 +1100,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       updateContent,
       updateMetadata,
       markNavigated,
-      changeViewType,
+      changeViewMode,
       getFileTitle,
       getAbsolutePath,
     }),
@@ -1127,7 +1127,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       updateContent,
       updateMetadata,
       markNavigated,
-      changeViewType,
+      changeViewMode,
       getFileTitle,
       getAbsolutePath,
     ],

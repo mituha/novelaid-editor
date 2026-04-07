@@ -1,10 +1,10 @@
 import { NovelaidDocumentType } from '../novelaid-fs';
-import { DocumentViewType } from './types';
+import { DocumentViewMode } from './types';
 
 /**
  * 指定されたドキュメントタイプでサポートされているビュータイプの一覧を取得します。
  */
-export function getSupportedViewTypes(docType: NovelaidDocumentType | string | undefined): DocumentViewType[] {
+export function getSupportedViewModes(docType: NovelaidDocumentType | string | undefined): DocumentViewMode[] {
   switch (docType) {
     case 'novel':
     case 'markdown':
@@ -26,11 +26,11 @@ export function getSupportedViewTypes(docType: NovelaidDocumentType | string | u
 /**
  * 指定されたドキュメントタイプが、特定のビュータイプをサポートしているか判定します。
  */
-export function isViewTypeSupported(
+export function isViewModeSupported(
   docType: NovelaidDocumentType | string | undefined,
-  viewType: DocumentViewType,
+  viewMode: DocumentViewMode,
 ): boolean {
-  if (!docType) return viewType === 'editor';
-  const supported = getSupportedViewTypes(docType);
-  return supported.includes(viewType);
+  if (!docType) return viewMode === 'editor';
+  const supported = getSupportedViewModes(docType);
+  return supported.includes(viewMode);
 }

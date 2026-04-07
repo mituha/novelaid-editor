@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import { setProjectDirectory } from '../../novelaid-fs';
 import { useApp } from './AppContext';
-import { DocumentViewType, TabItem } from '../../common/types';
+import { DocumentViewMode, TabItem } from '../../common/types';
 
 // プロジェクト設定の型定義
 export interface ProjectConfig {
@@ -63,10 +63,10 @@ export interface ProjectConfig {
   lastOpenFiles?: {
     documents: {
       path: string;
-      leftMainView: DocumentViewType;
-      rightMainView: DocumentViewType;
-      leftPreviewView: DocumentViewType;
-      rightPreviewView: DocumentViewType;
+      leftMainView: DocumentViewMode;
+      rightMainView: DocumentViewMode;
+      leftPreviewView: DocumentViewMode;
+      rightPreviewView: DocumentViewMode;
     }[];
     leftActive?: { path: string; isPreview: boolean } | null;
     rightActive?: { path: string; isPreview: boolean } | null;

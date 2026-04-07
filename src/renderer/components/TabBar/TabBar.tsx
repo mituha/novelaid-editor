@@ -1,8 +1,8 @@
 import React, { MouseEvent, useRef, useState, useEffect } from 'react';
 import { X, Columns, Eye, BookOpen, Edit3, LayoutDashboard, ChevronDown } from 'lucide-react';
 import { NovelaidDocumentType } from '../../../novelaid-fs';
-import { DocumentViewType } from '../../../common/types';
-import { isViewTypeSupported } from '../../../common/documentSupport';
+import { DocumentViewMode } from '../../../common/types';
+import { isViewModeSupported } from '../../../common/documentSupport';
 import './TabBar.css';
 import DocumentIcon from '../../utils/DocumentIcon';
 
@@ -13,7 +13,7 @@ export interface Tab {
   fileTitle: string;
   documentType?: NovelaidDocumentType;
   isDirty?: boolean;
-  viewType?: DocumentViewType;
+  viewMode?: DocumentViewMode;
 }
 
 interface TabBarProps {
@@ -23,7 +23,7 @@ interface TabBarProps {
   onTabClose: (tab: Tab) => void;
   onToggleSplit?: () => void;
   onOpenPreview?: (path: string) => void;
-  onChangeViewType?: (path: string, viewType: DocumentViewType) => void;
+  onChangeViewMode?: (path: string, viewMode: DocumentViewMode) => void;
   activeDocumentType?: NovelaidDocumentType;
   isSplit?: boolean;
 }
@@ -35,7 +35,7 @@ export function TabBar({
   onTabClose,
   onToggleSplit,
   onOpenPreview,
-  onChangeViewType,
+  onChangeViewMode,
   activeDocumentType,
   isSplit = false,
 }: TabBarProps) {
@@ -76,18 +76,18 @@ export function TabBar({
   };
 
   const activeTab = tabs.find(t => t.path === activeTabPath);
-  const activeViewType = activeTab?.viewType || 'editor';
+  const activeViewMode = activeTab?.viewMode || 'editor';
 
   const renderViewToggle = () => {
-    if (!activeTab || activeTab.viewType === 'preview') return null;
+    if (!activeTab || activeTab.viewMode === 'preview') return null;
 
-    const canEditor = isViewTypeSupported(activeDocumentType, 'editor');
+    const canEditor = isViewModeSupported(activeDocumentType, 'editor');
     const toggleTarget = activeDocumentType === 'chat' ? 'canvas' : 'reader';
-    const canToggle = isViewTypeSupported(activeDocumentType, toggleTarget);
+    const canToggle = isViewModeSupported(activeDocumentType, toggleTarget);
 
     if (!canEditor && !canToggle) return null;
 
-    const isEditor = activeViewType === 'editor';
+    const isEditor = activeViewMode === 'editor';
 
     return (
       <>
@@ -96,7 +96,7 @@ export function TabBar({
             type="button"
             className={`pane-toggle-btn ${isEditor ? 'active' : ''}`}
             onClick={() =>
-              activeTabPath && onChangeViewType?.(activeTabPath, 'editor')
+              activeTabPath && onChangeViewMode?.(activeTabPath, 'editor')
             }
             title="編集"
           >
@@ -108,7 +108,7 @@ export function TabBar({
             type="button"
             className={`pane-toggle-btn ${!isEditor ? 'active' : ''}`}
             onClick={() =>
-              activeTabPath && onChangeViewType?.(activeTabPath, toggleTarget)
+              activeTabPath && onChangeViewMode?.(activeTabPath, toggleTarget)
             }
             title="閲覧"
           >
@@ -210,8 +210,8 @@ export function TabBar({
 
         {onOpenPreview &&
           activeTab &&
-          activeTab.viewType !== 'preview' &&
-          isViewTypeSupported(activeDocumentType, 'preview') && (
+          activeTab.viewMode !== 'preview' &&
+          isViewModeSupported(activeDocumentType, 'preview') && (
             <button
               type="button"
               className="pane-toggle-btn"

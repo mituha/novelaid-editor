@@ -569,7 +569,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
   const openLeftFiles = React.useMemo(() => {
     return leftTabs.filter(
       (tab) =>
-        tab.viewType !== 'preview' &&
+        tab.viewMode !== 'preview' &&
         tab.documentType !== 'gitDiff' &&
         tab.documentType !== 'browser',
     );
@@ -578,7 +578,7 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
   const openRightFiles = React.useMemo(() => {
     return rightTabs.filter(
       (tab) =>
-        tab.viewType !== 'preview' &&
+        tab.viewMode !== 'preview' &&
         tab.documentType !== 'gitDiff' &&
         tab.documentType !== 'browser',
     );
