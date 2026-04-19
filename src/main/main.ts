@@ -49,6 +49,10 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+// OSMタイル利用ポリシー (https://operations.osmfoundation.org/policies/tiles/) に適合するため
+// アプリ特有の User-Agent を設定する。Mozilla/5.0 で始まらない独自の識別子が推奨されている。
+app.userAgentFallback = `NovelaidEditor/${app.getVersion()} (+https://github.com/mituha/novelaid-editor)`;
+
 
 
 

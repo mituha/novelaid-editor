@@ -144,6 +144,9 @@ const MapComponent: React.FC<{
     sources: {
       osm: {
         type: 'raster',
+        // OSM公式サイトのタイルサーバーを利用。
+        // ※ポリシーにより特定の User-Agent (main.tsで設定済み) が必須。
+        // ※パッケージ環境(exe)で Referer が欠落するとブロック対象となるため注意。
         tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
         tileSize: 256,
         attribution: '© OpenStreetMap contributors',
