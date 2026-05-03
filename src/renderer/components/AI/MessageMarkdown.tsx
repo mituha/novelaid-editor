@@ -1,5 +1,5 @@
 import React from 'react';
-import { BaseMarkdown } from '../../../novelaid-markdown';
+import { NovelaidMarkdown } from 'novelaid-markdown';
 
 interface MessageMarkdownProps {
   content: string;
@@ -7,7 +7,7 @@ interface MessageMarkdownProps {
 
 export default function MessageMarkdown({ content }: MessageMarkdownProps) {
   return (
-    <BaseMarkdown
+    <NovelaidMarkdown
       content={content}
       // メッセージ領域（吹き出し領域）用のスタイル指定
       className="message-markdown-body"

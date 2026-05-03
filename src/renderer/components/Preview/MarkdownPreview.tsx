@@ -1,8 +1,8 @@
 import React from 'react';
-import { useTheme } from '../../renderer/contexts/ThemeContext';
-import BaseMarkdown from './BaseMarkdown';
-import { useDocument } from '../../renderer/contexts/DocumentContext';
-import { DocumentViewMode } from '../../common/types';
+import { NovelaidMarkdown } from 'novelaid-markdown';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useDocument } from '../../contexts/DocumentContext';
+import { DocumentViewMode } from '../../../common/types';
 import './MarkdownPreview.css';
 
 interface MarkdownPreviewProps {
@@ -14,7 +14,7 @@ interface MarkdownPreviewProps {
 export default function MarkdownPreview({
   content,
   filePath,
-  viewMode,
+  viewMode = 'editor',
 }: MarkdownPreviewProps) {
   const { theme } = useTheme();
   const { openDocument, openWebBrowser, closeTab } = useDocument();
@@ -58,7 +58,7 @@ export default function MarkdownPreview({
   return (
     <div className="markdown-preview-container" data-theme={theme}>
       <div className="markdown-preview-content">
-        <BaseMarkdown
+        <NovelaidMarkdown
           content={content}
           filePath={filePath}
           className="markdown-body"
@@ -68,10 +68,3 @@ export default function MarkdownPreview({
     </div>
   );
 }
-
-
-
-MarkdownPreview.defaultProps = {
-  filePath: '',
-  viewMode: 'editor',
-};

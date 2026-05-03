@@ -1,0 +1,25 @@
+.markdown-preview-container {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  display: flex;
+  justify-content: center;
+}
+
+.markdown-preview-content {
+  width: 100%;
+  max-width: 900px;
+  padding: 40px;
+}
+
+/* markdown-body (GitHub-like) adjustments for dark theme */
+[data-theme='dark'] .markdown-body {
+  color: var(--text-primary);
+}
+
+/* Ensure mermaid and other components look okay */
+.markdown-body pre {
+  background-color: var(--bg-secondary);
+}
