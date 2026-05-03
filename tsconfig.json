@@ -16,7 +16,8 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "isolatedModules": true,
-    "outDir": ".erb/dll"
+    "outDir": ".erb/dll",
+    "rootDir": "./src"
   },
   "exclude": [
     "test",
