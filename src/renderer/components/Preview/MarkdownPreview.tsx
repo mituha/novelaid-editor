@@ -3,6 +3,7 @@ import { NovelaidMarkdown } from 'novelaid-markdown';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useDocument } from '../../contexts/DocumentContext';
 import { DocumentViewMode } from '../../../common/types';
+import "novelaid-markdown/index.css";
 import './MarkdownPreview.css';
 
 interface MarkdownPreviewProps {

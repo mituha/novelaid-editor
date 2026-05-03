@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.52.0",
+  "version": "0.52.2",
   "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
@@ -120,7 +120,7 @@
     "monaco-editor": "^0.55.1",
     "monaco-editor-nls": "^3.1.0",
     "monaco-editor-webpack-plugin": "^7.1.1",
-    "novelaid-markdown": "^0.6.4",
+    "novelaid-markdown": "^0.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-map-gl": "^8.1.0",
