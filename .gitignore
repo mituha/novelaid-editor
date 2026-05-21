@@ -33,3 +33,6 @@ npm-debug.log.*
 .novelaid
 .obsidian
 .vscode
+*.tsbuildinfo
+*.code-workspace
+

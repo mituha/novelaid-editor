@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Languages, Type } from 'lucide-react';
-import { NOVEL_PATTERNS } from '../../../common/constants/novel';
+import { transformToHtml } from 'novelaid-ruby';
 import './NovelPreview.css';
 
 interface NovelPreviewProps {
@@ -14,25 +14,9 @@ export default function NovelPreview({ content }: NovelPreviewProps) {
     if (!text) return [];
 
     // 小説特有の記法（ルビ・傍点）をHTMLタグに置換
-    let processed = text;
+    const processed = transformToHtml(text);
 
-    // 1. ルビ (|漢字《かんじ》 or 漢字《かんじ》)
-    processed = processed.replace(
-      NOVEL_PATTERNS.RUBY_WITH_PIPE,
-      '<ruby>$1<rt>$2</rt></ruby>',
-    );
-    processed = processed.replace(
-      NOVEL_PATTERNS.RUBY_WITHOUT_PIPE,
-      '<ruby>$1<rt>$2</rt></ruby>',
-    );
-
-    // 2. 傍点 (《《強調》》)
-    processed = processed.replace(
-      NOVEL_PATTERNS.BOUTEN,
-      '<span class="bouten">$1</span>',
-    );
-
-    // 3. 改行で分割
+    // 改行で分割
     const lines = processed.split('\n');
     return lines;
   };
@@ -71,3 +55,4 @@ export default function NovelPreview({ content }: NovelPreviewProps) {
     </div>
   );
 }
+
