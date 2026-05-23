@@ -8,7 +8,7 @@ import {
   LocateFixed,
 } from 'lucide-react';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGit } from '../../contexts/GitContext';
 import { useDocument } from '../../contexts/DocumentContext';
 import { TabItem } from '../../../common/types';
@@ -566,6 +566,48 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
   const [rightEditorsExpanded, setRightEditorsExpanded] = useState(true);
   const [revealRequestToken, setRevealRequestToken] = useState(0);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [openEditorsHeight, setOpenEditorsHeight] = useState(200);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // ドラッグリサイズの開始
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  // ドラッグリサイズ中のマウス移動イベント処理
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      // パネル下部からのY座標の相対距離を計算
+      const newHeight = rect.bottom - e.clientY;
+
+      // 上下の各セクションが最低50pxのサイズを維持するように制限
+      const minHeight = 50;
+      const maxHeight = rect.height - 50;
+
+      if (newHeight >= minHeight && newHeight <= maxHeight) {
+        setOpenEditorsHeight(newHeight);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
   const openLeftFiles = React.useMemo(() => {
     return leftTabs.filter(
       (tab) =>
@@ -793,16 +835,157 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
     ? (currentDir.split(/[/\\]/).filter(Boolean).pop() ?? currentDir)
     : '';
 
+  const showOpenEditors = openLeftFiles.length > 0 || openRightFiles.length > 0;
+  const showOpenEditorsList = showOpenEditors && openEditorsIsExpanded;
+  const showFileTreeList = rootIsExpanded;
+
   return (
-    <div className="file-explorer" onClick={() => setSelectedPath(null)}>
+    <div className="file-explorer" ref={containerRef} onClick={() => setSelectedPath(null)}>
+      {/* ファイル一覧セクション */}
+      <div
+        className="file-tree-section"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: showFileTreeList ? 1 : 'none',
+          minHeight: 0,
+        }}
+      >
+        {/* ルートフォルダーヘッダー行（VSCode スタイル） */}
+        {currentDir && (
+          <div
+            role="button"
+            tabIndex={0}
+            className={`root-folder-header ${rootIsDragOver ? 'drag-over' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setRootIsExpanded((v) => !v);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                setRootIsExpanded((v) => !v);
+              }
+            }}
+            onDragOver={handleRootDragOver}
+            onDragLeave={handleRootDragLeave}
+            onDrop={handleRootDrop}
+          >
+            <span className="chevron root-chevron">
+              {rootIsExpanded ? (
+                <ChevronDown size={14} />
+              ) : (
+                <ChevronRight size={14} />
+              )}
+            </span>
+            <span className="root-folder-name" title={currentDir}>
+              {rootFolderName}
+            </span>
+            <span
+              className="root-folder-actions"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="action-btn"
+                onClick={() => setRevealRequestToken((t) => t + 1)}
+                title="アクティブなドキュメントまで展開"
+              >
+                <LocateFixed size={14} />
+              </button>
+              <button
+                type="button"
+                className="action-btn"
+                onClick={() => initiateCreate('file')}
+                title="新規ファイル"
+              >
+                <FilePlus size={14} />
+              </button>
+              <button
+                type="button"
+                className="action-btn"
+                onClick={() => initiateCreate('folder')}
+                title="新規フォルダー"
+              >
+                <FolderPlus size={14} />
+              </button>
+            </span>
+          </div>
+        )}
+        <div className="explorer-content">
+          {rootIsExpanded && (
+            <>
+              {creatingPath === currentDir && creatingType && (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="file-item"
+                  style={{ paddingLeft: `${BASE_INDENT + INDENT_STEP}px` }}
+                  onKeyDown={() => {}} /* Creation input handles its own keys */
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="chevron" />
+                  <span className="icon">
+                    <DocumentIcon
+                      name={creatingType === 'file' ? 'untitled' : 'folder'}
+                      isDirectory={creatingType === 'folder'}
+                      size={16}
+                    />
+                  </span>
+                  <input
+                    className="rename-input"
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
+                    autoFocus
+                    value={newName}
+                    placeholder={`New ${creatingType}...`}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={handleCreate}
+                    onBlur={() => setCreatingPath(null)}
+                    onClick={(e) => e.stopPropagation()}
+                    onFocus={(e) => e.target.select()}
+                  />
+                </div>
+              )}
+              {rootFiles.map((file) => (
+                <FileTreeItem
+                  key={file.path}
+                  file={file}
+                  level={1}
+                  onRefresh={refreshRoot}
+                  selectedPath={selectedPath}
+                  onSelect={handleSelect}
+                  creatingPath={creatingPath}
+                  creatingType={creatingType}
+                  newChildName={newName}
+                  setNewChildName={setNewName}
+                  handleCreateChild={handleCreate}
+                  setCreatingPath={setCreatingPath}
+                  renamingPath={renamingPath}
+                  setRenamingPath={setRenamingPath}
+                  onRefreshItem={() => refreshRoot()}
+                  revealRequestToken={revealRequestToken}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* スプリッター（両方のセクションが展開されている場合のみ表示） */}
+      {showFileTreeList && showOpenEditorsList && (
+        <div
+          className={`explorer-resizer ${isDragging ? 'dragging' : ''}`}
+          onMouseDown={startResizing}
+        />
+      )}
+
       {/* 開いているエディター一覧 */}
-      {(openLeftFiles.length > 0 || openRightFiles.length > 0) && (
+      {showOpenEditors && (
         <div
           className="open-editors-section"
           style={{
-            borderBottom: '1px solid var(--border-color)',
-            paddingBottom: '4px',
-            marginBottom: '4px',
+            height: (showFileTreeList && showOpenEditorsList) ? `${openEditorsHeight}px` : 'auto',
+            flex: (!showFileTreeList && showOpenEditorsList) ? 1 : 'none',
+            minHeight: 0,
           }}
         >
           <div
@@ -830,221 +1013,105 @@ export default function FileExplorerPanel(_props: FileExplorerProps) {
           </div>
 
           {openEditorsIsExpanded && (
-            <div className="open-editors-list" style={{ paddingLeft: '8px' }}>
-              {/* Left Pane Files */}
-              {openLeftFiles.length > 0 && (
-                <>
-                  <div
-                    className="open-editors-group-title file-item"
-                    style={{
-                      fontSize: '10px',
-                      color: 'var(--text-secondary)',
-                      opacity: 0.7,
-                      padding: `4px 8px 4px ${BASE_INDENT}px`,
-                      textTransform: 'uppercase',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLeftEditorsExpanded((v) => !v);
-                    }}
-                  >
-                    <span
-                      className="chevron root-chevron"
-                      style={{ opacity: 1 }}
+            <div className="open-editors-list-container" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+              <div className="open-editors-list" style={{ paddingLeft: '8px' }}>
+                {/* Left Pane Files */}
+                {openLeftFiles.length > 0 && (
+                  <>
+                    <div
+                      className="open-editors-group-title file-item"
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-secondary)',
+                        opacity: 0.7,
+                        padding: `4px 8px 4px ${BASE_INDENT}px`,
+                        textTransform: 'uppercase',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLeftEditorsExpanded((v) => !v);
+                      }}
                     >
-                      {leftEditorsExpanded ? (
-                        <ChevronDown size={14} />
-                      ) : (
-                        <ChevronRight size={14} />
-                      )}
-                    </span>
-                    左エディター
-                  </div>
-                  {leftEditorsExpanded &&
-                    openLeftFiles.map((tab) => (
-                      <OpenEditorItem
-                        key={tab.path}
-                        tab={tab}
-                        side="left"
-                        activeTabItem={activeTabItem}
-                        closeTab={closeTab}
-                      />
-                    ))}
-                </>
-              )}
+                      <span
+                        className="chevron root-chevron"
+                        style={{ opacity: 1 }}
+                      >
+                        {leftEditorsExpanded ? (
+                          <ChevronDown size={14} />
+                        ) : (
+                          <ChevronRight size={14} />
+                        )}
+                      </span>
+                      左エディター
+                    </div>
+                    {leftEditorsExpanded &&
+                      openLeftFiles.map((tab) => (
+                        <OpenEditorItem
+                          key={tab.path}
+                          tab={tab}
+                          side="left"
+                          activeTabItem={activeTabItem}
+                          closeTab={closeTab}
+                        />
+                      ))}
+                  </>
+                )}
 
-              {/* Right Pane Files */}
-              {openRightFiles.length > 0 && (
-                <>
-                  <div
-                    className="open-editors-group-title file-item"
-                    style={{
-                      fontSize: '10px',
-                      color: 'var(--text-secondary)',
-                      opacity: 0.7,
-                      padding: `4px 8px 4px ${BASE_INDENT}px`,
-                      marginTop: '4px',
-                      textTransform: 'uppercase',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRightEditorsExpanded((v) => !v);
-                    }}
-                  >
-                    <span
-                      className="chevron root-chevron"
-                      style={{ opacity: 1 }}
+                {/* Right Pane Files */}
+                {openRightFiles.length > 0 && (
+                  <>
+                    <div
+                      className="open-editors-group-title file-item"
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-secondary)',
+                        opacity: 0.7,
+                        padding: `4px 8px 4px ${BASE_INDENT}px`,
+                        marginTop: '4px',
+                        textTransform: 'uppercase',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRightEditorsExpanded((v) => !v);
+                      }}
                     >
-                      {rightEditorsExpanded ? (
-                        <ChevronDown size={14} />
-                      ) : (
-                        <ChevronRight size={14} />
-                      )}
-                    </span>
-                    右エディター
-                  </div>
-                  {rightEditorsExpanded &&
-                    openRightFiles.map((tab) => (
-                      <OpenEditorItem
-                        key={tab.path}
-                        tab={tab}
-                        side="right"
-                        activeTabItem={activeTabItem}
-                        closeTab={closeTab}
-                      />
-                    ))}
-                </>
-              )}
+                      <span
+                        className="chevron root-chevron"
+                        style={{ opacity: 1 }}
+                      >
+                        {rightEditorsExpanded ? (
+                          <ChevronDown size={14} />
+                        ) : (
+                          <ChevronRight size={14} />
+                        )}
+                      </span>
+                      右エディター
+                    </div>
+                    {rightEditorsExpanded &&
+                      openRightFiles.map((tab) => (
+                        <OpenEditorItem
+                          key={tab.path}
+                          tab={tab}
+                          side="right"
+                          activeTabItem={activeTabItem}
+                          closeTab={closeTab}
+                        />
+                      ))}
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>
       )}
-
-      {/* ルートフォルダーヘッダー行（VSCode スタイル） */}
-      {currentDir && (
-        <div
-          role="button"
-          tabIndex={0}
-          className={`root-folder-header ${rootIsDragOver ? 'drag-over' : ''}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            setRootIsExpanded((v) => !v);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              setRootIsExpanded((v) => !v);
-            }
-          }}
-          onDragOver={handleRootDragOver}
-          onDragLeave={handleRootDragLeave}
-          onDrop={handleRootDrop}
-        >
-          <span className="chevron root-chevron">
-            {rootIsExpanded ? (
-              <ChevronDown size={14} />
-            ) : (
-              <ChevronRight size={14} />
-            )}
-          </span>
-          <span className="root-folder-name" title={currentDir}>
-            {rootFolderName}
-          </span>
-          <span
-            className="root-folder-actions"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="action-btn"
-              onClick={() => setRevealRequestToken((t) => t + 1)}
-              title="アクティブなドキュメントまで展開"
-            >
-              <LocateFixed size={14} />
-            </button>
-            <button
-              type="button"
-              className="action-btn"
-              onClick={() => initiateCreate('file')}
-              title="新規ファイル"
-            >
-              <FilePlus size={14} />
-            </button>
-            <button
-              type="button"
-              className="action-btn"
-              onClick={() => initiateCreate('folder')}
-              title="新規フォルダー"
-            >
-              <FolderPlus size={14} />
-            </button>
-          </span>
-        </div>
-      )}
-      <div className="explorer-content">
-        {rootIsExpanded && (
-          <>
-            {creatingPath === currentDir && creatingType && (
-              <div
-                role="button"
-                tabIndex={0}
-                className="file-item"
-                style={{ paddingLeft: `${BASE_INDENT + INDENT_STEP}px` }}
-                onKeyDown={() => {}} /* Creation input handles its own keys */
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="chevron" />
-                <span className="icon">
-                  <DocumentIcon
-                    name={creatingType === 'file' ? 'untitled' : 'folder'}
-                    isDirectory={creatingType === 'folder'}
-                    size={16}
-                  />
-                </span>
-                <input
-                  className="rename-input"
-                  // eslint-disable-next-line jsx-a11y/no-autofocus
-                  autoFocus
-                  value={newName}
-                  placeholder={`New ${creatingType}...`}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={handleCreate}
-                  onBlur={() => setCreatingPath(null)}
-                  onClick={(e) => e.stopPropagation()}
-                  onFocus={(e) => e.target.select()}
-                />
-              </div>
-            )}
-            {rootFiles.map((file) => (
-              <FileTreeItem
-                key={file.path}
-                file={file}
-                level={1}
-                onRefresh={refreshRoot}
-                selectedPath={selectedPath}
-                onSelect={handleSelect}
-                creatingPath={creatingPath}
-                creatingType={creatingType}
-                newChildName={newName}
-                setNewChildName={setNewName}
-                handleCreateChild={handleCreate}
-                setCreatingPath={setCreatingPath}
-                renamingPath={renamingPath}
-                setRenamingPath={setRenamingPath}
-                onRefreshItem={() => refreshRoot()}
-                revealRequestToken={revealRequestToken}
-              />
-            ))}
-          </>
-        )}
-      </div>
     </div>
   );
 }

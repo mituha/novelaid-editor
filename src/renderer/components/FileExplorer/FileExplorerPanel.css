@@ -107,7 +107,7 @@
 .explorer-content {
   flex: 1;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   padding: 4px 0;
 }
 
@@ -243,4 +243,30 @@
 .editor-close-btn:hover {
   opacity: 1 !important;
   color: var(--accent-color) !important;
+}
+
+/* スプリッター（リサイズ用境界線） */
+.explorer-resizer {
+  height: 4px;
+  margin-top: -2px;
+  margin-bottom: -2px;
+  cursor: row-resize;
+  background-color: transparent;
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.explorer-resizer:hover,
+.explorer-resizer.dragging {
+  background-color: var(--accent-color);
+  opacity: 0.5;
+}
+
+/* 開いているファイルセクション（下部配置用） */
+.open-editors-section {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-color);
 }
