@@ -260,3 +260,46 @@
   color: #81c784;
 }
 
+/* メタデータスキャン進捗インジケーター */
+.status-scan-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  height: 16px;
+  color: var(--text-primary);
+  animation: progressFadeIn 0.3s ease;
+}
+
+.status-scan-progress .spin-icon {
+  animation: spin 1.5s linear infinite;
+  color: var(--text-primary);
+}
+
+.status-scan-progress .progress-text {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+@keyframes progressFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+

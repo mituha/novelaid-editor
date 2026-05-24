@@ -6,12 +6,14 @@ import {
   HelpCircle,
   Maximize,
   Minimize,
+  Loader2,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import './StatusBar.css';
 import { DetailedCountResult } from 'novelaid-ruby';
 import DocumentIcon from '../../utils/DocumentIcon';
 import { NovelaidDocumentType } from '../../../common/types';
+import { useMetadata } from '../../contexts/MetadataContext';
 
 interface StatusBarProps {
   detailedMetrics: DetailedCountResult | null;
@@ -40,6 +42,7 @@ export default function StatusBar({
   isLeftPaneVisible,
   isRightPaneVisible,
 }: StatusBarProps) {
+  const { isScanning, scanProgress, scanStatus } = useMetadata();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -162,6 +165,15 @@ export default function StatusBar({
             </span>
           )}
         </div>
+        {/* メタデータスキャン進捗表示 */}
+        {isScanning && (
+          <div className="status-scan-progress" title={`同期中のファイル: ${scanStatus}`}>
+            <Loader2 size={13} className="spin-icon" />
+            <span className="progress-text">
+              同期中... {scanProgress}%
+            </span>
+          </div>
+        )}
       </div>
       <div className="status-item right-info">
         {detailedMetrics && (

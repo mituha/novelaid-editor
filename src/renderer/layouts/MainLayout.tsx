@@ -13,7 +13,6 @@ import StatusBar from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
 import { DetailedCountResult } from 'novelaid-ruby';
 import { usePanel } from '../contexts/PanelContext';
-import { useMetadata } from '../contexts/MetadataContext';
 import './MainLayout.css';
 
 import { SidePane } from '../components/Common/SidePane';
@@ -36,8 +35,6 @@ export default function MainLayout() {
 
   const { activeLeftPanelId, activeRightPanelId, setActivePanel, getPanels } =
     usePanel();
-
-  const { isScanning, scanProgress, scanStatus } = useMetadata();
 
   const [leftPaneWidth, setLeftPaneWidth] = useState(250);
   const [rightPaneWidth, setRightPaneWidth] = useState(300);
@@ -244,22 +241,6 @@ export default function MainLayout() {
 
   return (
     <div className="layout-wrapper">
-      {isScanning && (
-        <div className="metadata-scan-progress">
-          <div className="progress-bar-container">
-            <div
-              className="progress-bar-fill"
-              style={{ width: `${scanProgress}%` }}
-            />
-          </div>
-          <div className="progress-status-container">
-            <span className="scan-icon">🔍</span>
-            <span className="status-text">
-              メタデータをスキャン中... ({scanProgress}%): {scanStatus}
-            </span>
-          </div>
-        </div>
-      )}
       <div className="main-layout">
         <div
           style={{
