@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { NovelaidDocumentType, NovelaidDirEntry } from '../models';
+import { MetadataService } from './metadataService';
 
 /**
  * ファイルシステム操作に関するサービス (novelaid-fs 汎用)
@@ -150,6 +151,19 @@ export class FileService {
         let children: NovelaidDirEntry[] | null = null;
         if (isDirectory && recursive) {
           children = await this.readDirectory(fullPath, true, documentType);
+        }
+
+        // 変更されたファイルを非同期メタデータスキャンキューへ追加します
+        if (!isDirectory && (documentType === 'novel' || documentType === 'markdown')) {
+          try {
+            const stats = await fs.stat(fullPath);
+            const cached = MetadataService.getInstance().getCacheEntry(fullPath);
+            if (!cached || cached.mtime !== stats.mtimeMs) {
+              MetadataService.getInstance().addToQueue(fullPath);
+            }
+          } catch (e) {
+            console.error(`[FileService] Failed to check stat for ${fullPath}:`, e);
+          }
         }
 
         results.push({
