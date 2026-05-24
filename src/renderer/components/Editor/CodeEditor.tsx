@@ -45,6 +45,11 @@ export default function CodeEditor({
   const [selectedText, setSelectedText] = useState('');
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
+  const activePathRef = useRef(activePath);
+
+  useEffect(() => {
+    activePathRef.current = activePath;
+  }, [activePath]);
 
   // Track the last value emitted to the parent to avoid loopback cycles
   const lastEmittedValueRef = useRef<string | undefined>(value);
@@ -262,6 +267,29 @@ export default function CodeEditor({
 
     editor.onDidBlurEditorText(() => {
       onBlur?.();
+      window.dispatchEvent(
+        new CustomEvent('editor-selection-change', {
+          detail: { text: '', path: activePathRef.current },
+        })
+      );
+    });
+
+    editor.onDidChangeCursorSelection((e) => {
+      const selection = editor.getSelection();
+      if (selection && !selection.isEmpty()) {
+        const text = editor.getModel().getValueInRange(selection);
+        window.dispatchEvent(
+          new CustomEvent('editor-selection-change', {
+            detail: { text, path: activePathRef.current },
+          })
+        );
+      } else {
+        window.dispatchEvent(
+          new CustomEvent('editor-selection-change', {
+            detail: { text: '', path: activePathRef.current },
+          })
+        );
+      }
     });
 
     const domNode = editor.getDomNode();

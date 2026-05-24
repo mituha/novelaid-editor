@@ -11,6 +11,7 @@ import { CalibrationSettingsTab } from '../components/Settings/Tabs/CalibrationS
 import Resizer from '../components/Common/Resizer';
 import StatusBar from '../components/Common/StatusBar';
 import { CharCounter } from '../utils/CharCounter';
+import { DetailedCountResult } from 'novelaid-ruby';
 import { usePanel } from '../contexts/PanelContext';
 import { useMetadata } from '../contexts/MetadataContext';
 import './MainLayout.css';
@@ -41,6 +42,10 @@ export default function MainLayout() {
   const [leftPaneWidth, setLeftPaneWidth] = useState(250);
   const [rightPaneWidth, setRightPaneWidth] = useState(300);
   const [editorSplitRatio, setEditorSplitRatio] = useState(0.5);
+
+  const [selectedText, setSelectedText] = useState('');
+  const [detailedMetrics, setDetailedMetrics] = useState<DetailedCountResult | null>(null);
+  const [selectedMetrics, setSelectedMetrics] = useState<DetailedCountResult | null>(null);
 
   const isLeftPaneNarrow = !activeLeftPanelId;
   const isRightPaneNarrow = !activeRightPanelId;
@@ -184,6 +189,59 @@ export default function MainLayout() {
   const activeTab = [...leftTabs, ...rightTabs].find(t => t.path === activeTabUniquePath);
   const activeDocument = openDocuments.find(d => d.path === activePath);
 
+  // 全体の詳細文字数カウント (Debounce: 200ms)
+  useEffect(() => {
+    const text = activeTab && !activeTabItem?.isPreview && activeTab.documentType !== 'gitDiff' && activeTab.documentType !== 'browser'
+      ? activeDocument?.content || ''
+      : '';
+
+    if (!text) {
+      setDetailedMetrics(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const metrics = CharCounter.getDetailedMetrics(text);
+      setDetailedMetrics(metrics);
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [activeDocument?.content, activeTab, activeTabItem, activePath]);
+
+  // 選択範囲の詳細文字数カウント (Debounce: 100ms)
+  useEffect(() => {
+    if (!selectedText) {
+      setSelectedMetrics(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const metrics = CharCounter.getDetailedMetrics(selectedText);
+      setSelectedMetrics(metrics);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [selectedText]);
+
+  // 選択範囲変更イベントの監視
+  useEffect(() => {
+    const handleSelectionChange = (e: CustomEvent<{ text: string; path: string }>) => {
+      if (e.detail.path === activePath) {
+        setSelectedText(e.detail.text);
+      }
+    };
+    window.addEventListener('editor-selection-change' as any, handleSelectionChange);
+    return () => {
+      window.removeEventListener('editor-selection-change' as any, handleSelectionChange);
+    };
+  }, [activePath]);
+
+  // アクティブパスが変わったら選択状態をクリア
+  useEffect(() => {
+    setSelectedText('');
+    setSelectedMetrics(null);
+  }, [activePath]);
+
   return (
     <div className="layout-wrapper">
       {isScanning && (
@@ -253,12 +311,8 @@ export default function MainLayout() {
         </div>
       </div>
       <StatusBar
-        metrics={CharCounter.getMetrics(
-          activeTab && !activeTabItem?.isPreview && activeTab.documentType !== 'gitDiff' && activeTab.documentType !== 'browser'
-            ? activeDocument?.content || ''
-            : '',
-          activePath,
-        )}
+        detailedMetrics={detailedMetrics}
+        selectedMetrics={selectedMetrics}
         activePath={activePath}
         documentType={activeDocument?.documentType}
         metadata={activeDocument?.metadata}
