@@ -16,7 +16,7 @@ import { Panel } from '../../types/panel';
 import { Tab } from '../TabBar/TabBar';
 import './FileExplorerPanel.css';
 import DocumentIcon from '../../utils/DocumentIcon';
-import { NovelaidDocumentType, readDirectory, getDirectoryType } from '../../../novelaid-fs';
+import { NovelaidDocumentType, readDirectory, getDirectoryType } from '../../../novelaid-fs/renderer';
 import { toDocumentPath, getFilePath } from '../../../common/utils/pathUtils';
 
 const BASE_INDENT = -8;

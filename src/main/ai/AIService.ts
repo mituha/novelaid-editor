@@ -2,8 +2,7 @@ import { IpcMainEvent } from 'electron';
 import path from 'path';
 import { ProviderFactory } from './ProviderFactory';
 import { PERSONAS, CHAT_ROLES } from '../../common/constants/personas';
-import { MetadataService } from '../metadataService';
-import { readDocument } from '../metadata';
+import { MetadataService, readDocument } from '../../novelaid-fs/main';
 import { ToolService } from './tools/ToolService';
 import { searchDocumentsTool, readDocumentTool } from './tools/definitions/documentTools';
 

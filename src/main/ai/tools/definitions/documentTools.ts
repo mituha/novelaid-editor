@@ -1,7 +1,6 @@
 import path from 'path';
 import { AITool } from '../interface';
-import { MetadataService } from '../../../metadataService';
-import { readDocument } from '../../../metadata';
+import { MetadataService, readDocument } from '../../../../novelaid-fs/main';
 
 export const searchDocumentsTool: AITool = {
   name: 'search_documents',

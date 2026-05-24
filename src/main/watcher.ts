@@ -1,6 +1,6 @@
 import * as chokidar from 'chokidar';
 import { BrowserWindow } from 'electron';
-import { MetadataService } from './metadataService';
+import { MetadataService } from '../novelaid-fs/main';
 
 const LOG_PREFIX = '[FileWatcher]';
 

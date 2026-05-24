@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
-import { NovelaidDocumentType, NovelaidDirEntry } from './models';
+import { NovelaidDocumentType, NovelaidDirEntry } from '../models';
 
 /**
  * ファイルシステム操作に関するサービス (novelaid-fs 汎用)

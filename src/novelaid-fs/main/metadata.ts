@@ -1,8 +1,8 @@
 import path from 'path';
 import fs from 'fs/promises';
 import matter from 'gray-matter';
-import { FileService } from './fs/FileService';
-import { NovelaidDocumentType } from '../novelaid-fs';
+import { FileService } from './FileService';
+import { NovelaidDocumentType } from '../models';
 
 export interface DocumentData {
   content: string;
@@ -14,21 +14,19 @@ export interface DocumentData {
 const NOVELAID_DIR = '.novelaid';
 
 /**
- * Calculate line offset from frontmatter
-
-
-/**
- * Calculate line offset from frontmatter
+ * フロントマターから行のオフセットを計算します。
  */
 export function calculateLineOffset(content: string): number {
-    const { matter: rawFrontmatter } = matter(content);
-    if (rawFrontmatter) {
-        return rawFrontmatter.trim().split('\n').length + 2;
-    }
-    return 0;
+  const { matter: rawFrontmatter } = matter(content);
+  if (rawFrontmatter) {
+    return rawFrontmatter.trim().split('\n').length + 2;
+  }
+  return 0;
 }
 
-
+/**
+ * ファイルを読み込み、ドキュメントデータを返します。
+ */
 export async function readDocument(filePath: string): Promise<DocumentData> {
   const documentType = await FileService.getInstance().getDocumentType(filePath);
 
@@ -37,7 +35,7 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
       const content = await fs.readFile(filePath, 'utf-8');
       const { data, content: body } = matter(content);
 
-      // Calculate line offset if frontmatter exists
+      // フロントマターが存在する場合は行オフセットを計算
       const lineOffset = calculateLineOffset(content);
 
       return {
@@ -79,6 +77,9 @@ export async function readDocument(filePath: string): Promise<DocumentData> {
   }
 }
 
+/**
+ * ドキュメントデータをファイルに保存します。
+ */
 export async function saveDocument(
   filePath: string,
   data: DocumentData,

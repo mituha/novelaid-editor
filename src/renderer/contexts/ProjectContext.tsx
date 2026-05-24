@@ -7,7 +7,7 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
-import { setProjectDirectory } from '../../novelaid-fs';
+import { setProjectDirectory } from '../../novelaid-fs/renderer';
 import { useApp } from './AppContext';
 import { DocumentViewMode, TabItem } from '../../common/types';
 

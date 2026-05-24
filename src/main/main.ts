@@ -24,7 +24,6 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { loadProject, saveProject } from './project';
-import { readDocument, saveDocument } from './metadata';
 import {
   getRecentProjects,
   addRecentProject,
@@ -32,11 +31,10 @@ import {
 } from './launcher';
 import { GitService } from './git/GitService';
 import { FileWatcher } from './watcher';
-import { MetadataService } from './metadataService';
 import { CalibrationService } from './calibration/CalibrationService';
 import { AIService } from './ai/AIService';
 import { FileService } from './fs/FileService';
-import { NovelaidDocumentType } from '../novelaid-fs';
+import { NovelaidDocumentType, MetadataService, readDocument, saveDocument, FileService as NovelaidFileService } from '../novelaid-fs/main';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -151,7 +149,7 @@ ipcMain.handle(
   },
 );
 
-import { FileService as NovelaidFileService } from '../novelaid-fs/FileService';
+
 
 // novelaid-fs のプロバイダーを初期化
 const nfService = NovelaidFileService.getInstance();

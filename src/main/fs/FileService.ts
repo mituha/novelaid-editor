@@ -1,10 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { dialog, BrowserWindow } from 'electron';
-import { MetadataService } from '../metadataService';
-import { readDocument, saveDocument } from '../metadata';
-import { NovelaidDocumentType } from '../../novelaid-fs';
-import { FileService as NovelaidFileService } from '../../novelaid-fs/FileService';
+import { MetadataService, readDocument, saveDocument, NovelaidDocumentType, FileService as NovelaidFileService } from '../../novelaid-fs/main';
 import { toDocumentPath } from '../../common/utils/pathUtils';
 
 const LOG_PREFIX = '[FileService]';

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Editor, { OnMount, BeforeMount } from '@monaco-editor/react';
-import { getDocumentType } from '../../../novelaid-fs';
+import { getDocumentType } from '../../../novelaid-fs/renderer';
 import { useProject } from '../../contexts/ProjectContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { NOVEL_PATTERNS } from '../../../common/constants/novel';

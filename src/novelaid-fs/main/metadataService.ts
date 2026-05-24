@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { readDocument } from './metadata';
-import { toDocumentPath } from '../common/utils/pathUtils';
+import { toDocumentPath } from '../../common/utils/pathUtils';
 
 export interface MetadataEntry {
   path: string;
@@ -9,6 +9,9 @@ export interface MetadataEntry {
   metadata: Record<string, any>;
 }
 
+/**
+ * プロジェクト内のドキュメントからメタデータを抽出・走査し、インデックスを構築・管理するサービス。
+ */
 export class MetadataService {
   private static instance: MetadataService;
   private index: Map<string, Record<string, any>> = new Map();
@@ -29,6 +32,9 @@ export class MetadataService {
     return this.index.get(filePath);
   }
 
+  /**
+   * プロジェクトフォルダ全体をスキャンし、メタデータインデックスを再構築します。
+   */
   async scanProject(rootPath: string) {
     this.projectRoot = rootPath;
     this.index.clear();
@@ -37,7 +43,7 @@ export class MetadataService {
     console.log(`Starting metadata scan for ${rootPath}...`);
     this.onProgress?.(0, 'Scanning directory structure...');
 
-    // 1. First Pass: Count total relevant files to estimate progress
+    // 1. 進捗見積もりのための事前カウント
     let totalFiles = 0;
     const countFiles = async (dir: string) => {
       try {
@@ -64,7 +70,7 @@ export class MetadataService {
     await countFiles(rootPath);
     console.log(`[MetadataService] Expected files to scan: ${totalFiles}`);
 
-    // 2. Second Pass: Actual scan
+    // 2. 実際のファイルスキャン処理
     let processedFiles = 0;
     const scanDirWithProgress = async (dir: string) => {
       try {
@@ -114,19 +120,19 @@ export class MetadataService {
         });
       console.log(`Loaded ${this.ignoreList.length} ignore patterns.`);
     } catch (e) {
-      // Ignore if file doesn't exist
+      // ファイルが存在しない場合は何もしない
     }
   }
 
+  /**
+   * 指定したファイルが無視対象に該当するかどうかを判定します。
+   */
   public isIgnored(filePath: string): boolean {
     if (!this.projectRoot) return false;
 
-    // Use absolute paths and normalize them for comparison
     const absPath = path.resolve(filePath);
     const absRoot = path.resolve(this.projectRoot);
 
-    // If file is not under project root, it's not "ignored" in the project sense,
-    // but we shouldn't scan it either.
     if (!absPath.toLowerCase().startsWith(absRoot.toLowerCase())) {
       return true;
     }
@@ -135,11 +141,9 @@ export class MetadataService {
       .relative(absRoot, absPath)
       .replace(/\\/g, '/');
 
-    // Skip .novelaid directory itself if not already handled
     if (relativePath.startsWith('.novelaid/')) return true;
 
     for (const pattern of this.ignoreList) {
-      // Basic folder ignore: pattern/
       if (pattern.endsWith('/')) {
         const dirPattern = pattern.slice(0, -1);
         if (
@@ -149,10 +153,8 @@ export class MetadataService {
           return true;
         }
       } else if (relativePath === pattern || path.basename(relativePath) === pattern) {
-        // Exact match or filename match
         return true;
       }
-      // Basic glob-like (very simple)
       if (pattern.includes('*')) {
         const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
         if (regex.test(relativePath) || regex.test(path.basename(relativePath))) {
@@ -163,7 +165,9 @@ export class MetadataService {
     return false;
   }
 
-
+  /**
+   * ファイルインデックスを更新します。
+   */
   async updateFileIndex(filePath: string) {
     if (this.isIgnored(filePath)) {
       console.log(`[MetadataService] Skipping ignored file during index update: ${filePath}`);
@@ -182,18 +186,23 @@ export class MetadataService {
     }
   }
 
+  /**
+   * ファイルインデックスから指定されたファイルを削除します。
+   */
   removeFileFromIndex(filePath: string) {
     console.log(`[MetadataService] Explicit removal of ${filePath}`);
     this.index.delete(toDocumentPath(filePath));
   }
 
+  /**
+   * タグでインデックスを検索します。
+   */
   queryByTag(tagOrTags: string | string[]): MetadataEntry[] {
     const results: MetadataEntry[] = [];
     const targetTags = Array.isArray(tagOrTags) ? tagOrTags : [tagOrTags];
     const normalizedTargets = targetTags.map((t) => t.toLowerCase());
 
     for (const [filePath, metadata] of this.index.entries()) {
-      // Support both 'tags' and 'tag' (singular)
       const fileTagsRaw = metadata.tags || metadata.tag;
       if (!fileTagsRaw) continue;
 
@@ -215,6 +224,9 @@ export class MetadataService {
     return results;
   }
 
+  /**
+   * チャットが有効化されているドキュメント一覧を検索します。
+   */
   queryChatEnabled(): MetadataEntry[] {
     const results: MetadataEntry[] = [];
     for (const [filePath, metadata] of this.index.entries()) {
@@ -230,20 +242,20 @@ export class MetadataService {
     return results;
   }
 
+  /**
+   * ID、名前、またはファイル名からキャラクターを検索します。
+   */
   async findCharacterById(id: string): Promise<MetadataEntry | null> {
-    // 1. Search by ID
     for (const [filePath, metadata] of this.index.entries()) {
       if (metadata.id === id) {
         return { path: filePath, name: metadata.name || id, metadata };
       }
     }
-    // 2. Search by Name
     for (const [filePath, metadata] of this.index.entries()) {
       if (metadata.name === id) {
         return { path: filePath, name: metadata.name, metadata };
       }
     }
-    // 3. Search by Filename
     for (const [filePath, metadata] of this.index.entries()) {
       if (path.basename(filePath, path.extname(filePath)) === id) {
         return { path: filePath, name: metadata.name || id, metadata };
