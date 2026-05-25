@@ -19,6 +19,7 @@ export interface Tab {
 interface TabBarProps {
   tabs: Tab[];
   activeTabPath: string | null;
+  side: 'left' | 'right';
   onTabClick: (path: string) => void;
   onTabClose: (tab: Tab) => void;
   onToggleSplit?: () => void;
@@ -31,6 +32,7 @@ interface TabBarProps {
 export function TabBar({
   tabs,
   activeTabPath,
+  side,
   onTabClick,
   onTabClose,
   onToggleSplit,
@@ -174,6 +176,15 @@ export function TabBar({
             className={`tab-item ${tab.path === activeTabPath ? 'active' : ''}`}
             onClick={() => onTabClick(tab.path)}
             onKeyDown={handleKeyDown(tab.path)}
+            onContextMenu={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              await window.electron.ipcRenderer.invoke(
+                'context-menu:show-tab',
+                tab.path,
+                side,
+              );
+            }}
             title={tab.path}
             role="tab"
             aria-selected={tab.path === activeTabPath}

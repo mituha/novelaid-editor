@@ -366,6 +366,38 @@ ipcMain.handle(
   },
 );
 
+ipcMain.handle(
+  'context-menu:show-tab',
+  async (event, filePath: string, side: 'left' | 'right') => {
+    const template: any[] = [
+      {
+        label: '閉じる',
+        click: () => {
+          event.sender.send('tab:action', 'close', filePath, side);
+        },
+      },
+      {
+        label: 'その他を閉じる',
+        click: () => {
+          event.sender.send('tab:action', 'close-others', filePath, side);
+        },
+      },
+      {
+        label: 'すべて閉じる',
+        click: () => {
+          event.sender.send('tab:action', 'close-all', filePath, side);
+        },
+      },
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    menu.popup({
+      window: BrowserWindow.fromWebContents(event.sender) || undefined,
+    });
+    return true;
+  },
+);
+
 ipcMain.handle('fs:delete', async (_, targetPath: string) => {
   try {
     return await FileService.getInstance().delete(targetPath);

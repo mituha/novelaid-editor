@@ -246,6 +246,7 @@ export default function DocumentArea({ side, splitRatio }: DocumentAreaProps) {
       <TabBar
         tabs={tabs}
         activeTabPath={activeTabPath}
+        side={side}
         onTabClick={(p) => switchTab(side, p)}
         onTabClose={(tab) => {
           closeTab(tab.path, side, tab.viewMode);

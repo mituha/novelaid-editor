@@ -46,7 +46,10 @@ export type Channels =
   | 'recent:add'
   | 'recent:remove'
   | 'project:load'
-  | 'project:save-config';
+  | 'project:save-config'
+  | 'context-menu:show-tab'
+  | 'context-menu:show-file-explorer'
+  | 'tab:action';
 
 const electronHandler = {
   ipcRenderer: {

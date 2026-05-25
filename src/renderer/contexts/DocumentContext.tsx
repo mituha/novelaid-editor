@@ -74,6 +74,12 @@ interface DocumentContextType {
     viewMode?: DocumentViewMode,
     reason?: string,
   ) => void;
+  closeOtherTabs: (
+    path: string,
+    side: 'left' | 'right',
+    viewMode?: DocumentViewMode,
+  ) => void;
+  closeAllTabs: (side: 'left' | 'right') => void;
   switchTab: (side: 'left' | 'right', path: string) => void;
   setActiveSide: (side: 'left' | 'right') => void;
   toggleSplit: () => void;
@@ -348,6 +354,130 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
     },
     [clearTimer, activeLeftItem, activeRightItem, leftTabs, rightTabs],
   );
+
+  const closeOtherTabs = useCallback(
+    (
+      path: string,
+      side: 'left' | 'right',
+      viewMode?: DocumentViewMode,
+    ) => {
+      const normalizedPath = toDocumentPath(getFilePath(path));
+      const isPreview = viewMode === 'preview';
+
+      setOpenDocuments((prev) => {
+        return prev
+          .map((doc) => {
+            const newDoc = { ...doc };
+            if (side === 'left') {
+              if (isPreview) {
+                if (newDoc.path !== normalizedPath) {
+                  newDoc.leftPreviewView = 'none';
+                }
+                newDoc.leftMainView = 'none';
+              } else {
+                if (newDoc.path !== normalizedPath) {
+                  newDoc.leftMainView = 'none';
+                }
+                newDoc.leftPreviewView = 'none';
+              }
+            } else {
+              if (isPreview) {
+                if (newDoc.path !== normalizedPath) {
+                  newDoc.rightPreviewView = 'none';
+                }
+                newDoc.rightMainView = 'none';
+              } else {
+                if (newDoc.path !== normalizedPath) {
+                  newDoc.rightMainView = 'none';
+                }
+                newDoc.rightPreviewView = 'none';
+              }
+            }
+            return newDoc;
+          })
+          .filter((newDoc) => {
+            return (
+              newDoc.leftMainView !== 'none' ||
+              newDoc.rightMainView !== 'none' ||
+              newDoc.leftPreviewView !== 'none' ||
+              newDoc.rightPreviewView !== 'none' ||
+              newDoc.openPanelIds.length > 0
+            );
+          });
+      });
+
+      // アクティブタブを、残したタブに設定する
+      const activeItem = { path: normalizedPath, isPreview };
+      if (side === 'left') {
+        setActiveLeftItem(activeItem);
+      } else {
+        setActiveRightItem(activeItem);
+      }
+    },
+    [],
+  );
+
+  const closeAllTabs = useCallback(
+    (side: 'left' | 'right') => {
+      setOpenDocuments((prev) => {
+        return prev
+          .map((doc) => {
+            const newDoc = { ...doc };
+            if (side === 'left') {
+              newDoc.leftMainView = 'none';
+              newDoc.leftPreviewView = 'none';
+            } else {
+              newDoc.rightMainView = 'none';
+              newDoc.rightPreviewView = 'none';
+            }
+            return newDoc;
+          })
+          .filter((newDoc) => {
+            return (
+              newDoc.leftMainView !== 'none' ||
+              newDoc.rightMainView !== 'none' ||
+              newDoc.leftPreviewView !== 'none' ||
+              newDoc.rightPreviewView !== 'none' ||
+              newDoc.openPanelIds.length > 0
+            );
+          });
+      });
+
+      if (side === 'left') {
+        setActiveLeftItem(null);
+      } else {
+        setActiveRightItem(null);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const ipcRenderer = window.electron?.ipcRenderer;
+    if (ipcRenderer) {
+      const removeTabActionListener = ipcRenderer.on(
+        'tab:action',
+        (action: any, path: any, side: any) => {
+          const isPreview = path.startsWith('preview://');
+          const cleanPath = isPreview ? path.replace('preview://', '') : path;
+          const viewMode = isPreview ? 'preview' : 'editor';
+
+          if (action === 'close') {
+            closeTab(cleanPath, side, viewMode);
+          } else if (action === 'close-others') {
+            closeOtherTabs(cleanPath, side, viewMode);
+          } else if (action === 'close-all') {
+            closeAllTabs(side);
+          }
+        },
+      );
+
+      return () => {
+        if (removeTabActionListener) removeTabActionListener();
+      };
+    }
+    return () => {};
+  }, [closeTab, closeOtherTabs, closeAllTabs]);
 
   const saveDocument = useCallback(
     async (path: string) => {
@@ -1089,6 +1219,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       openDocument,
       openPanelDocument,
       closeTab,
+      closeOtherTabs,
+      closeAllTabs,
       switchTab,
       setActiveSide,
       toggleSplit,
@@ -1116,6 +1248,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({
       openDocument,
       openPanelDocument,
       closeTab,
+      closeOtherTabs,
+      closeAllTabs,
       switchTab,
       setActiveSide,
       toggleSplit,
