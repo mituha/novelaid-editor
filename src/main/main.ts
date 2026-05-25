@@ -388,7 +388,17 @@ ipcMain.handle('project:load', async (_, projectPath: string) => {
       mainWindow.webContents.send('metadata:scan-progress', { progress, status });
     }
   };
-  metadataService.scanProject(projectPath); // No await
+  // メタデータサービスの初期化
+  await metadataService.initProject(projectPath);
+
+  // プロジェクトディレクトリの設定
+  await FileService.getInstance().setProjectDirectory(projectPath);
+
+  // 初回の再帰的ディレクトリスキャンを走らせることで、
+  // 変更・未キャッシュファイルを自動キュー登録します（非同期実行）
+  NovelaidFileService.getInstance().readDirectory(projectPath, true).catch((e) => {
+    console.error(`[main] Initial directory scan error:`, e);
+  });
   await CalibrationService.getInstance().loadCustomRules(projectPath);
 
   // Save to session

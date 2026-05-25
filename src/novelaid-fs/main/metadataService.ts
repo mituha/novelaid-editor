@@ -50,10 +50,10 @@ export class MetadataService {
   }
 
   /**
-   * プロジェクトフォルダ全体をスキャンし、メタデータインデックスを再構築します。
-   * ディレクトリスキャンを内部で走らせ、変更があったファイルのみをキューへ登録してバックグラウンドで解析します。
+   * プロジェクトの初期設定（インデックスのクリアや無視リストのロード）を行います。
+   * 実際のファイルスキャンは FileService.readDirectory 経由で行われます。
    */
-  async scanProject(rootPath: string) {
+  async initProject(rootPath: string) {
     this.projectRoot = rootPath;
     this.index.clear();
     await this.loadIgnoreList(rootPath);
@@ -61,18 +61,8 @@ export class MetadataService {
     this.processedJobs = 0;
     this.queue = [];
 
-    console.log(`Starting metadata scan for ${rootPath}...`);
-    this.onProgress?.(0, 'Scanning directory structure...');
-
-    try {
-      // 循環参照を回避するため、動的インポートする
-      const { FileService } = require('./FileService');
-      // 再帰的ディレクトリスキャンを走らせることで、変更・未キャッシュファイルを自動キュー登録します
-      await FileService.getInstance().readDirectory(rootPath, true);
-    } catch (e) {
-      console.error(`[MetadataService] Directory scan error:`, e);
-      this.onProgress?.(100, 'Scan error');
-    }
+    console.log(`Initialized metadata service for project: ${rootPath}`);
+    this.onProgress?.(0, 'Initializing metadata cache...');
   }
 
   /**
