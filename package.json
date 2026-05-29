@@ -1,6 +1,6 @@
 {
   "name": "novelaid-editor",
-  "version": "0.53.5",
+  "version": "0.53.6",
   "description": "小説執筆用のエディター",
   "keywords": [
     "electron",
@@ -123,6 +123,7 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.3.0",
     "remark-gfm": "^4.0.1",
+    "restar-app": "^0.2.2",
     "simple-git": "^3.30.0",
     "textlint": "^15.5.2",
     "textlint-rule-no-doubled-joshi": "^5.1.1",
