@@ -1,52 +1,15 @@
-# `.novelaidattributes`仕様
+# novelaidattributes 仕様（概要）
 
-## 概要
+`.novelaidattributes` は、プロジェクト内のファイルやディレクトリのドキュメントタイプ（`NovelaidDocumentType`）をローカルに定義・カスタマイズするための設定ファイルです（非再帰・局所適用の原則）。
 
-`.novelaidattributes`ファイルは、プロジェクト内のファイルやディレクトリのドキュメントタイプ等を定義するためのファイルです。
+## 共通仕様へのリンク
 
-なお、簡易的な処理のみサポートするものとして再帰的な適用は行いません。
-影響を及ぼすのは同じディレクトリ内のファイル、フォルダーのみとします。
+プログラム言語および特定の実装に依存しない共通仕様（構文規則、ワイルドカード照合、判定アルゴリズム、実例）は、共通ドキュメントリポジトリ `novelaid-editor-docs` に集約・管理されています。
 
-## 構文
+- **共通仕様書**: [novelaidattributes 共通仕様](../../novelaid-editor-docs/docs/dev/novelaidattributes仕様.md)
 
-GITの`.gitattributes`に似た構文を採用します。
+## 本プロジェクトにおける実装
 
-```
-# ドキュメントタイプ
-*.txt novel
-*.md markdown
-小説.md novel
-
-# ディレクトリ
-*novel*/ novel
-*wiki*/ markdown
-歴史/ markdown
-# 配置されているディレクトリ自身を変える場合
-./ markdown
-
-```
-
-基本的に、ディレクトリ内の`.md`ファイルが`novel`、`markdown`のどちらであるかの判別に使用します。
-なお、通常は`.md`ファイルは`markdown`として扱われます。
-互換的に小説原稿(`novel`)を`.md`で管理している場合の調整用のために用意しています。
-
-## 処理
-
-ディレクトリの種類によって、新規ファイル作成時のデフォルトの拡張子が変わります。
-
-* novel
-  + 新規作成時のデフォルトの拡張子は`.txt`
-* markdown
-  + 新規作成時のデフォルトの拡張子は`.md`
-
-## 互換用の設定
-
-作者はObsidianとの併用のため、小説原稿を`.md`で管理していました。
-なお、今後は`.txt`で管理する予定です。
-
-小説原稿を格納しているフォルダーに、`.novelaidattributes`を配置することで、そのフォルダー内の`.md`ファイルを小説扱いするようにします。  
-```
-*.md novel
-```
-
-この対応により、`.novelaidignore`の機能の代替となります。
+`novelaid-editor`（Electron版）では、メインプロセスのファイルシステム層にて実装されています：
+- 実装ファイル: `src/novelaid-fs/main/FileService.ts`
+- キャッシュ管理: `attributeCache`（`mtime` によるメモリキャッシュおよび破棄）
