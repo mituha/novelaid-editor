@@ -51,6 +51,25 @@ AI校正にも同一のコンテキスト選択を追加
 
 Monaco Editor の機能だが、動作していない？
 
+#### Monaco Editor のUI日本語化対応（公式NLSリソースの事前注入）
+
+* **現状と課題**:
+  - コンテキストメニュー（右クリック）、検索窓（`Ctrl+F`）の各種トグルボタンのTooltip（「大文字と小文字を区別する」「正規表現を使用」等）、コマンドパレット（`F1`）が英語表記のままとなっている。
+  - 過去に `monaco-editor-nls` などを検討したが、Webpack の AST pre-loader ルールが不足しており機能していなかった。
+* **Monaco Editor（v0.55+）の落とし穴**:
+  - `loader.config` に `'vs/nls': { availableLanguages: { '*': 'ja' } }` を指定すると、Monaco の AMD ローダープラグイン（`vs/nls.messages-loader.js`）が `vs/nls/lang/ja` を require しようとする。
+  - しかし公式パッケージ内の `min/vs/nls/lang/ja.js` には AMD の `define(...)` 宣言がなく、単なる `globalThis._VSCODE_NLS_MESSAGES = [...]` 代入スクリプトであるため、AMD ローダーがモジュール定義完了を永久に待ち続けてエラーも出ずに `Loading...` のままハングする。
+* **`novelaide`（先行開発版）で確立した解決アーキテクチャ**:
+  1. **ローカルアセット配信**:
+     - `node_modules/monaco-editor/min/vs` をビルド成果物（Webpack の場合は `CopyWebpackPlugin` 等）へコピーし、ローカル（`/monaco/vs` 等）から配信可能にする（外部CDNへの依存・トラッキング警告・404を完全排除）。
+  2. **事前 NLS メッセージ注入**:
+     - `CodeEditor.tsx` の描画前に、`/monaco/vs/nls/lang/ja.js`（約295KB）を `<script>` タグで一度だけ事前実行。
+     - `globalThis._VSCODE_NLS_MESSAGES` および `globalThis._VSCODE_NLS_LANGUAGE = 'ja'` を事前にグローバルへ注入する。
+  3. **安全なローダー設定**:
+     - `loader.config` には `paths: { vs: '/monaco/vs' }` のみを渡し、ハング原因となる `'vs/nls'` 設定は渡さない。
+     - Monaco 本体の初期化（`editor.main.js`）時に `globalThis._VSCODE_NLS_MESSAGES` が自動参照され、右クリックメニュー・検索窓Tooltip・コマンドパレットを含むすべてのUIが公式の完全な日本語で表示される。
+
+
 ### ファイルドラッグによるテキスト等挿入の機能
 
 とりあえず、ファイルのタイトルが挿入されるところまで実装
